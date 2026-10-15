@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'"><title>Mascotte · micro chat</title><link rel="stylesheet" href="chat.css"></head>
+<body>
+  <header><div><span class="eyebrow">ROSSO</span><h1>Due parole?</h1></div><div class="controls"><select id="engine" aria-label="Intelligenza artificiale"><option value="codex">Codex</option><option value="claude">Claude</option></select><button id="new" title="Nuova conversazione per l’IA scelta">Nuova</button></div></header>
+  <main id="messages" aria-label="Conversazione" aria-live="polite"></main>
+  <div id="status" role="status">Pronto</div>
+  <form id="composer"><textarea id="input" aria-label="Messaggio" placeholder="Scrivi al tuo piccolo amico…" maxlength="8000" rows="3"></textarea><div class="send-row"><small>Invio invia · ⇧Invio va a capo</small><button id="send" type="submit">Invia ↗</button></div></form>
+  <footer><span>Usa il tuo account IA</span><button id="setup" type="button">Collega eventi</button></footer>
+  <dialog id="setup-dialog"><h2>Collega le sessioni IA</h2><p>Queste modifiche riguardano i tuoi file di configurazione. Gli hook e il notify esistenti vengono conservati; prima di applicare salviamo i backup.</p><label>Claude <pre id="claude-preview"></pre></label><label>Codex <pre id="codex-preview"></pre></label><div class="dialog-actions"><button id="dismiss" type="button">Annulla</button><button id="apply" type="button">Applica con backup</button></div></dialog>
+  <script src="chat.js"></script>
+</body></html>

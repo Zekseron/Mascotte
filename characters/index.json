@@ -1,0 +1,12 @@
+{
+  "format": "mascotte-index/1",
+  "default": "rosso",
+  "characters": [
+    {
+      "id": "rosso",
+      "name": "Rosso",
+      "category": "Cat",
+      "path": "Cat/rosso/"
+    }
+  ]
+}

@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+"""Hook silenzioso: inoltra solo stato e sorgente a Mascotte, mai il testo della chat."""
+import argparse
+import contextlib
+import http.client
+import json
+import os
+from pathlib import Path
+import select
+import stat
+import subprocess
+import sys
+import time
+
+MAX_INPUT = 65536
+TIMEOUT = 0.2
+STATES = {'idle', 'sleep', 'listening', 'thinking', 'working', 'reading', 'writing',
+          'running', 'waiting', 'done', 'celebrate', 'error', 'talk', 'look', 'drag'}
+
+
+def read_input():
+    deadline = time.monotonic() + TIMEOUT
+    chunks = []
+    size = 0
+    while size <= MAX_INPUT:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0 or not select.select([sys.stdin], [], [], remaining)[0]:
+            return None
+        chunk = os.read(sys.stdin.fileno(), min(8192, MAX_INPUT + 1 - size))
+        if not chunk:
+            return json.loads(b''.join(chunks))
+        chunks.append(chunk)
+        size += len(chunk)
+    return None
+
+
+def failed_response(response):
+    if not isinstance(response, dict):
+        return False
+    if response.get('isError') is True or response.get('is_error') is True:
+        return True
+    code = response.get('exit_code', response.get('exitCode'))
+    return isinstance(code, int) and not isinstance(code, bool) and code != 0
+
+
+def hook_state(event):
+    if not isinstance(event, dict):
+        return None
+    name = event.get('hook_event_name')
+    if name == 'UserPromptSubmit':
+        return 'listening'
+    if name == 'Stop':
+        return 'done'
+    if name in {'Interrupt', 'SessionEnd'}:
+        return 'idle'
+    if name == 'PermissionRequest':
+        return 'waiting'
+    if name == 'Notification':
+        return 'waiting' if event.get('notification_type') in {
+            'permission_prompt', 'idle_prompt', 'elicitation_dialog'} else None
+    if name == 'PostToolUseFailure':
+        return None if event.get('is_interrupt') is True else 'error'
+    if name == 'PostToolUse':
+        return 'error' if failed_response(event.get('tool_response')) else 'thinking'
+    if name != 'PreToolUse':
+        return None
+    tool = event.get('tool_name', '')
+    if not isinstance(tool, str):
+        return None
+    leaf = tool.rsplit('__', 1)[-1].lower()
+    if leaf in {'bash', 'exec_command', 'running', 'run_command'}:
+        return 'running'
+    if leaf in {'edit', 'write', 'apply_patch'} or leaf.startswith(
+            ('write_', 'edit_', 'update_', 'create_', 'delete_', 'remove_')):
+        return 'writing'
+    if leaf in {'read', 'grep', 'glob', 'webfetch', 'websearch'} or leaf.startswith(
+            ('read_', 'get_', 'list_', 'search_', 'fetch_')):
+        return 'reading'
+    return 'working'
+
+
+def send_state(state, source):
+    if state not in STATES or source not in {'claude', 'codex', 'manual'}:
+        return
+    path = Path(os.environ.get('MASCOTTE_EVENT_FILE',
+        str(Path.home() / 'Library/Application Support/Mascotte/events.json')))
+    # Non seguire link e non leggere credenziali condivise con altri utenti.
+    fd = os.open(str(path), os.O_RDONLY | os.O_NOFOLLOW)
+    try:
+        metadata = os.fstat(fd)
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_uid != os.getuid() or metadata.st_mode & 0o077:
+            return
+        raw = os.read(fd, 4097)
+    finally:
+        os.close(fd)
+    if len(raw) > 4096:
+        return
+    endpoint = json.loads(raw)
+    port, token = endpoint.get('port'), endpoint.get('token')
+    if not isinstance(port, int) or isinstance(port, bool) or not 1 <= port <= 65535:
+        return
+    if not isinstance(token, str) or len(token) != 64 or any(c not in '0123456789abcdef' for c in token):
+        return
+    body = json.dumps({'state': state, 'source': source}, separators=(',', ':')).encode()
+    connection = http.client.HTTPConnection('127.0.0.1', port, timeout=TIMEOUT)
+    deadline = time.monotonic() + TIMEOUT
+    def remaining():
+        value = deadline - time.monotonic()
+        if value <= 0:
+            raise TimeoutError()
+        return value
+    try:
+        connection.connect()
+        connection.sock.settimeout(remaining())
+        connection.request('POST', '/event', body, {
+            'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'})
+        connection.sock.settimeout(remaining())
+        connection.getresponse()
+    finally:
+        connection.close()
+
+
+def forward(command, payload):
+    if not isinstance(command, list) or not command or not all(isinstance(v, str) and v for v in command):
+        return
+    try:
+        subprocess.run(command + [payload], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL, timeout=1, check=False)
+    except Exception:
+        pass
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--claude-hook', action='store_true')
+    mode.add_argument('--codex-hook', action='store_true')
+    mode.add_argument('--codex-notify', action='store_true')
+    mode.add_argument('--state', choices=sorted(STATES))
+    parser.add_argument('--forward-command', help='Array JSON del notify precedente, senza shell')
+    parser.add_argument('payload', nargs='?')
+    args = parser.parse_args()
+    if args.codex_notify:
+        # La notifica preesistente viene chiamata anche se Mascotte è chiusa o il JSON è invalido.
+        try:
+            event = json.loads(args.payload or '') if len(args.payload or '') <= MAX_INPUT else None
+            if isinstance(event, dict) and event.get('type') == 'agent-turn-complete':
+                send_state('done', 'codex')
+        finally:
+            if args.forward_command and args.payload is not None:
+                forward(json.loads(args.forward_command), args.payload)
+    elif args.state:
+        send_state(args.state, 'manual')
+    else:
+        state = hook_state(read_input())
+        if state:
+            send_state(state, 'claude' if args.claude_hook else 'codex')
+
+
+if __name__ == '__main__':
+    with open(os.devnull, 'w') as quiet, contextlib.redirect_stdout(quiet), contextlib.redirect_stderr(quiet):
+        try:
+            main()
+        except BaseException:
+            pass
+    sys.exit(0)

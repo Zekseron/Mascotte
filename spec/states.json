@@ -1,0 +1,21 @@
+{
+  "format": "mascotte-states/1",
+  "required": ["idle"],
+  "states": {
+    "idle":      { "fallback": null,       "description": "Riposo: nessuna attività in corso" },
+    "sleep":     { "fallback": "idle",     "description": "Nessuna attività da un po' di tempo" },
+    "listening": { "fallback": "thinking", "description": "Hai appena scritto all'IA" },
+    "thinking":  { "fallback": "idle",     "description": "L'IA sta ragionando" },
+    "working":   { "fallback": "thinking", "description": "L'IA usa uno strumento" },
+    "reading":   { "fallback": "working",  "description": "L'IA legge o cerca nei file" },
+    "writing":   { "fallback": "working",  "description": "L'IA scrive o modifica file" },
+    "running":   { "fallback": "working",  "description": "L'IA esegue un comando" },
+    "waiting":   { "fallback": "idle",     "description": "Serve la tua attenzione: permesso o domanda" },
+    "done":      { "fallback": "idle",     "description": "L'IA ha finito il turno" },
+    "celebrate": { "fallback": "done",     "description": "Successo esplicito, per esempio test passati" },
+    "error":     { "fallback": "idle",     "description": "Qualcosa è andato storto" },
+    "talk":      { "fallback": "idle",     "description": "Mostra un fumetto con una risposta" },
+    "look":      { "fallback": "thinking", "description": "Sta facendo un controllo visivo dello schermo" },
+    "drag":      { "fallback": "idle",     "description": "La stai trascinando" }
+  }
+}

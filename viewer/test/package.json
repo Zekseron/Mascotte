@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "description": "Test del visore. Con Node 22 `node --test viewer/test/` tratta la cartella come un modulo: main lo manda al file dei test.",
+  "main": "pack.test.cjs"
+}
