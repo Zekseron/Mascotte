@@ -1,0 +1,96 @@
+{
+  "format": "mascotte-pack/1",
+  "id": "rosso",
+  "name": "Rosso",
+  "author": "Mascotte",
+  "scale": 4,
+  "bubble": {
+    "x": 16,
+    "y": 7
+  },
+  "sheet": "sprites.png",
+  "frame": {
+    "width": 32,
+    "height": 32
+  },
+  "animations": {
+    "idle": {
+      "row": 0,
+      "frames": [0, 0, 0, 3, 3, 3, 0, 0, 0, 3, 3, 3, 2, 2, 0, 0, 3, 3, 3, 0, 0, 0, 1, 1, 0, 0, 3, 3, 3, 0, 0, 4, 4, 0, 0, 0, 3, 3, 3, 0, 0, 2, 2, 0],
+      "fps": 6
+    },
+    "sleep": {
+      "row": 1,
+      "frames": 4,
+      "fps": 8,
+      "durations": [600, 600, 600, 600]
+    },
+    "listening": {
+      "row": 2,
+      "frames": [0, 1, 0, 2],
+      "fps": 6
+    },
+    "thinking": {
+      "row": 3,
+      "frames": 4,
+      "fps": 3
+    },
+    "working": {
+      "row": 4,
+      "frames": 4,
+      "fps": 8
+    },
+    "reading": {
+      "row": 5,
+      "frames": [0, 0, 1, 1, 2, 2, 3, 4],
+      "fps": 4
+    },
+    "writing": {
+      "row": 6,
+      "frames": [0, 1, 2, 3, 2, 1],
+      "fps": 6
+    },
+    "running": {
+      "row": 7,
+      "frames": 4,
+      "fps": 8
+    },
+    "waiting": {
+      "row": 8,
+      "frames": 4,
+      "fps": 6
+    },
+    "done": {
+      "row": 9,
+      "frames": 4,
+      "fps": 6
+    },
+    "celebrate": {
+      "row": 10,
+      "frames": 6,
+      "fps": 8,
+      "durations": [160, 100, 100, 100, 120, 400],
+      "loop": false
+    },
+    "error": {
+      "row": 11,
+      "frames": 4,
+      "fps": 10
+    },
+    "talk": {
+      "row": 12,
+      "frames": [0, 1, 2, 1, 0, 2, 1, 0, 1, 2, 1, 3, 1],
+      "fps": 6
+    },
+    "look": {
+      "row": 13,
+      "frames": [0, 1, 2, 1, 3, 1],
+      "fps": 4
+    },
+    "drag": {
+      "row": 14,
+      "frames": [0, 1, 2, 1],
+      "fps": 6
+    }
+  }
+}

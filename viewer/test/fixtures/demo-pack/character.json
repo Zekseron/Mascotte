@@ -1,0 +1,44 @@
+{
+  "format": "mascotte-pack/1",
+  "id": "demo-pack",
+  "name": "Demo",
+  "author": "Mascotte",
+  "license": "CC0-1.0",
+  "scale": 4,
+  "bubble": {
+    "x": 16,
+    "y": 8
+  },
+  "sheet": "sprites.png",
+  "frame": {
+    "width": 32,
+    "height": 32
+  },
+  "animations": {
+    "idle": {
+      "row": 0,
+      "frames": [0, 1, 2, 3, 2, 1],
+      "fps": 6
+    },
+    "sleep": {
+      "row": 1,
+      "frames": 2,
+      "fps": 8,
+      "durations": [900, 700]
+    },
+    "thinking": {
+      "row": 2,
+      "frames": 3,
+      "fps": 8
+    },
+    "done": {
+      "row": 3,
+      "frames": 4,
+      "fps": 10,
+      "loop": false
+    }
+  },
+  "fallbacks": {
+    "waiting": "thinking"
+  }
+}

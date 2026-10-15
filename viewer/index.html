@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mascotte, visore dei pacchetti</title>
+  <meta name="color-scheme" content="light dark">
+  <link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <h1>Mascotte</h1>
+        <p class="brand-sub">Visore dei pacchetti personaggio</p>
+      </div>
+      <div class="topbar-actions">
+        <button type="button" class="btn btn-primary" id="open-btn">Apri pacchetto…</button>
+        <input type="file" id="file-input" multiple accept=".json,.png,application/json,image/png" hidden>
+      </div>
+    </header>
+
+    <main id="main">
+      <div id="notice" class="notice" hidden></div>
+
+      <section id="intro" class="intro" aria-labelledby="intro-title">
+        <h2 id="intro-title">Trascina qui un pacchetto</h2>
+        <p>Trascina su questa pagina la cartella di un personaggio, oppure i due file
+          <code>character.json</code> e il PNG del foglio sprite. In alternativa usa
+          «Apri pacchetto…» e seleziona i due file.</p>
+        <p class="muted">Se la pagina è servita via http (per esempio con
+          <code>python3 -m http.server</code> dalla cartella del progetto) puoi anche aprirla con
+          <code>?pack=percorso/della/cartella/</code>.</p>
+      </section>
+
+      <div id="viewer" hidden>
+        <section id="sec-info" class="card-section" aria-labelledby="pack-name">
+          <h2 id="pack-name" class="pack-name"></h2>
+          <dl id="pack-meta" class="meta"></dl>
+        </section>
+
+        <section id="sec-checks" class="card-section" aria-labelledby="checks-title">
+          <div class="checks-head">
+            <h2 id="checks-title">Controlli</h2>
+            <p id="checks-summary" class="badge"></p>
+          </div>
+          <ul id="checks-list" class="checks"></ul>
+        </section>
+
+        <section id="sec-stage" class="card-section" aria-labelledby="stage-title">
+          <h2 id="stage-title">Palco</h2>
+          <div class="stage-layout">
+            <div class="stage-main">
+              <div id="stage-box" class="stage-box">
+                <button type="button" id="stage-hit" class="stage-hit" aria-label="Riavvia l'animazione dello stato mostrato">
+                  <canvas id="stage-canvas" class="px" width="128" height="128" aria-hidden="true"></canvas>
+                  <span id="bubble-dot" class="bubble-dot" aria-hidden="true" hidden></span>
+                </button>
+              </div>
+              <p class="stage-status" aria-live="polite">
+                <span class="stat">Stato richiesto: <strong id="stage-requested">idle</strong></span>
+                <span class="stat">Stato mostrato: <strong id="stage-used">idle</strong></span>
+              </p>
+              <p id="stage-chain" class="muted small" hidden></p>
+              <p id="stage-desc" class="muted"></p>
+              <p id="stage-frame" class="muted small"></p>
+              <p id="sim-status" class="small sim-status" role="status"></p>
+            </div>
+
+            <div class="stage-controls">
+              <div class="field">
+                <label for="zoom">Ingrandimento <output id="zoom-out" for="zoom">×4</output></label>
+                <input type="range" id="zoom" min="1" max="8" step="1" value="4">
+              </div>
+
+              <fieldset class="field bg-field">
+                <legend>Sfondo</legend>
+                <label class="choice"><input type="radio" name="bg" value="light" checked> Chiaro</label>
+                <label class="choice"><input type="radio" name="bg" value="dark"> Scuro</label>
+                <label class="choice"><input type="radio" name="bg" value="checker"> Scacchiera</label>
+                <label class="choice"><input type="radio" name="bg" value="custom" id="bg-custom"> Colore</label>
+                <input type="color" id="bg-color" value="#f4f1ea" aria-label="Colore dello sfondo personalizzato">
+              </fieldset>
+
+              <div class="field">
+                <label class="choice"><input type="checkbox" id="show-bubble"> Mostra il punto del fumetto</label>
+              </div>
+
+              <div class="btn-row">
+                <button type="button" class="btn" id="btn-pause">Pausa</button>
+                <button type="button" class="btn" id="btn-step">Fotogramma successivo</button>
+                <button type="button" class="btn" id="btn-restart">Riavvia</button>
+              </div>
+              <div class="btn-row">
+                <button type="button" class="btn btn-primary" id="btn-sim">Simula una sessione</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-states" class="card-section" aria-labelledby="states-title">
+          <h2 id="states-title">Stati</h2>
+          <p class="muted">Clicca una scheda per vederla sul palco. Le schede attenuate mostrano il ripiego usato dall'app.</p>
+          <div id="states-grid" class="grid"></div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <div id="drop-overlay" class="drop-overlay" hidden>
+    <p>Rilascia qui il pacchetto</p>
+  </div>
+
+  <script src="pack.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

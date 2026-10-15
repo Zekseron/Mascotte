@@ -1,0 +1,41 @@
+{
+  "name": "mascotte-windows",
+  "version": "0.6.0",
+  "private": true,
+  "description": "Mascotte desktop per Windows — anteprima",
+  "author": "Mascotte",
+  "main": "main.cjs",
+  "scripts": {
+    "resources": "node scripts/resources.cjs",
+    "start": "npm run resources && electron .",
+    "test": "node --test test/*.test.cjs",
+    "test:codex-policy": "node test/codex-policy.cjs",
+    "build:win": "npm run resources && electron-builder --win zip --x64"
+  },
+  "dependencies": {
+    "smol-toml": "1.9.1"
+  },
+  "devDependencies": {
+    "@napi-rs/canvas": "^1.0.11",
+    "electron": "44.7.2",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "local.mascotte.windows",
+    "productName": "Mascotte",
+    "asar": true,
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "lib/**",
+      "renderer/**",
+      "resources/**",
+      "package.json"
+    ],
+    "win": {
+      "target": "zip",
+      "signAndEditExecutable": false
+    },
+    "artifactName": "Mascotte-Windows-${version}-${arch}.${ext}"
+  }
+}
