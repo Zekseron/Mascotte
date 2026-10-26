@@ -2,7 +2,7 @@
 const path = require('node:path');
 const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
-const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog } = require('electron');
+const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer } = require('electron');
 const dataDirectory = process.env.MASCOTTE_WINDOWS_DATA_DIR || (process.platform === 'win32' ? path.join(process.env.LOCALAPPDATA, 'Mascotte') : path.join(app.getPath('userData'), 'Windows-preview'));
 const endpoint = path.join(dataDirectory, 'events.json');
 if (process.argv.includes('--mascotte-notify')) {
@@ -19,6 +19,7 @@ function startApplication() {
   const { StateController, clampPosition } = require('./lib/state.cjs');
   const { EventServer } = require('./lib/events.cjs');
   const Setup = require('./lib/setup.cjs');
+  const Updater = require('./lib/updater.cjs');
   const Attachment = require('./lib/attachment.cjs');
   const { mascotSize, maskHit, dragPosition } = require('./lib/geometry.cjs');
   const P = require('./resources/pack.js');
@@ -26,11 +27,23 @@ function startApplication() {
   let settings, engine = 'codex', notice = '', setupPreview, drag, quitting = false, mouseIgnored = true;
   let characters = [];
   let attachment = 'free', singing = false, follower, captureFollower, captureTimer, anchorTimer, anchorDisplay, anchorFraction = .8, targetBounds, concealed = false, userVisible = true;
+  let watchSource = null, activeShareDirectory = null;
+  let updateRunning = false, updateStatus = '', updateFailed = false, updateAbort = null;
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
-  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun), notice, available: CLI.ENGINES.filter(e => CLI.findCLI(e)), setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null });
+  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun), notice, available: CLI.ENGINES.filter(e => CLI.findCLI(e)), setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: process.platform === 'win32', watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: process.platform === 'win32' && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed } });
   const saveSettings = () => atomicJSON(stateFile, settings);
+  async function installRepositoryUpdate(repo) {
+    const installDir = Updater.installationDirectory(process.execPath, repo.root, dataDirectory);
+    const resultFile = path.join(dataDirectory, 'update-result.json');
+    const logFile = path.join(dataDirectory, 'update.log');
+    const result = await Updater.updateFromRepository(repo.root, message => { updateStatus = message; broadcast(); }, updateAbort.signal);
+    updateStatus = 'Pacchetto pronto. Chiudo Mascotte per installare e riavviare…'; broadcast();
+    // Run the helper from the NEW unpacked build, so no process locks the installed runtime.
+    await Updater.launchInstaller({ ...result, installDir, resultFile, logFile, previousExe: process.execPath, parentPid: process.pid, helperScript: path.join(process.resourcesPath, 'mascotte-updater.cjs') });
+    app.quit();
+  }
   const displayAreas = () => screen.getAllDisplays().map(d => d.workArea);
   const displayScale = () => settings.scale/(pack.pixelRatio||1);
   const effectiveAnimation = animation => P.displayAnimation(pack,animation,attachment !== 'free',singing);
@@ -129,6 +142,24 @@ function startApplication() {
       placeAttachment();
     }, () => { detach(); if (!automatic && !quitting) dialog.showErrorBox('Aggancio non disponibile', 'Il lettore locale della posizione finestra non è disponibile su questo PC. Puoi usare l’aggancio alla barra.'); });
   }
+  async function windowSources() {
+    const sources = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 0, height: 0 }, fetchWindowIcons: false });
+    const ownHandles = new Set([mascot?.getMediaSourceId(), chat?.getMediaSourceId()].filter(Boolean).map(id => id.split(':')[1]));
+    return sources.filter(source => source.name?.trim() && /^window:/.test(source.id) && !ownHandles.has(source.id.split(':')[1]))
+      .map(source => ({ id: source.id, name: source.name.slice(0, 160) }));
+  }
+  function stopWatching() {
+    watchSource = null;
+    if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-watch-stop');
+    broadcast();
+  }
+  function clearTemporaryShares() {
+    for (const entry of fs.readdirSync(dataDirectory, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !/^mascotte-share-[a-z0-9-]+$/i.test(entry.name)) continue;
+      const target = path.join(dataDirectory, entry.name);
+      if (fs.lstatSync(target).isDirectory() && !fs.lstatSync(target).isSymbolicLink()) fs.rmSync(target, { recursive: true, force: true });
+    }
+  }
   function safeWindow(name, options) {
     const window = new BrowserWindow({ ...options, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -144,9 +175,10 @@ function startApplication() {
   }
   function showChat() {
     if (!chat || chat.isDestroyed()) {
-      chat = safeWindow('chat', { width: 400, height: 520, minWidth: 360, minHeight: 420, show: false, title: 'Mascotte · micro chat', alwaysOnTop: true, autoHideMenuBar: true, backgroundColor: '#191b22' });
+      chat = safeWindow('chat', { width: 440, height: 680, minWidth: 400, minHeight: 600, show: false, title: 'Mascotte · micro chat', alwaysOnTop: true, autoHideMenuBar: true, backgroundColor: '#191b22' });
       chat.once('ready-to-show', () => { chat.show(); chat.focus(); });
       chat.on('close', event => { if (!quitting) { event.preventDefault(); currentRun?.stop(); chat.hide(); } });
+      chat.webContents.on('render-process-gone', stopWatching);
     }
     const b = mascot.getBounds(), d = screen.getDisplayMatching(b).workArea;
     const pos = clampPosition({ x: b.x - 410, y: b.y }, chat.getBounds().width, chat.getBounds().height, [d]);
@@ -172,6 +204,10 @@ function startApplication() {
         { label: 'Aggancia alla barra delle applicazioni', type: 'radio', checked: attachment === 'bar', click: attachBar },
         { label: 'Aggancia alla finestra attiva', type: 'radio', checked: attachment === 'window', enabled: process.platform === 'win32', click: attachWindow }
       ] },
+      { label: 'Osservazione', submenu: [
+        { label: watchSource ? `Interrompi osservazione · ${watchSource.name}` : 'Interrompi osservazione', enabled: Boolean(watchSource), click: stopWatching },
+        { label: 'Scegli finestra nella micro chat', click: showChat }
+      ] },
       ...(pack.perch?.singing ? [{label:'Canta sul bordo (manuale)',type:'checkbox',checked:singing,enabled:attachment!=='free',click:()=>{singing=!singing;updatePose();}}] : []),
       { label: 'Prova uno stato', submenu: Object.keys(P.STATES.states).map(state => ({ label: state+(attachment!=='free'&&pack.perch?' · posa seduta':''), click: () => { if (!currentRun) controller.set(state); } })) },
       { label: userVisible ? 'Nascondi' : 'Mostra', click: () => { userVisible = !userVisible; if (!userVisible) mascot.hide(); else { if (!concealed) mascot.showInactive(); placeAttachment(); } follower?.pause(!userVisible); mascot.webContents.send('mascotte-state', { paused: !userVisible }); } },
@@ -181,19 +217,32 @@ function startApplication() {
   app.on('second-instance', () => { mascot?.showInactive(); if (chat) showChat(); });
   app.on('window-all-closed', () => {});
   app.on('before-quit', () => {
+    updateAbort?.abort();
     quitting = true; currentRun?.stop(); controller?.close(); clearInterval(mouseTimer);
+    stopWatching();
+    if (activeShareDirectory && fs.existsSync(activeShareDirectory)) { try { fs.rmSync(activeShareDirectory, { recursive: true, force: true }); } catch {} }
+    activeShareDirectory = null;
     clearTimeout(captureTimer); captureFollower?.close(); captureFollower = null; detach();
     server?.close().catch(() => {});
   });
   app.whenReady().then(async () => {
-    prepareDirectory(dataDirectory);
+    prepareDirectory(dataDirectory); clearTemporaryShares();
     const chatDirectory = path.join(dataDirectory, 'chat'); prepareDirectory(chatDirectory);
     store = new ChatStore(chatDirectory);
     const raw = readJSON(stateFile, {});
-    settings = {scale:[1,2,3,4,5,6].includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free'};
+    settings = {scale:[1,2,3,4,5,6].includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:''};
+    const resultFile = path.join(dataDirectory, 'update-result.json'), updateResult = readJSON(resultFile, null);
+    if (updateResult && typeof updateResult.message === 'string') {
+      updateStatus = updateResult.message.slice(0, 2000); updateFailed = !updateResult.ok;
+      fs.unlinkSync(resultFile);
+    }
     characters=readCharacters();selectCharacter(characters.some(c=>c.id===raw.character)?raw.character:'rosso',true);
-    session.defaultSession.setPermissionRequestHandler((_web, _permission, callback) => callback(false));
-    session.defaultSession.setPermissionCheckHandler(() => false);
+    session.defaultSession.setPermissionRequestHandler((web, permission, callback) => callback(
+      permission === 'display-capture' && web === chat?.webContents && Boolean(watchSource)
+    ));
+    session.defaultSession.setPermissionCheckHandler((web, permission) =>
+      permission === 'display-capture' && web === chat?.webContents && Boolean(watchSource)
+    );
     session.defaultSession.webRequest.onBeforeRequest((details, callback) => callback({ cancel: !details.url.startsWith('file:') && !details.url.startsWith('data:') }));
     const width = Math.round(pack.frame.width * displayScale()),height = Math.round(pack.frame.height * displayScale());
     const pos = clampPosition(settings.position, width, height, displayAreas());
@@ -236,10 +285,46 @@ function startApplication() {
     }
     if (chatting) {
       if (action === 'snapshot') return chatSnapshot();
+      if (action === 'repo-select' && !updateRunning) {
+        if (process.platform !== 'win32' || !app.isPackaged) return chatSnapshot();
+        try {
+          const selected = await dialog.showOpenDialog(chat, { title: 'Scegli la repo Mascotte clonata da GitHub', properties: ['openDirectory'], defaultPath: settings.updateRepoPath || undefined });
+          if (!selected.canceled && selected.filePaths[0]) {
+            const repo = Updater.validateRepository(selected.filePaths[0]);
+            settings.updateRepoPath = repo.root; saveSettings(); updateFailed = false;
+            updateStatus = repo.dirty ? 'Repo selezionata. Salva o committa le modifiche locali prima di aggiornare.' : 'Repo selezionata. Puoi aggiornare Mascotte.';
+          }
+        } catch (error) { updateFailed = true; updateStatus = error.message; }
+        return chatSnapshot();
+      }
+      if (action === 'update-run') {
+        if (process.platform !== 'win32' || !app.isPackaged || updateRunning || currentRun || setupPreview) return chatSnapshot();
+        // Reserve the operation before opening the native dialog to prevent duplicate updates.
+        updateRunning = true; updateFailed = false; broadcast();
+        try {
+          const repo = Updater.validateRepository(settings.updateRepoPath, { requireClean: true });
+          const installDir = Updater.installationDirectory(process.execPath, repo.root, dataDirectory);
+          const confirmation = await dialog.showMessageBox(chat, { type: 'question', title: 'Aggiorna Mascotte', message: 'Scaricare, compilare e installare l’aggiornamento?', detail: `Repo: ${repo.root}\nDestinazione: ${installDir}\n\nServono Git e Node.js 22+ con npm. La repo viene aggiornata con git pull --ff-only. A fine build Mascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${path.dirname(process.execPath).toLowerCase() !== installDir.toLowerCase() ? '\n\nL’app verrà installata in una cartella stabile: dopo il riavvio premi Crea / aggiorna hook per collegarli al nuovo percorso.' : ''}`, buttons: ['Annulla', 'Aggiorna e riavvia'], defaultId: 1, cancelId: 0 });
+          if (confirmation.response !== 1) { updateRunning = false; broadcast(); return chatSnapshot(); }
+          updateAbort = new AbortController();
+          void installRepositoryUpdate(repo).catch(error => {
+            updateRunning = false; updateFailed = true; updateStatus = `Aggiornamento non riuscito: ${error.message}`; broadcast();
+          }).finally(() => { updateAbort = null; });
+        } catch (error) { updateRunning = false; updateFailed = true; updateStatus = error.message; broadcast(); }
+        return chatSnapshot();
+      }
+      if (action === 'watch-sources' && process.platform === 'win32') return windowSources();
+      if (action === 'watch-enable' && process.platform === 'win32' && typeof data?.id === 'string') {
+        const sources = await windowSources(), source = sources.find(item => item.id === data.id);
+        if (!source) { notice = 'La finestra non è più disponibile. Aggiorna l’elenco e riprova.'; return chatSnapshot(); }
+        watchSource = source; notice = ''; broadcast(); return { id: source.id, name: source.name };
+      }
+      if (action === 'watch-disable') { stopWatching(); return chatSnapshot(); }
       if (action === 'engine' && !currentRun && CLI.ENGINES.includes(data)) { engine = data; notice = ''; return chatSnapshot(); }
       if (action === 'new' && !currentRun) { store.set(engine, []); notice = ''; return chatSnapshot(); }
       if (action === 'stop') { currentRun?.stop(); return; }
       if (action === 'setup-preview') {
+        if (updateRunning || currentRun) return chatSnapshot();
         if (process.platform !== 'win32' || !app.isPackaged) { notice = 'Configurazione hook disponibile nel pacchetto Windows.'; return chatSnapshot(); }
         try {
           const paths = Setup.configPaths(), before = Setup.snapshot(paths);
@@ -255,12 +340,38 @@ function startApplication() {
       }
       if (action === 'setup-dismiss') { setupPreview = null; return chatSnapshot(); }
       if (action === 'send') {
-        if (currentRun || typeof data !== 'string' || !data.trim() || data.length > 8000 || Buffer.byteLength(data) > 32768) return;
+        const text = typeof data === 'string' ? data : data?.text;
+        const imageData = typeof data === 'object' && data ? data.imageData : null;
+        if (currentRun || updateRunning || typeof text !== 'string' || !text.trim() || text.length > 8000 || Buffer.byteLength(text) > 32768) return;
+        let image = null, imagePath = null, imageDirectory = null;
+        if (imageData !== null) {
+          if (!watchSource || typeof imageData !== 'string' || imageData.length > 12000000) { notice = 'La vista non è più disponibile: attiva l’osservazione e riprova.'; broadcast(); return; }
+          const encoded = imageData.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/)?.[1];
+          if (!encoded) { notice = 'Il fotogramma non è valido.'; broadcast(); return; }
+          const bytes = Buffer.from(encoded, 'base64');
+          if (bytes.length > 8000000 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes.at(-2) !== 0xff || bytes.at(-1) !== 0xd9) { notice = 'Il fotogramma supera il limite o non è valido.'; broadcast(); return; }
+          image = { bytes, name: watchSource.name };
+        }
         const command = CLI.findCLI(engine);
         if (!command) { notice = 'CLI non trovata. Installa e accedi a ' + engine + ' sul tuo PC.'; broadcast(); return; }
-        const selected = engine, prompt = data.trim(), history = store.get(selected);
-        store.set(selected, [...history, { role: 'user', text: prompt }]); notice = '';
-        const run = CLI.runCLI(command, CLI.argumentsFor(selected), CLI.promptWithHistory(history, prompt), path.join(dataDirectory, 'chat'));
+        const selected = engine, prompt = text.trim(), history = store.get(selected);
+        const imageNote = image ? `\n\n[Fotogramma condiviso: ${image.name}]` : '';
+        if (image && selected === 'codex') {
+          try {
+            imageDirectory = fs.mkdtempSync(path.join(dataDirectory, 'mascotte-share-'));
+            imagePath = path.join(imageDirectory, 'finestra.jpg');
+            fs.writeFileSync(imagePath, image.bytes, { flag: 'wx', mode: 0o600 });
+            activeShareDirectory = imageDirectory;
+          } catch {
+            if (imageDirectory && fs.existsSync(imageDirectory)) fs.rmSync(imageDirectory, { recursive: true, force: true });
+            notice = 'Non riesco a preparare il fotogramma in modo temporaneo.'; broadcast(); return;
+          }
+        }
+        const completePrompt = CLI.promptWithHistory(history, prompt + imageNote);
+        const args = CLI.argumentsFor(selected, imagePath, Boolean(image && selected === 'claude'));
+        const input = image && selected === 'claude' ? CLI.promptWithImage(completePrompt, image.bytes.toString('base64')) : completePrompt;
+        store.set(selected, [...history, { role: 'user', text: prompt + imageNote }]); notice = '';
+        const run = CLI.runCLI(command, args, input, imageDirectory || path.join(dataDirectory, 'chat'));
         currentRun = run; controller.set('thinking', true); broadcast();
         try {
           const output = await run.promise;
@@ -268,7 +379,12 @@ function startApplication() {
           store.set(selected, [...store.get(selected), { role: 'assistant', text }]); controller.set('talk');
         } catch (e) {
           notice = e.message.slice(0, 1500); controller.set('error');
-        } finally { currentRun = null; broadcast(); }
+        } finally {
+          currentRun = null;
+          if (imageDirectory && fs.existsSync(imageDirectory)) { try { fs.rmSync(imageDirectory, { recursive: true, force: true }); } catch {} }
+          if (activeShareDirectory === imageDirectory) activeShareDirectory = null;
+          broadcast();
+        }
         return;
       }
     }

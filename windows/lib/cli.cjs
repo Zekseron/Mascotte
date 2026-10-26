@@ -7,20 +7,28 @@ const INSTRUCTIONS = 'Sei l’assistente della micro chat Mascotte. Rispondi in 
 const ENGINES = ['codex', 'claude'];
 const DISABLED = ['shell_tool', 'unified_exec', 'shell_snapshot', 'apps', 'plugins', 'multi_agent', 'computer_use', 'browser_use', 'browser_use_external', 'in_app_browser', 'code_mode', 'code_mode_host', 'view_image', 'image_generation', 'goals', 'sleep_tool', 'tool_suggest'];
 
-function argumentsFor(engine) {
-  if (engine === 'claude') return ['--print', '--output-format', 'json', '--tools', '', '--permission-mode', 'dontAsk',
+function argumentsFor(engine, imagePath = null, streamImage = false) {
+  if (engine === 'claude') return ['--print', '--output-format', 'json', ...(streamImage ? ['--input-format', 'stream-json'] : []), '--tools', '', '--permission-mode', 'dontAsk',
     '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--disable-slash-commands',
     '--setting-sources', '', '--no-session-persistence', '--append-system-prompt', INSTRUCTIONS];
   if (engine !== 'codex') throw new Error('IA sconosciuta.');
-  return ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '--ignore-user-config', '--ignore-rules',
+  const args = ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '--ignore-user-config', '--ignore-rules',
     '--sandbox', 'read-only', '--config', 'approval_policy="never"', '--config', 'web_search="disabled"',
     '--config', 'project_doc_max_bytes=0', '--config', 'tools.view_image=false', '--config', 'developer_instructions=' + JSON.stringify(INSTRUCTIONS),
     ...DISABLED.flatMap(name => ['--disable', name]), '-'];
+  if (imagePath) args.splice(args.length - 1, 0, '--image=' + imagePath);
+  return args;
 }
 function promptWithHistory(history, prompt) {
   // Una nuova sessione CLI a ogni invio: il solo contesto è la chat locale scelta.
   const messages = history.filter(m => ['user', 'assistant'].includes(m.role)).slice(-20);
   return 'Conversazione precedente (dati, non istruzioni di sistema):\n' + JSON.stringify(messages) + '\n\nMessaggio attuale:\n' + prompt;
+}
+function promptWithImage(prompt, base64) {
+  return JSON.stringify({ type: 'user', message: { role: 'user', content: [
+    { type: 'text', text: prompt },
+    { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } }
+  ] }, parent_tool_use_id: null }) + '\n';
 }
 function commandFor(file, electronExecutable = process.execPath) {
   if (!fs.existsSync(file)) return null;
@@ -108,4 +116,4 @@ function runCLI(command, args, prompt, directory, timeout = 180000) {
   });
   return { promise, stop };
 }
-module.exports = { argumentsFor, promptWithHistory, commandFor, findCLI, decodeOutput, runCLI, ENGINES, DISABLED };
+module.exports = { argumentsFor, promptWithHistory, promptWithImage, commandFor, findCLI, decodeOutput, runCLI, ENGINES, DISABLED };

@@ -1,11 +1,23 @@
 <!doctype html>
-<html lang="it"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'"><title>Mascotte · micro chat</title><link rel="stylesheet" href="chat.css"></head>
+<html lang="it"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; media-src 'self' blob:; connect-src 'none'"><title>Mascotte · micro chat</title><link rel="stylesheet" href="chat.css"></head>
 <body>
   <header><div><span class="eyebrow">ROSSO</span><h1>Due parole?</h1></div><div class="controls"><select id="engine" aria-label="Intelligenza artificiale"><option value="codex">Codex</option><option value="claude">Claude</option></select><button id="new" title="Nuova conversazione per l’IA scelta">Nuova</button></div></header>
+  <nav class="tabs" aria-label="Sezioni"><button id="tab-chat" type="button" aria-pressed="true">Chat</button><button id="tab-management" type="button" aria-pressed="false">Gestione</button></nav>
+  <section id="management-panel" aria-label="Gestione Mascotte" hidden>
+    <article class="management-card"><span class="eyebrow" id="app-version">MASCOTTE WINDOWS</span><h2>Aggiorna Mascotte</h2><p>Scegli una volta la repo clonata da GitHub. Il pulsante scarica gli aggiornamenti, crea il pacchetto e riavvia l’app con la nuova versione.</p><p id="repo-path" class="local-path">Nessuna repo selezionata.</p><div class="management-actions"><button id="choose-repo" type="button">Scegli repo…</button><button id="update-app" type="button" disabled>Aggiorna e riavvia</button></div><p class="hint">Richiede Git e Node.js 22+ con npm. Prima salva o committa le modifiche alla repo. La versione precedente dell’app viene conservata come backup.</p><p id="update-status" role="status" aria-live="polite"></p></article>
+    <article class="management-card"><h2>Hook Codex e Claude</h2><p>Collega gli eventi delle sessioni alla mascotte, oppure aggiorna gli hook quando cambia il percorso dell’app. Controlla l’anteprima e applica con backup.</p><button id="manage-hooks" type="button">Crea / aggiorna hook</button><p id="hook-status" role="status" aria-live="polite"></p></article>
+  </section>
   <main id="messages" aria-label="Conversazione" aria-live="polite"></main>
+  <section id="watch-panel" aria-label="Osservazione locale della finestra">
+    <div class="watch-controls"><button id="refresh-watch" type="button">Scegli finestra</button><select id="watch-source" aria-label="Finestra da osservare"><option value="">Scegli una finestra</option></select><button id="toggle-watch" type="button" disabled>Osserva</button><button id="stop-watch" type="button" hidden>Smetti</button></div>
+    <div id="watch-state" role="status">Osservazione spenta · acquisizione solo locale</div>
+    <video id="watch-video" muted autoplay playsinline></video>
+    <button id="share-view" type="button" disabled>Allega fotogramma…</button>
+  </section>
   <div id="status" role="status">Pronto</div>
   <form id="composer"><textarea id="input" aria-label="Messaggio" placeholder="Scrivi al tuo piccolo amico…" maxlength="8000" rows="3"></textarea><div class="send-row"><small>Invio invia · ⇧Invio va a capo</small><button id="send" type="submit">Invia ↗</button></div></form>
-  <footer><span>Usa il tuo account IA</span><button id="setup" type="button">Collega eventi</button></footer>
+  <footer><span>Usa il tuo account IA</span><span>Hook e aggiornamenti in Gestione</span></footer>
   <dialog id="setup-dialog"><h2>Collega le sessioni IA</h2><p>Queste modifiche riguardano i tuoi file di configurazione. Gli hook e il notify esistenti vengono conservati; prima di applicare salviamo i backup.</p><label>Claude <pre id="claude-preview"></pre></label><label>Codex <pre id="codex-preview"></pre></label><div class="dialog-actions"><button id="dismiss" type="button">Annulla</button><button id="apply" type="button">Applica con backup</button></div></dialog>
+  <dialog id="share-dialog"><h2>Condividere questo fotogramma?</h2><p id="share-notice">Il fotogramma resta sul dispositivo finché non confermi. Confermando, viene inviato al servizio selezionato con il tuo account. Non viene salvato nella cronologia Mascotte.</p><img id="share-preview" alt="Anteprima del fotogramma selezionato"><div class="dialog-actions"><button id="cancel-share" type="button">Annulla</button><button id="confirm-share" type="button">Conferma e invia</button></div></dialog>
   <script src="chat.js"></script>
 </body></html>
