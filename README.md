@@ -61,6 +61,10 @@ da verificare su Windows reale. Lo ZIP con guide si genera con
 `python3 tools/export_windows.py` dopo `npm run build:win` nella cartella windows.
 Per compilare il sorgente e collegare gli hook, segui la
 [procedura dal repository](windows/README.md#preparare-una-build-dal-repository-e-collegare-gli-hook).
+Nella build Windows, apri la finestra del gattino e passa a **Gestione**:
+**Crea / aggiorna hook** mostra l'anteprima delle configurazioni e salva i backup;
+**Aggiorna e riavvia** aggiorna e compila la repo scelta con Git e Node/npm.
+Vedi [aggiornamento dalla finestra](windows/README.md#aggiornare-dalla-scheda-gestione).
 
 ## Personaggi disponibili
 
