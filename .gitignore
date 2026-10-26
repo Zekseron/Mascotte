@@ -12,6 +12,14 @@ characters-private/
 *.asar
 *.exe
 *.dll
+/*.pak
+/*.dat
+/*.bin
+/locales/
+/resources/
+/LICENSE.electron.txt
+/LICENSES.chromium.html
+/vk_swiftshader_icd.json
 *.app/
 __pycache__/
 *.pyc

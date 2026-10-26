@@ -29,8 +29,11 @@ function prepareHooks(claudeText, codexText, executable) {
   if (!Array.isArray(previous) || !previous.every(x => typeof x === 'string') || /\.(cmd|bat|ps1)$/i.test(previous[0] || '')) throw new Error('Notify precedente non nativo: configurazione manuale richiesta per preservarlo.');
   codex.notify = [executable, '--mascotte-notify', '--codex-notify'];
   if (previous.length) codex.notify.push('--forward-base64', Buffer.from(JSON.stringify(previous)).toString('base64'));
+  codex.features ||= {};
+  if (Array.isArray(codex.features) || typeof codex.features !== 'object') throw new Error('Sezione features Codex non valida.');
+  codex.features.hooks = true;
   codex.hooks ||= {};
-  for (const event of ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PermissionRequest', 'Interrupt']) {
+  for (const event of ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PermissionRequest', 'Interrupt', 'Stop']) {
     if (codex.hooks[event] !== undefined && !Array.isArray(codex.hooks[event])) throw new Error('Hook Codex non validi.');
     const value = { hooks: [{ type: 'command', command: codexCommand, command_windows: codexCommand, timeout: 2 }] };
     if (['PreToolUse', 'PostToolUse', 'PermissionRequest'].includes(event)) value.matcher = '.*';

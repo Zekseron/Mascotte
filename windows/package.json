@@ -10,7 +10,8 @@
     "start": "npm run resources && electron .",
     "test": "node --test test/*.test.cjs",
     "test:codex-policy": "node test/codex-policy.cjs",
-    "build:win": "npm run resources && electron-builder --win zip --x64"
+    "build:win": "npm run resources && electron-builder --win zip --x64 && node scripts/copy-root-build.cjs",
+    "update:win": "node scripts/install-update.cjs"
   },
   "dependencies": {
     "smol-toml": "1.9.1"

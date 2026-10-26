@@ -18,11 +18,18 @@ public static class MascotteWindowGeometry {
   [DllImport("dwmapi.dll", EntryPoint="DwmGetWindowAttribute")] static extern int GetCloaked(IntPtr h, int attribute, out int value, int count);
   public static void Run() {
     SetProcessDpiAwarenessContext(new IntPtr(-4));
-    IntPtr target = GetForegroundWindow(); uint pid; GetWindowThreadProcessId(target, out pid);
-    var name = new System.Text.StringBuilder(256); GetClassName(target, name, 256);
-    string cls = name.ToString();
     uint hostPID; UInt32.TryParse(Environment.GetEnvironmentVariable("MASCOTTE_HOST_PID"), out hostPID);
-    if (target == IntPtr.Zero || pid == hostPID || cls == "Shell_TrayWnd" || cls == "Shell_SecondaryTrayWnd" || cls == "Progman" || cls == "WorkerW") {
+    IntPtr target = IntPtr.Zero; uint pid = 0; string cls = "";
+    // Closing the mascot's context menu can briefly make its own window (or
+    // the shell) foreground. Wait for the user's app to regain foreground
+    // instead of treating that short transition as a failed attachment.
+    for (int attempt = 0; attempt < 50; attempt++) {
+      target = GetForegroundWindow(); GetWindowThreadProcessId(target, out pid);
+      var name = new System.Text.StringBuilder(256); GetClassName(target, name, 256); cls = name.ToString();
+      if (target != IntPtr.Zero && pid != hostPID && cls != "Shell_TrayWnd" && cls != "Shell_SecondaryTrayWnd" && cls != "Progman" && cls != "WorkerW" && cls != "#32768") break;
+      target = IntPtr.Zero; Thread.Sleep(100);
+    }
+    if (target == IntPtr.Zero) {
       Console.WriteLine("{\"status\":\"unavailable\"}"); return;
     }
     Task<string> input = Task.Run(() => Console.ReadLine()); bool paused = false; string previous = null;
@@ -47,7 +54,8 @@ public static class MascotteWindowGeometry {
         }
         if (json != previous) { Console.WriteLine(json); Console.Out.Flush(); previous = json; }
       }
-      Thread.Sleep(200);
+      // Sample at about 30 Hz so the mascot can keep up with quick moves.
+      Thread.Sleep(33);
     }
   }
 }

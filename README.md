@@ -12,7 +12,7 @@ Progetto e decisioni: [DESIGN.md](DESIGN.md).
 | Cartella | Contenuto |
 | --- | --- |
 | `app/` | App macOS nativa; compilazione e uso in [app/README.md](app/README.md) |
-| `windows/` | Prima app Windows Electron; [istruzioni e limiti](windows/README.md) |
+| `windows/` | Sorgente e build dell'app Windows Electron; `Mascotte.exe` e i file necessari sono nella radice; [istruzioni e limiti](windows/README.md) |
 | `spec/` | Elenco degli stati e dei ripieghi (`states.json`), fonte unica per app e visore |
 | `tools/` | `pixelkit.py`: disegno di pixel art come testo e generazione dei pacchetti |
 | `characters/` | Pacchetti personaggio pronti (`character.json` + `sprites.png`) |

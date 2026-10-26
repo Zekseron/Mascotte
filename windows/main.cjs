@@ -25,7 +25,7 @@ function startApplication() {
   let mascot, chat, tray, controller, server, store, pack, imageData, currentRun, hitMask, mouseTimer;
   let settings, engine = 'codex', notice = '', setupPreview, drag, quitting = false, mouseIgnored = true;
   let characters = [];
-  let attachment = 'free', singing = false, follower, anchorTimer, anchorDisplay, anchorFraction = .8, targetBounds, concealed = false, userVisible = true;
+  let attachment = 'free', singing = false, follower, captureFollower, captureTimer, anchorTimer, anchorDisplay, anchorFraction = .8, targetBounds, concealed = false, userVisible = true;
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
@@ -49,7 +49,7 @@ function startApplication() {
     controller=new StateController(pack,P,value=>mascot.webContents.send('mascotte-state',{...value,animation:effectiveAnimation(value.animation)}));
     if(!initial){
       mascot.webContents.send('mascotte-state',{character:{pack,imageData,animation:effectiveAnimation(pack.animations.idle)}});
-      setScale(settings.scale);controller.set(currentRun?'thinking':'idle',Boolean(currentRun));saveSettings();tray?.setContextMenu(menu());
+      setScale(settings.scale);controller.set(currentRun?'thinking':'idle',Boolean(currentRun));saveSettings();
     }
   }
   function readCharacters() {
@@ -86,25 +86,48 @@ function startApplication() {
     if (concealed) { mascot.showInactive(); concealed = false; }
     updateHit();
   }
-  function attachBar() {
-    detach(); const b = mascot.getBounds(), d = screen.getDisplayMatching(b);
+  function taskbarDisplayAt(point) {
+    const d = screen.getDisplayNearestPoint(point), { x, y, width, height } = d.bounds, a = d.workArea;
+    const onDisplay = point.x >= x && point.x < x + width && point.y >= y && point.y < y + height;
+    const inBottomTaskbar = point.x >= a.x && point.x < a.x + a.width && point.y >= a.y + a.height && point.y < y + height;
+    return onDisplay && inBottomTaskbar ? d : null;
+  }
+  function attachBar(displayOverride) {
+    detach(); const b = mascot.getBounds(), d = displayOverride || screen.getDisplayMatching(b);
     attachment = settings.attachment = 'bar'; anchorDisplay = d.id;
     anchorFraction = Math.max(0, Math.min(1, (b.x+b.width/2-d.workArea.x)/d.workArea.width));
     updatePose();placeAttachment(); anchorTimer = setInterval(placeAttachment, 1000); saveSettings();
   }
-  function attachWindow() {
+  function prepareWindowCapture() {
     if (process.platform !== 'win32') return;
+    clearTimeout(captureTimer); captureFollower?.close();
+    captureFollower = new Attachment.WindowFollower(() => {}, () => {});
+    captureTimer = setTimeout(() => { captureFollower?.close(); captureFollower = null; }, 30000);
+  }
+  function attachWindow({ automatic = false, dropPoint } = {}) {
+    if (process.platform !== 'win32') return;
+    const selected = automatic ? null : captureFollower;
+    clearTimeout(captureTimer); captureFollower = null;
     detach(); attachment = 'window'; updatePose(); saveSettings(); let first = true;
-    follower = new Attachment.WindowFollower(state => {
-      if (state.status === 'closed') { detach(); return; }
+    follower = selected && !selected.closed ? selected : new Attachment.WindowFollower(() => {}, () => {});
+    follower.setHandlers(state => {
+      if (state.status === 'closed' || (automatic && state.status === 'unavailable')) { detach(); return; }
       if (state.status === 'unavailable') { detach(); dialog.showErrorBox('Nessuna finestra agganciabile', 'Porta in primo piano la finestra desiderata e riprova dal clic destro sulla mascotte.'); return; }
       if (state.status === 'hidden') { targetBounds = null; if (userVisible) { mascot.hide(); concealed = true; } return; }
       const top = screen.screenToDipPoint({ x: state.x, y: state.y });
       const bottom = screen.screenToDipPoint({ x: state.x + state.width, y: state.y + state.height });
       targetBounds = { x: top.x, y: top.y, width: bottom.x-top.x, height: bottom.y-top.y };
-      if (first) { const b = mascot.getBounds(); anchorFraction = Math.max(0, Math.min(1, (b.x+b.width/2-top.x)/targetBounds.width)); first = false; }
+      if (first) {
+        if (automatic) {
+          const tolerance = Math.max(24, Math.round(32 * displayScale()));
+          const nearTop = dropPoint && dropPoint.x >= targetBounds.x && dropPoint.x <= targetBounds.x + targetBounds.width &&
+            dropPoint.y >= targetBounds.y - tolerance && dropPoint.y <= targetBounds.y + tolerance;
+          if (!nearTop) { detach(); return; }
+        }
+        const b = mascot.getBounds(); anchorFraction = Math.max(0, Math.min(1, (b.x+b.width/2-top.x)/targetBounds.width)); first = false;
+      }
       placeAttachment();
-    }, () => { detach(); if (!quitting) dialog.showErrorBox('Aggancio non disponibile', 'Il lettore locale della posizione finestra non è disponibile su questo PC. Puoi usare l’aggancio alla barra.'); });
+    }, () => { detach(); if (!automatic && !quitting) dialog.showErrorBox('Aggancio non disponibile', 'Il lettore locale della posizione finestra non è disponibile su questo PC. Puoi usare l’aggancio alla barra.'); });
   }
   function safeWindow(name, options) {
     const window = new BrowserWindow({ ...options, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
@@ -149,7 +172,7 @@ function startApplication() {
         { label: 'Aggancia alla barra delle applicazioni', type: 'radio', checked: attachment === 'bar', click: attachBar },
         { label: 'Aggancia alla finestra attiva', type: 'radio', checked: attachment === 'window', enabled: process.platform === 'win32', click: attachWindow }
       ] },
-      ...(pack.perch?.singing ? [{label:'Canta sul bordo (manuale)',type:'checkbox',checked:singing,enabled:attachment!=='free',click:()=>{singing=!singing;updatePose();tray?.setContextMenu(menu());}}] : []),
+      ...(pack.perch?.singing ? [{label:'Canta sul bordo (manuale)',type:'checkbox',checked:singing,enabled:attachment!=='free',click:()=>{singing=!singing;updatePose();}}] : []),
       { label: 'Prova uno stato', submenu: Object.keys(P.STATES.states).map(state => ({ label: state+(attachment!=='free'&&pack.perch?' · posa seduta':''), click: () => { if (!currentRun) controller.set(state); } })) },
       { label: userVisible ? 'Nascondi' : 'Mostra', click: () => { userVisible = !userVisible; if (!userVisible) mascot.hide(); else { if (!concealed) mascot.showInactive(); placeAttachment(); } follower?.pause(!userVisible); mascot.webContents.send('mascotte-state', { paused: !userVisible }); } },
       { type: 'separator' }, { label: 'Esci', click: () => app.quit() }
@@ -159,7 +182,7 @@ function startApplication() {
   app.on('window-all-closed', () => {});
   app.on('before-quit', () => {
     quitting = true; currentRun?.stop(); controller?.close(); clearInterval(mouseTimer);
-    detach();
+    clearTimeout(captureTimer); captureFollower?.close(); captureFollower = null; detach();
     server?.close().catch(() => {});
   });
   app.whenReady().then(async () => {
@@ -182,7 +205,7 @@ function startApplication() {
     mouseTimer = setInterval(updateHit, 100);
     const rosso=characters.find(c=>c.id==='rosso');
     const icon = nativeImage.createFromDataURL(rosso.imageData).crop({x:0,y:0,width:rosso.pack.frame.width,height:rosso.pack.frame.height}).resize({width:24,height:24});
-    tray = new Tray(icon); tray.setToolTip('Mascotte'); tray.setContextMenu(menu()); tray.on('click', showChat); tray.on('right-click', () => tray.setContextMenu(menu()));
+    tray = new Tray(icon); tray.setToolTip('Mascotte'); tray.on('click', showChat); tray.on('right-click', () => { prepareWindowCapture(); tray.popUpContextMenu(menu()); });
     screen.on('display-removed', () => setScale(settings.scale));
     screen.on('display-metrics-changed', () => setScale(settings.scale));
     server = new EventServer(endpoint, Object.keys(P.STATES.states), event => { if (!currentRun) controller.set(event.state); });
@@ -200,10 +223,16 @@ function startApplication() {
       if (action === 'init') return { pack, imageData, scale: settings.scale, animation: stateAnimation() };
       if (action === 'mask' && (Array.isArray(data)||data instanceof Uint8Array) && data.length === pack.frame.width * pack.frame.height && data.every(x => x === 0 || x === 1)) { hitMask = data; updateHit(); return; }
       if (action === 'chat') { if (!currentRun) controller.set('listening'); showChat(); return; }
-      if (action === 'menu') { menu().popup({ window: mascot }); return; }
+      if (action === 'menu') { prepareWindowCapture(); menu().popup({ window: mascot }); return; }
       if (action === 'drag-start') { detach(); drag = { position: mascot.getBounds(), cursor: screen.getCursorScreenPoint(), resume: controller.state }; controller.set('drag', true); mouseIgnored = false; mascot.setIgnoreMouseEvents(false); return; }
       if (action === 'drag-move' && drag && Number.isFinite(data?.x) && Number.isFinite(data?.y) && Math.abs(data.x) < 50000 && Math.abs(data.y) < 50000) { const pos = dragPosition(drag, screen.getCursorScreenPoint()); moveMascot(pos.x, pos.y); return; }
-      if (action === 'drag-end' && drag) { const resume = drag.resume; drag = null; settings.position = clampPosition(mascot.getBounds(), mascot.getBounds().width, mascot.getBounds().height, displayAreas()); moveMascot(settings.position.x, settings.position.y); saveSettings(); controller.set(currentRun ? 'thinking' : resume === 'sleep' ? 'idle' : resume, Boolean(currentRun)); updateHit(); return; }
+      if (action === 'drag-end' && drag) {
+        const resume = drag.resume, dropPoint = screen.getCursorScreenPoint(), barDisplay = taskbarDisplayAt(dropPoint);
+        drag = null; settings.position = clampPosition(mascot.getBounds(), mascot.getBounds().width, mascot.getBounds().height, displayAreas());
+        moveMascot(settings.position.x, settings.position.y); saveSettings(); controller.set(currentRun ? 'thinking' : resume === 'sleep' ? 'idle' : resume, Boolean(currentRun)); updateHit();
+        if (barDisplay) attachBar(barDisplay); else attachWindow({ automatic: true, dropPoint });
+        return;
+      }
     }
     if (chatting) {
       if (action === 'snapshot') return chatSnapshot();
@@ -220,7 +249,7 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'setup-apply' && setupPreview) {
-        try { Setup.applyHooks(setupPreview.paths, setupPreview.before, setupPreview.after, path.join(dataDirectory, 'hook-installation.json')); notice = 'Hook installati con backup. Mantieni il pacchetto qui e riapri le sessioni IA.'; setupPreview = null; }
+        try { Setup.applyHooks(setupPreview.paths, setupPreview.before, setupPreview.after, path.join(dataDirectory, 'hook-installation.json')); notice = 'Hook installati con backup. In Codex controlla e approva gli hook (in CLI: /hooks), poi apri una nuova sessione Codex. Mantieni il pacchetto in questa cartella.'; setupPreview = null; }
         catch (e) { notice = e.message; }
         return chatSnapshot();
       }

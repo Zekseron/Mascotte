@@ -14,7 +14,7 @@ Nel menu **Aggancio** scegli **barra delle applicazioni**, **finestra attiva** o
 
 Se manca spazio sopra una finestra massimizzata, la mascotte resta dentro l'area visibile. Con barra laterale o nascosta usa il bordo inferiore dell'area di lavoro: non segue le singole icone della barra. Gli stati IA continuano a funzionare.
 
-Il seguito della finestra usa un solo processo PowerShell locale con API User32/DWM: legge coordinate, PID e visibilità della finestra scelta, senza screenshot, testo, titoli o invii alle IA. Controllo ogni 200 ms durante l'aggancio, sospeso quando scegli Nascondi; processo chiuso allo sgancio. **Questa funzione nativa richiede ancora la prova su Windows reale.**
+Il seguito della finestra usa un solo processo PowerShell locale con API User32/DWM: legge coordinate, PID e visibilità della finestra scelta, senza screenshot, testo, titoli o invii alle IA. Controllo circa 30 volte al secondo durante l'aggancio, sospeso quando scegli Nascondi; processo chiuso allo sgancio. **Questa funzione nativa richiede ancora la prova su Windows reale.**
 
 1. Estrai **tutto** `Mascotte-Windows-0.6.0-x64.zip` in una cartella stabile del tuo utente, per esempio `Mascotte` dentro la tua cartella utente. Non eseguire l'exe dentro lo ZIP. Mantieni accanto all'exe DLL, `resources/` e gli altri file.
 2. Apri `Mascotte.exe`. Non serve avviarlo come amministratore. È un'anteprima non firmata: Windows può mostrare SmartScreen. Verifica provenienza e pacchetto prima di decidere se autorizzarlo; non disattivare la protezione del sistema.
@@ -38,7 +38,7 @@ Nella micro chat premi **Collega eventi**, leggi l'anteprima e scegli **Applica 
 - Aggiorna solo i file del destinatario (`%USERPROFILE%\.claude\settings.json` e `%USERPROFILE%\.codex\config.toml`, o i percorsi `CLAUDE_CONFIG_DIR`/`CODEX_HOME`). Non legge i file di login.
 - Conserva hook e notify esistenti e salva backup `*.before-mascotte-*`. La riscrittura può cambiare spazi/commenti TOML, ma mantiene i valori; l'originale completo è nel backup.
 - Se la configurazione cambia tra anteprima e applicazione, l'app rifiuta la scrittura. Se gli hook Mascotte esistono già, non li duplica. Notify precedenti che sono wrapper shell richiedono configurazione manuale per preservarli.
-- Riapri le sessioni IA. La CLI può richiedere di fidarsi dei nuovi hook: segui le sue richieste, senza disabilitare le verifiche dei permessi.
+- Codex: controlla e approva i nuovi hook quando Codex lo richiede; dalla CLI puoi usare `/hooks` per esaminarli e concedere fiducia. La CLI e l'estensione IDE usano la stessa configurazione Codex: dopo l'approvazione apri una nuova sessione nell'IDE. Riavvia anche le sessioni Claude. Non disabilitare le verifiche dei permessi.
 - Claude usa la forma exec con argomenti separati per chiamare `Mascotte.exe --mascotte-notify …`; richiede una CLI che supporti `args` negli hook. Codex usa PowerShell 5.1 incluso in Windows con comando codificato per gestire percorsi con spazi senza interpolare i dati degli eventi. Lascia la cartella nello stesso percorso dopo la configurazione. Il ponte non apre finestre e non chiama le IA; trasmette solo stato e origine. L'avvio dei processi aggiunge un costo per evento, da misurare su Windows.
 
 ## Dati e privacy
@@ -57,7 +57,7 @@ Esci dal menu della mascotte. Per rimuovere gli hook, elimina dalle configurazio
 
 ## Limiti di questa anteprima
 
-- Solo Windows x64; ARM64 non compilato né verificato. Nessun installer, avvio automatico o aggiornamento automatico. L'exe ha ancora l'icona/metadata del runtime Electron; tray e finestra mostrano Rosso.
+- Solo Windows x64; ARM64 non compilato né verificato. Nessun installer, avvio automatico o updater integrato; l'aggiornamento manuale da ZIP è descritto sotto Sviluppo. L'exe ha ancora l'icona/metadata del runtime Electron; tray e finestra mostrano Rosso.
 - Incluso Rosso, selezionabile per categoria; import di altri pacchetti non ancora esposto nell’interfaccia Windows.
 - Electron include Chromium: lo ZIP è circa 150 MB ed è più pesante dell'app nativa Mac. CPU/RAM/energia e costo dei processi hook si misurano sul PC nella prova.
 - Trasparenza/click-through, DPI, ACL, chiusura dell'albero dei processi con taskkill, hook e login reali richiedono la prova Windows.
@@ -65,15 +65,36 @@ Esci dal menu della mascotte. Per rimuovere gli hook, elimina dalle configurazio
 
 ## Sviluppo
 
-Richiede Node 22+ e npm. Dalla cartella `windows`:
+Richiede Node 22+ e npm. In PowerShell usa `npm.cmd`: così eviti il blocco di `npm.ps1` dovuto alla Execution Policy e non devi cambiarla. Se il terminale parte dalla radice del repository, entra prima in `windows`:
 
-```sh
-npm ci
-npm test
-npm start
-npm run build:win
+```powershell
+Set-Location .\windows
+npm.cmd ci
+npm.cmd start
+npm.cmd run build:win
 ```
 
-`resources` copia gli asset dalla radice della repo; non modificarli qui. Build di sviluppo pronta in `dist/`. Su Mac l'anteprima usa una cartella separata e `MASCOTTE_PREVIEW=1` sceglie una porta libera, preservando la mascotte nativa attiva. I test principali sono offline; `npm run test:codex-policy` usa opzionalmente la CLI Codex reale contro un mock locale con CODEX_HOME vuoto, senza login.
+`npm.cmd ci` serve la prima volta o per ricreare `node_modules`; `npm.cmd start` avvia il sorgente; `npm.cmd run build:win` crea `dist\Mascotte-Windows-0.6.0-x64.zip` e copia l'app portatile completa nella radice del repository, così puoi aprire `Mascotte.exe` direttamente da lì. Lascia nella radice anche `resources/`, `locales/` e gli altri file copiati: sono necessari all'eseguibile. La build non aggiorna da sola una copia già estratta altrove.
+
+Per sostituire una copia estratta con lo ZIP appena creato, prima esci da Mascotte e poi esegui dalla cartella `windows`:
+
+```powershell
+Set-Location .\windows
+npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.6.0-x64.zip" --install-dir "$env:LOCALAPPDATA\Programs\Mascotte"
+```
+
+`--install-dir` deve indicare la cartella che contiene la vecchia `Mascotte.exe`; usa il percorso effettivo se l'hai estratta altrove. Il comando rifiuta di procedere se Mascotte è ancora aperta, prepara l'aggiornamento in una cartella temporanea e conserva la cartella precedente come `Mascotte.backup-<data>`. Non cancella i dati in `%LOCALAPPDATA%\Mascotte`.
+
+Comandi rapidi PowerShell, sempre dalla cartella `windows`:
+
+| Cosa fare | Comando |
+| --- | --- |
+| Installare/ricreare dipendenze | `npm.cmd ci` |
+| Avviare il sorgente | `npm.cmd start` |
+| Eseguire i test automatici | `npm.cmd test` |
+| Creare lo ZIP Windows x64 | `npm.cmd run build:win` |
+| Aggiornare una cartella estratta | `npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.6.0-x64.zip" --install-dir "<cartella-installazione>"` |
+
+`resources` copia gli asset dalla radice della repo; non modificarli qui. Su Mac l'anteprima usa una cartella separata e `MASCOTTE_PREVIEW=1` sceglie una porta libera, preservando la mascotte nativa attiva. I test principali sono offline; `npm.cmd test` li esegue. `npm.cmd run test:codex-policy` usa opzionalmente la CLI Codex reale contro un mock locale con CODEX_HOME vuoto, senza login.
 
 Riferimenti: [Electron sicurezza](https://www.electronjs.org/docs/latest/tutorial/security), [BrowserWindow](https://www.electronjs.org/docs/latest/api/browser-window), [Codex config](https://learn.chatgpt.com/docs/config-file/config-reference), [variabili Claude](https://code.claude.com/docs/en/env-vars).
