@@ -59,6 +59,8 @@ L'app Mac pronta è per l'architettura del Mac di compilazione. Per la prima
 app Windows x64 vedi [windows/README.md](windows/README.md): è un'anteprima
 da verificare su Windows reale. Lo ZIP con guide si genera con
 `python3 tools/export_windows.py` dopo `npm run build:win` nella cartella windows.
+Per compilare il sorgente e collegare gli hook, segui la
+[procedura dal repository](windows/README.md#preparare-una-build-dal-repository-e-collegare-gli-hook).
 
 ## Personaggi disponibili
 

@@ -36,10 +36,11 @@ Nella chat scegli l'IA, scrivi e premi Invio (Maiusc+Invio va a capo). Interromp
 Nella micro chat premi **Collega eventi**, leggi l'anteprima e scegli **Applica con backup**. Questo passo è facoltativo: non serve per chattare dal gattino.
 
 - Aggiorna solo i file del destinatario (`%USERPROFILE%\.claude\settings.json` e `%USERPROFILE%\.codex\config.toml`, o i percorsi `CLAUDE_CONFIG_DIR`/`CODEX_HOME`). Non legge i file di login.
-- Conserva hook e notify esistenti e salva backup `*.before-mascotte-*`. La riscrittura può cambiare spazi/commenti TOML, ma mantiene i valori; l'originale completo è nel backup.
-- Se la configurazione cambia tra anteprima e applicazione, l'app rifiuta la scrittura. Se gli hook Mascotte esistono già, non li duplica. Notify precedenti che sono wrapper shell richiedono configurazione manuale per preservarli.
+- Conserva gli hook e le notifiche delle altre integrazioni e salva backup `*.before-mascotte-*`. Rimuove i vecchi wrapper notify Mascotte, anche quando sono annidati nei wrapper del desktop Codex, e conserva il wrapper desktop più esterno. La riscrittura può cambiare spazi/commenti TOML; l'originale completo è nel backup.
+- Se la configurazione cambia tra anteprima e applicazione, l'app rifiuta la scrittura. Gli hook Mascotte già presenti vengono aggiornati senza duplicarli. Una catena notify illeggibile viene segnalata senza applicare modifiche.
 - Codex: controlla e approva i nuovi hook quando Codex lo richiede; dalla CLI puoi usare `/hooks` per esaminarli e concedere fiducia. La CLI e l'estensione IDE usano la stessa configurazione Codex: dopo l'approvazione apri una nuova sessione nell'IDE. Riavvia anche le sessioni Claude. Non disabilitare le verifiche dei permessi.
-- Claude usa la forma exec con argomenti separati per chiamare `Mascotte.exe --mascotte-notify …`; richiede una CLI che supporti `args` negli hook. Codex usa PowerShell 5.1 incluso in Windows con comando codificato per gestire percorsi con spazi senza interpolare i dati degli eventi. Lascia la cartella nello stesso percorso dopo la configurazione. Il ponte non apre finestre e non chiama le IA; trasmette solo stato e origine. L'avvio dei processi aggiunge un costo per evento, da misurare su Windows.
+- Claude e Codex usano PowerShell 5.1 incluso in Windows per avviare `lib/notify-entry.cjs` dentro `resources/app.asar`, tramite il runtime Node incluso in `Mascotte.exe`. Il launcher imposta `ELECTRON_RUN_AS_NODE=1` solo per il processo figlio e scrive il JSON UTF-8 direttamente sulla sua pipe stdin. L'app grafica non viene avviata dal ponte; non occorrono Node o Python installati. Il contenuto degli eventi non entra nella riga di comando. `Stop` segnala la fine della risposta, quindi Mascotte non aggiunge più un proprio `notify`.
+- Lascia la cartella nello stesso percorso dopo la configurazione. Gli hook hanno un limite di 5 secondi (3 per `Interrupt`, come richiesto da Codex); il launcher termina il ponte se supera 2 secondi. Il ponte non apre finestre e non chiama le IA: trasmette solo stato e origine. I nuovi comandi richiedono una nuova approvazione tramite il normale controllo degli hook Codex.
 
 ## Dati e privacy
 
@@ -66,6 +67,40 @@ Esci dal menu della mascotte. Per rimuovere gli hook, elimina dalle configurazio
 ## Sviluppo
 
 Richiede Node 22+ e npm. In PowerShell usa `npm.cmd`: così eviti il blocco di `npm.ps1` dovuto alla Execution Policy e non devi cambiarla. Se il terminale parte dalla radice del repository, entra prima in `windows`:
+
+### Preparare una build dal repository e collegare gli hook
+
+Questa è la procedura per chi ha scaricato il sorgente da GitHub o come archivio. La configurazione degli hook è disponibile solo nella build Windows impacchettata: `npm.cmd start` avvia la modalità sviluppo e non mostra **Collega eventi**.
+
+1. Su Windows x64 installa Node.js 22 o successivo. Non servono Python, Git Bash o Node sul computer che userà in seguito il pacchetto; Node serve qui solo per creare la build. Estrai o clona il repository in una cartella stabile, poi apri PowerShell in `windows`:
+
+   ```powershell
+   Set-Location C:\percorso\Mascotte-main\windows
+   npm.cmd ci
+   npm.cmd run build:win
+   ```
+
+   La build crea `dist\Mascotte-Windows-0.6.0-x64.zip`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
+
+2. Estrai **tutto** lo ZIP in una cartella che non sposterai, ad esempio `%LOCALAPPDATA%\Programs\Mascotte`. In PowerShell, dalla cartella `windows`:
+
+   ```powershell
+   $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Mascotte'
+   New-Item -ItemType Directory -Force -Path $installDir | Out-Null
+   Expand-Archive -LiteralPath '.\dist\Mascotte-Windows-0.6.0-x64.zip' -DestinationPath $installDir -Force
+   ```
+
+   Avvia `Mascotte.exe` da quella cartella, non dallo ZIP. Mantieni lì anche DLL e `resources`. Scegli un percorso stabile; non deve contenere `%`, virgolette o ritorni a capo. Spostare o cancellare la cartella dopo aver collegato gli hook ne interrompe l'avvio: in quel caso estrai di nuovo in un percorso stabile e ripeti il collegamento.
+
+3. Installa e accedi alla CLI nativa Windows di Codex e/o Claude Code che vuoi usare. Apri Mascotte dal percorso stabile e fai clic sul gattino per aprire la micro chat. Premi **Collega eventi** e leggi l'anteprima dei due file di configurazione. Premi **Applica con backup** solo quando vuoi scrivere le modifiche.
+
+   L'app salva copie `*.before-mascotte-*` dei file esistenti e aggiorna le configurazioni dell'account Windows corrente: `%USERPROFILE%\.claude\settings.json` e `%USERPROFILE%\.codex\config.toml`, salvo percorsi personalizzati tramite `CLAUDE_CONFIG_DIR` o `CODEX_HOME`. Non condivide né importa le credenziali. Gli hook e i notify di altre integrazioni vengono conservati; l'app segnala una catena notify che non riesce a leggere e non la applica.
+
+4. In Codex controlla gli hook proposti con `/hooks` e approvali tramite il normale flusso di fiducia di Codex. Poi chiudi e riapri le sessioni Codex e Claude già aperte. Per una verifica, avvia una nuova sessione e invia un prompt o usa uno strumento: la mascotte dovrebbe mostrare gli stati della sessione. La prova della micro chat e la prova degli hook sono separate; per ricevere eventi non è necessario inviare messaggi dalla micro chat.
+
+Se non arrivano eventi, verifica che Mascotte sia ancora nella cartella registrata, che le CLI usino i percorsi di configurazione indicati sopra e che Codex abbia approvato gli hook. Apri una nuova sessione dopo le modifiche. Puoi riaprire **Collega eventi** per aggiornare la configurazione al percorso dell'app attuale.
+
+### Avvio e build di sviluppo
 
 ```powershell
 Set-Location .\windows
