@@ -12,7 +12,7 @@ function origin(size, edge, area, fraction = .8, anchor = {x:size.width/2,y:size
 // Only the chosen HWND's geometry, PID and visibility leave this local helper.
 class WindowFollower {
   constructor(onState, onError) {
-    this.onState = onState; this.onError = onError; this.buffer = ''; this.closed = false;
+    this.onState = onState; this.onError = onError; this.buffer = ''; this.closed = false; this.latest = null;
     const script = fs.readFileSync(path.join(__dirname, 'window-helper.ps1'), 'utf8');
     const executable = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
     this.child = spawn(executable, ['-NoLogo', '-NoProfile', '-NonInteractive', '-EncodedCommand', Buffer.from(script, 'utf16le').toString('base64')], { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'], env: { ...process.env, MASCOTTE_HOST_PID: String(process.pid) } });
@@ -29,7 +29,7 @@ class WindowFollower {
           const state = JSON.parse(line);
           if (!['visible','hidden','closed','unavailable'].includes(state.status)) throw new Error();
           if (state.status === 'visible' && (![state.x,state.y,state.width,state.height].every(Number.isFinite) || state.width <= 0 || state.height <= 0)) throw new Error();
-          if (!this.closed) this.onState(state);
+          if (!this.closed) { this.latest = state; this.onState(state); }
         } catch { this.fail(); }
       }
     });
@@ -38,6 +38,10 @@ class WindowFollower {
     this.startup = setTimeout(() => this.fail(), 10000);
     const callback = this.onState;
     this.onState = state => { clearTimeout(this.startup); callback(state); };
+  }
+  setHandlers(onState, onError) {
+    this.onState = onState; this.onError = onError;
+    if (this.latest && !this.closed) this.onState(this.latest);
   }
   pause(paused) { if (!this.closed) this.child.stdin.write(paused ? 'pause\n' : 'resume\n'); }
   fail() { if (this.closed) return; this.close(); this.onError(); }
