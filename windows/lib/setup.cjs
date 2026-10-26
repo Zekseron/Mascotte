@@ -6,36 +6,125 @@ const crypto = require('node:crypto');
 const toml = require('smol-toml');
 const { assertRegularPath, atomicJSON } = require('./storage.cjs');
 
-function prepareHooks(claudeText, codexText, executable) {
-  if (/["\r\n%]/.test(executable)) throw new Error('Percorso app non supportato per gli hook: configura manualmente.');
+function isMascotteClaudeHook(value) {
+  return value && Array.isArray(value.hooks) && value.hooks.some(hook =>
+    hook?.type === 'command' && ((Array.isArray(hook.args) &&
+    hook.args.includes('--mascotte-notify') && hook.args.includes('--claude-hook')) ||
+    isMascotteCommand(hook.command, '--claude-hook')));
+}
+function isMascotteCommand(command, mode) {
+  if (typeof command !== 'string') return false;
+  const encoded = command.match(/-EncodedCommand\s+([A-Za-z0-9+/=]+)/i)?.[1];
+  const decoded = encoded ? Buffer.from(encoded, 'base64').toString('utf16le') : command;
+  return decoded.includes('--mascotte-notify') && decoded.includes(mode);
+}
+function isMascotteCodexHook(value) {
+  return value && value.type === 'command' &&
+    [value.command, value.command_windows, value.commandWindows].some(command => isMascotteCommand(command, '--codex-hook'));
+}
+function removeMascotteClaudeHooks(hooks) {
+  for (const [event, groups] of Object.entries(hooks)) {
+    if (!Array.isArray(groups)) continue;
+    hooks[event] = groups.map(group => ({
+      ...group,
+      hooks: Array.isArray(group.hooks) ? group.hooks.filter(hook => !isMascotteClaudeHook({ hooks: [hook] })) : group.hooks
+    })).filter(group => !Array.isArray(group.hooks) || group.hooks.length > 0);
+  }
+}
+function removeMascotteCodexHooks(hooks) {
+  for (const [event, groups] of Object.entries(hooks)) {
+    if (!Array.isArray(groups)) continue;
+    hooks[event] = groups.map(group => ({
+      ...group,
+      hooks: Array.isArray(group.hooks) ? group.hooks.filter(hook => !isMascotteCodexHook(hook)) : group.hooks
+    })).filter(group => !Array.isArray(group.hooks) || group.hooks.length > 0);
+  }
+}
+function previousNotify(command, computerUseSeen = false, depth = 0) {
+  if (depth > 16 || !Array.isArray(command) || !command.every(value => typeof value === 'string')) {
+    throw new Error('Catena notify non valida: configurazione originale conservata.');
+  }
+  if (command.includes('--mascotte-notify') && command.includes('--codex-notify')) {
+    const forwarded = command.indexOf('--forward-base64');
+    if (forwarded < 0) return [];
+    let previous;
+    try { previous = JSON.parse(Buffer.from(command[forwarded + 1], 'base64').toString('utf8')); }
+    catch { throw new Error('Notify Mascotte precedente illeggibile: configurazione originale conservata.'); }
+    return previousNotify(previous, computerUseSeen, depth + 1);
+  }
+  // The desktop host can wrap notify again after installation. Keep the outer
+  // (current) helper and any unrelated notifier, removing duplicate old helpers.
+  if (path.win32.basename(command[0] || '').toLowerCase() === 'codex-computer-use.exe' && command[1] === 'turn-ended') {
+    const forwarded = command.indexOf('--previous-notify');
+    let previous = [];
+    if (forwarded >= 0) {
+      try { previous = JSON.parse(command[forwarded + 1]); }
+      catch { throw new Error('Notify Codex precedente illeggibile: configurazione originale conservata.'); }
+      previous = previousNotify(previous, true, depth + 1);
+    }
+    if (computerUseSeen) return previous;
+    const current = command.slice();
+    if (forwarded >= 0) {
+      if (previous.length) current[forwarded + 1] = JSON.stringify(previous);
+      else current.splice(forwarded, 2);
+    }
+    return current;
+  }
+  return command;
+}
+
+function hookCommand(executable, bridge, mode) {
+  const quote = value => "'" + value.replace(/'/g, "''") + "'";
+  // Set Node mode explicitly: the same Electron executable works whether or
+  // not the host already has ELECTRON_RUN_AS_NODE in its environment.
+  // Only the fixed command is encoded; event JSON stays on stdin, never argv.
+  // PowerShell's native pipeline can defer writing until after the bridge's
+  // input deadline. Write directly to a redirected process pipe instead.
+  const script = "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; $child = $null; " +
+    "try { $utf8 = [System.Text.UTF8Encoding]::new($false); [Console]::InputEncoding = $utf8; " +
+    "$payload = [Console]::In.ReadToEnd(); $info = [System.Diagnostics.ProcessStartInfo]::new(); " +
+    '$info.FileName = ' + quote(executable) + '; $info.Arguments = ' + quote('"' + bridge + '" --mascotte-notify ' + mode) + '; ' +
+    "$info.UseShellExecute = $false; $info.CreateNoWindow = $true; " +
+    "$info.RedirectStandardInput = $true; $info.RedirectStandardOutput = $true; $info.RedirectStandardError = $true; " +
+    "$info.EnvironmentVariables['ELECTRON_RUN_AS_NODE'] = '1'; " +
+    "$child = [System.Diagnostics.Process]::Start($info); " +
+    "$output = $child.StandardOutput.ReadToEndAsync(); $errors = $child.StandardError.ReadToEndAsync(); " +
+    "$bytes = $utf8.GetBytes($payload); $child.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length); $child.StandardInput.Close(); " +
+    "if (!$child.WaitForExit(2000)) { $child.Kill() } " +
+    "} catch {} finally { if ($null -ne $child) { $child.Dispose() } }; exit 0";
+  return 'powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand ' + Buffer.from(script, 'utf16le').toString('base64');
+}
+function prepareHooks(claudeText, codexText, executable, bridge = path.win32.join(path.win32.dirname(executable), 'resources', 'app.asar', 'lib', 'notify-entry.cjs')) {
+  if ([executable, bridge].some(value => /["\r\n%]/.test(value))) throw new Error('Percorso app non supportato per gli hook: configura manualmente.');
   const claude = JSON.parse(claudeText), codex = toml.parse(codexText);
   if (!claude || Array.isArray(claude) || typeof claude !== 'object') throw new Error('Configurazione Claude non valida.');
-  // Codex espone una stringa command: usa PowerShell encoded per evitare
-  // interpretazioni diverse di spazi/apostrofi nel percorso tra cmd e PowerShell.
-  const script = "$payload = [Console]::In.ReadToEnd(); $payload | & '" + executable.replace(/'/g, "''") + "' --mascotte-notify --codex-hook; exit 0";
-  const codexCommand = 'powershell.exe -NoProfile -NonInteractive -EncodedCommand ' + Buffer.from(script, 'utf16le').toString('base64');
+  const codexCommand = hookCommand(executable, bridge, '--codex-hook');
+  const claudeCommand = hookCommand(executable, bridge, '--claude-hook');
   const hooks = claude.hooks || {};
   if (!hooks || Array.isArray(hooks) || typeof hooks !== 'object') throw new Error('Hook Claude non validi.');
-  if (JSON.stringify(hooks).includes('--mascotte-notify') || codexText.includes('--mascotte-notify')) throw new Error('Hook Mascotte già presenti: non duplicati.');
+  removeMascotteClaudeHooks(hooks);
   for (const event of ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'PermissionRequest', 'Notification', 'Stop']) {
     if (hooks[event] !== undefined && !Array.isArray(hooks[event])) throw new Error('Hook esistente non valido.');
-    const value = { hooks: [{ type: 'command', command: executable, args: ['--mascotte-notify', '--claude-hook'], timeout: 2 }] };
+    const value = { hooks: [{ type: 'command', command: claudeCommand, timeout: 5 }] };
     if (['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'PermissionRequest'].includes(event)) value.matcher = '.*';
     if (event === 'Notification') value.matcher = 'permission_prompt|idle_prompt|elicitation_dialog';
     hooks[event] = [...(hooks[event] || []), value];
   }
   claude.hooks = hooks;
-  const previous = codex.notify || [];
-  if (!Array.isArray(previous) || !previous.every(x => typeof x === 'string') || /\.(cmd|bat|ps1)$/i.test(previous[0] || '')) throw new Error('Notify precedente non nativo: configurazione manuale richiesta per preservarlo.');
-  codex.notify = [executable, '--mascotte-notify', '--codex-notify'];
-  if (previous.length) codex.notify.push('--forward-base64', Buffer.from(JSON.stringify(previous)).toString('base64'));
+  const previous = previousNotify(codex.notify || []);
+  // Stop already signals completion via stdin, without a second notify call
+  // carrying the full answer on the size-limited Windows command line.
+  if (previous.length) codex.notify = previous;
+  else delete codex.notify;
   codex.features ||= {};
   if (Array.isArray(codex.features) || typeof codex.features !== 'object') throw new Error('Sezione features Codex non valida.');
   codex.features.hooks = true;
   codex.hooks ||= {};
+  if (Array.isArray(codex.hooks) || typeof codex.hooks !== 'object') throw new Error('Hook Codex non validi.');
+  removeMascotteCodexHooks(codex.hooks);
   for (const event of ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PermissionRequest', 'Interrupt', 'Stop']) {
     if (codex.hooks[event] !== undefined && !Array.isArray(codex.hooks[event])) throw new Error('Hook Codex non validi.');
-    const value = { hooks: [{ type: 'command', command: codexCommand, command_windows: codexCommand, timeout: 2 }] };
+    const value = { hooks: [{ type: 'command', command: codexCommand, command_windows: codexCommand, timeout: event === 'Interrupt' ? 3 : 5 }] };
     if (['PreToolUse', 'PostToolUse', 'PermissionRequest'].includes(event)) value.matcher = '.*';
     codex.hooks[event] = [...(codex.hooks[event] || []), value];
   }
