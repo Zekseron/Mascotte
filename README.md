@@ -12,7 +12,7 @@ Progetto e decisioni: [DESIGN.md](DESIGN.md).
 | Cartella | Contenuto |
 | --- | --- |
 | `app/` | App macOS nativa; compilazione e uso in [app/README.md](app/README.md) |
-| `windows/` | Sorgente e build dell'app Windows Electron; `Mascotte.exe` e i file necessari sono nella radice; [istruzioni e limiti](windows/README.md) |
+| `windows/` | Sorgente e build dell'app Windows Electron; `Mascotte.exe` e i file necessari vengono generati in `distribuzione/Windows-portatile/`; [istruzioni e limiti](windows/README.md) |
 | `spec/` | Elenco degli stati e dei ripieghi (`states.json`), fonte unica per app e visore |
 | `tools/` | `pixelkit.py`: disegno di pixel art come testo e generazione dei pacchetti |
 | `characters/` | Pacchetti personaggio pronti (`character.json` + `sprites.png`) |
@@ -57,20 +57,21 @@ Per rigenerare, sposta prima l'esportazione precedente: non viene sovrascritta.
 Istruzioni in [distribuzione/LEGGIMI.md](distribuzione/LEGGIMI.md).
 L'app Mac pronta è per l'architettura del Mac di compilazione. Per la prima
 app Windows x64 vedi [windows/README.md](windows/README.md): è un'anteprima
-da verificare su Windows reale. Lo ZIP con guide si genera con
+da verificare su Windows reale. Lo ZIP con guide e l'installer si raccolgono con
 `python3 tools/export_windows.py` dopo `npm run build:win` nella cartella windows.
 Per compilare il sorgente e collegare gli hook, segui la
 [procedura dal repository](windows/README.md#preparare-una-build-dal-repository-e-collegare-gli-hook).
 Nella build Windows, apri la finestra del gattino e passa a **Gestione**:
 **Crea / aggiorna hook** mostra l'anteprima delle configurazioni e salva i backup;
-**Aggiorna e riavvia** aggiorna e compila la repo scelta con Git e Node/npm.
+**Controlla aggiornamenti** usa i pacchetti precompilati delle release pubbliche;
+per chi sviluppa, **Aggiornamento da sorgenti** compila la repo scelta con Git e Node/npm.
 Vedi [aggiornamento dalla finestra](windows/README.md#aggiornare-dalla-scheda-gestione).
 
 ## Personaggi disponibili
 
 - **Cat → Rosso**, pacchetto `characters/Cat/rosso/`.
 
-App Mac 0.5 e Windows 0.6.0: menu Personaggio con categorie e grandezza ricordata
+App Mac 0.5 e Windows 0.8.0: menu Personaggio con categorie e grandezza ricordata
 per personaggio. I sorgenti grafici sono nelle stesse categorie sotto characters-src.
 
 La distribuzione pubblica include soltanto Rosso. I pacchetti personali restano fuori dal repository.

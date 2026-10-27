@@ -1,8 +1,12 @@
-# Mascotte Windows 0.6.0 — anteprima da provare
+# Mascotte Windows 0.8.0 — anteprima da provare
 
 Prima app Windows: gattino Rosso trasparente e trascinabile, menu nell'area di notifica, stati animati, micro chat Claude/Codex e server locale degli eventi. Il trascinamento e stato corretto e provato su Windows con monitor al 100% e 125%; le altre integrazioni richiedono verifica sul proprio PC. Non richiede Python, Node o Electron installati per eseguire il pacchetto pronto.
 
-## Usare lo ZIP su Windows
+## Installare su Windows
+
+Apri `Mascotte-Setup-0.8.0-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
+
+In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Entrambi i pacchetti sono creati dalla build Windows; saranno disponibili nella pagina delle release solo dopo la pubblicazione della prima release.
 
 ### Personaggi (0.5.0)
 
@@ -14,14 +18,28 @@ Nel menu **Aggancio** scegli **barra delle applicazioni**, **finestra attiva** o
 
 Se manca spazio sopra una finestra massimizzata, la mascotte resta dentro l'area visibile. Con barra laterale o nascosta usa il bordo inferiore dell'area di lavoro: non segue le singole icone della barra. Gli stati IA continuano a funzionare.
 
-Il seguito della finestra usa un processo PowerShell locale con API User32/DWM e legge solo coordinate, PID e visibilità: l'aggancio non acquisisce immagini o testo. La chat offre separatamente l'osservazione locale di una finestra, che resta spenta finché non la attivi. **Cattura e permessi vanno ancora provati su Windows reale.**
+Il seguito della finestra usa un processo PowerShell locale con API User32/DWM e legge solo coordinate, PID e visibilità: l'aggancio non acquisisce immagini o testo. La chat offre separatamente l'osservazione locale di una finestra, che resta spenta finché non la attivi. Cattura, arresto e conferma del fotogramma sono stati verificati su Windows con una finestra sintetica e CLI simulate locali; le risposte visive dei servizi IA con account reali restano da provare.
 
-1. Estrai **tutto** `Mascotte-Windows-0.6.0-x64.zip` in una cartella stabile del tuo utente, per esempio `Mascotte` dentro la tua cartella utente. Non eseguire l'exe dentro lo ZIP. Mantieni accanto all'exe DLL, `resources/` e gli altri file.
+1. Per la versione portatile, estrai **tutto** `Mascotte-Windows-0.8.0-x64.zip` in una cartella stabile del tuo utente, per esempio `Mascotte` dentro la tua cartella utente. Non eseguire l'exe dentro lo ZIP. Mantieni accanto all'exe DLL, `resources/` e gli altri file.
 2. Apri `Mascotte.exe`. Non serve avviarlo come amministratore. È un'anteprima non firmata: Windows può mostrare SmartScreen. Verifica provenienza e pacchetto prima di decidere se autorizzarlo; non disattivare la protezione del sistema.
 3. Il gattino compare in basso a destra. Trascinalo per spostarlo. Clic sinistro apre la micro chat; clic destro e icona nell'area di notifica aprono il menu con grandezza, stati, mostra/nascondi ed Esci.
-4. Per usare la chat installa **Codex CLI e/o Claude Code nativi Windows**, accedi con il tuo account e riapri la mascotte. Non basta il solo accesso nel browser e questa anteprima non collega automaticamente le CLI dentro WSL.
+4. Per la chat scegli Ollama locale oppure installa **Codex CLI e/o Claude Code nativi Windows** e accedi con il tuo account. Per i servizi remoti non basta il solo accesso nel browser; questa anteprima non collega automaticamente le CLI dentro WSL.
 
-### Accesso alle IA
+### Chat locale, memoria e azioni
+
+Installa [Ollama per Windows](https://ollama.com/download/windows), avvialo e scegli uno dei modelli in **Gestione > IA locale**. Premi **Scarica / aggiorna modello**: il predefinito Qwen3 4B instruct richiede circa 2,5 GB; il modello 1.7B circa 1,4 GB, ma e meno affidabile. Al termine della verifica scegli **Locale ? Ollama** nella chat. Le conversazioni locali sono separate da Codex e Claude. Se il modello e gia disponibile all'avvio, viene scelto automaticamente.
+
+La chat locale usa `127.0.0.1:11434` e richiede un modello GGUF presente sul PC; non passa automaticamente a un servizio remoto. Per disabilitare anche le funzioni cloud di Ollama, segui la [configurazione local-only](https://docs.ollama.com/faq#how-can-i-disable-ollamas-cloud-features). Il download iniziale di Ollama e del modello richiede Internet. Il modello viene scaricato dalla RAM dopo ogni risposta, per liberare risorse; ricaricarlo può rendere più lenta la risposta successiva. Modelli piccoli possono dare risposte inesatte: verifica le informazioni importanti. Il modello locale scelto accetta solo testo.
+
+Se un runtime autonomo è presente in `%LOCALAPPDATA%\Mascotte\local-ai\runtime` e i modelli sono nella sottocartella `local-ai\models`, Mascotte può avviarlo in locale quando non trova un servizio già in esecuzione. Questo runtime viene avviato con le funzioni cloud disabilitate e viene fermato all'uscita di Mascotte. Un server Ollama esterno già attivo rimane gestito dalla sua installazione.
+
+Ogni invio a Codex o Claude chiede conferma e mostra il messaggio e l'eventuale cronologia. Dopo una risposta locale, **Chiedi a Codex o Claude…** prepara un testo modificabile, senza includere automaticamente le note locali o la cronologia remota. Solo la conferma invia il testo e usa il piano del servizio scelto.
+
+Le risposte possono essere salvate con **Ricorda…**, dopo averle controllate o modificate; in **Gestione → Memoria locale** si possono aggiungere e cancellare note. Sono salvate in `%LOCALAPPDATA%\Mascotte\chat\memory.json`, con le stesse protezioni della cartella chat, senza cifratura. Prima di ogni domanda locale vengono cercate fino a cinque note con parole in comune: la ricerca non riconosce sempre sinonimi o concetti equivalenti. Le note sono contesto recuperabile, non addestramento del modello, e non sono condivise automaticamente con Codex o Claude.
+
+Le prime azioni sul PC sono volutamente limitate a **apri calcolatrice** e **apri download** nella chat locale. La mascotte mostra ogni azione e la esegue soltanto dopo conferma; non esegue comandi arbitrari generati dal modello.
+
+### Accesso alle IA remote
 
 - Codex: segui la [guida Windows](https://learn.chatgpt.com/docs/windows/windows-sandbox) e la [guida CLI](https://learn.chatgpt.com/docs/cli). Nel terminale `codex login` apre il login con ChatGPT; `codex login status` verifica l'accesso.
 - Claude: segui [installazione e requisiti Windows](https://code.claude.com/docs/en/setup), poi avvia `claude` e completa l'accesso. Se richiede Git Bash, installalo secondo la guida ufficiale.
@@ -29,7 +47,7 @@ Il seguito della finestra usa un processo PowerShell locale con API User32/DWM e
 - Il wrapper npm standard `codex.cmd` viene risolto al suo `codex.js` senza passare il messaggio a cmd.exe. Wrapper personalizzati `.bat`/`.ps1` non sono supportati; preferisci le installazioni ufficiali.
 - Se le CLI sono in percorsi particolari, avvia dal terminale con `MASCOTTE_CHAT_CODEX` o `MASCOTTE_CHAT_CLAUDE` impostata sul loro eseguibile. Queste variabili non sono salvate nel pacchetto.
 
-Nella chat scegli l'IA, scrivi e premi Invio (Maiusc+Invio va a capo). Interrompi ferma il processo, Nuova svuota solo la conversazione dell'IA scelta. Le cronologie sono separate. Ogni invio è una nuova sessione CLI con gli ultimi 20 messaggi della conversazione come contesto; la cronologia locale conserva al massimo 60 messaggi per IA. Le configurazioni personali del modello non vengono caricate: questa anteprima usa i modelli standard delle CLI, per tenere fuori le integrazioni personali.
+Nella chat scegli l'IA, scrivi e premi Invio (Maiusc+Invio va a capo). Interrompi ferma la richiesta, Nuova svuota solo la conversazione dell'IA scelta. Le cronologie sono separate. Per Codex e Claude ogni invio è una nuova sessione CLI con al massimo gli ultimi 20 messaggi della conversazione come contesto; la richiesta di approfondimento dalla chat locale parte invece senza cronologia precedente. La cronologia locale conserva al massimo 60 messaggi per IA. Le configurazioni personali del modello remoto non vengono caricate: questa anteprima usa i modelli standard delle CLI, per tenere fuori le integrazioni personali.
 
 ### Osservare una finestra e condividere un fotogramma
 
@@ -52,13 +70,19 @@ Nella micro chat apri la scheda **Gestione**, premi **Crea / aggiorna hook**, le
 
 ### Aggiornare dalla scheda Gestione
 
-1. Apri la mascotte e passa a **Gestione**. Premi **Scegli repo…** e seleziona il clone Git di `github.com/Zekseron/Mascotte`. La cartella viene ricordata. Se hai scaricato solo lo ZIP del sorgente, serve prima un clone Git per usare questo aggiornamento automatico.
-2. Salva o committa le modifiche locali. Premi **Aggiorna e riavvia** e controlla repo e destinazione nella finestra di conferma. Il pulsante richiede Git e Node.js 22+ con npm nel PATH del PC: scarica il ramo seguito da `origin` con `git pull --ff-only`, esegue `npm ci` e crea il pacchetto Windows. Lo stato di avanzamento compare nella scheda. Non esegue reset o merge delle modifiche locali.
+Apri **Gestione → Controlla aggiornamenti**. Mascotte controlla le release pubbliche ufficiali; se trova una versione più recente mostra la versione e chiede conferma. Dopo la conferma scarica lo ZIP, ne controlla la dimensione e l'impronta SHA-256 fornita da GitHub, prepara il pacchetto e riavvia l'app. Non servono Git, Node.js o una repo locale. Il controllo di integrità verifica che il file corrisponda ai metadati della release GitHub; non sostituisce una firma digitale dell'editore.
+
+Quando non è ancora stata pubblicata alcuna release, viene mostrato un messaggio e l'app continua a funzionare. Una nuova release richiede un tag `v` seguito dalla versione stabile presente in `windows/package.json`; il workflow `.github/workflows/windows-release.yml` esegue i test e pubblica installer e ZIP. Creare o inviare un tag non avviene automaticamente dal PC dell'utente.
+
+### Aggiornamento da sorgenti (sviluppatori)
+
+1. Apri **Gestione → Aggiornamento da sorgenti**, premi **Scegli repo…** e seleziona il clone Git di `github.com/Zekseron/Mascotte`. La cartella viene ricordata. I pulsanti nella stessa sezione aprono le pagine ufficiali di Git e Node.js.
+2. Salva o committa le modifiche locali. Premi **Compila e aggiorna** e controlla repo e destinazione nella finestra di conferma. Il pulsante richiede Git e Node.js 22+ con npm nel PATH del PC: scarica il ramo seguito da `origin` con `git pull --ff-only`, esegue `npm ci` e crea il pacchetto Windows. Lo stato di avanzamento compare nella scheda. Non esegue reset o merge delle modifiche locali.
 3. Quando il pacchetto è pronto, l'installer lo estrae e controlla prima di chiudere la mascotte. Sostituisce la cartella dell'app, conserva quella precedente come `Mascotte.backup-<data>` e riavvia la nuova versione. Se la sostituzione fallisce, prova a ripristinare la cartella precedente. Un errore prima dell'installazione lascia l'app attuale al suo posto; la repo potrebbe essere già aggiornata.
 
 Se avvii l'app dalla repo, l'aggiornamento la installa in `%LOCALAPPDATA%\Programs\Mascotte`, separando app e sorgenti. In questo caso, dopo il riavvio premi **Crea / aggiorna hook** e applica l'anteprima per registrare il nuovo percorso. Se la cartella dell'app rimane la stessa, gli hook mantengono il loro percorso; puoi comunque aggiornarli dallo stesso pulsante.
 
-L'esito dell'installazione appare in **Gestione** al successivo avvio; i dettagli sono in `%LOCALAPPDATA%\Mascotte\update.log`. Non chiudere la mascotte durante l'aggiornamento: uscire interrompe download o build ancora in corso. L'aggiornamento usa la rete per Git e npm; non invia la vista locale o le conversazioni della chat.
+L'esito dell'installazione appare in **Gestione** al successivo avvio; i dettagli sono in `%LOCALAPPDATA%\Mascotte\update.log`. Non chiudere la mascotte durante l'aggiornamento: uscire interrompe download o build ancora in corso. L'aggiornamento dalle release usa GitHub; quello dai sorgenti usa Git e npm. Nessuno dei due invia la vista locale o le conversazioni della chat.
 
 ## Dati e privacy
 
@@ -72,15 +96,15 @@ L'esito dell'installazione appare in **Gestione** al successivo avvio; i dettagl
 
 ## Uscire o rimuovere
 
-Esci dal menu della mascotte. Per rimuovere gli hook, elimina dalle configurazioni le voci che chiamano questo exe e ripristina l'eventuale notify precedente dal backup. Ripristina i file completi soltanto se nel frattempo non hai fatto altre modifiche. Poi elimina la cartella estratta. I dati locali restano in `%LOCALAPPDATA%\Mascotte`; cancellali solo se vuoi rimuovere anche la tua cronologia. Le credenziali delle CLI restano gestite da Codex/Claude.
+Esci dal menu della mascotte. Per rimuovere gli hook, elimina dalle configurazioni le voci che chiamano questo exe e ripristina l'eventuale notify precedente dal backup. Ripristina i file completi soltanto se nel frattempo non hai fatto altre modifiche. Poi disinstalla Mascotte da Windows oppure elimina la cartella estratta della versione portatile. I dati locali restano in `%LOCALAPPDATA%\Mascotte`; cancellali solo se vuoi rimuovere anche la tua cronologia. Le credenziali delle CLI restano gestite da Codex/Claude.
 
 ## Limiti di questa anteprima
 
-- Solo Windows x64; ARM64 non compilato né verificato. Aggiornamento integrato dalla repo nella scheda Gestione; richiede Git e Node/npm sul PC che compila. Nessun installer iniziale o avvio automatico. L'exe ha ancora l'icona/metadata del runtime Electron; tray e finestra mostrano Rosso.
+- Solo Windows x64; ARM64 non compilato né verificato. Nessun avvio automatico. L'exe ha ancora l'icona/metadata del runtime Electron; tray e finestra mostrano Rosso. Il pacchetto non è firmato digitalmente.
 - Incluso Rosso, selezionabile per categoria; import di altri pacchetti non ancora esposto nell’interfaccia Windows.
 - Electron include Chromium: lo ZIP è circa 150 MB ed è più pesante dell'app nativa Mac. CPU/RAM/energia e costo dei processi hook si misurano sul PC nella prova.
 - Trasparenza/click-through, DPI, ACL, chiusura dell'albero dei processi con taskkill, hook e login reali richiedono la prova Windows.
-- UI verificata sul Mac con CLI simulate; nessuna chiamata a IA remota è stata fatta per collaudare il pacchetto.
+- UI, aggiornamento con riavvio e cattura di una finestra sintetica verificati su Windows; gli invii remoti di testo e immagini sono stati collaudati con CLI simulate. I due modelli locali sono stati provati su questo PC con domande sintetiche; possono commettere errori. Dettagli in [VERIFICA-GESTIONE.md](VERIFICA-GESTIONE.md).
 
 ## Sviluppo
 
@@ -98,14 +122,14 @@ Questa è la procedura per chi ha scaricato il sorgente da GitHub o come archivi
    npm.cmd run build:win
    ```
 
-   La build crea `dist\Mascotte-Windows-0.6.0-x64.zip`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
+   La build crea `dist\Mascotte-Windows-0.8.0-x64.zip` e `dist\Mascotte-Setup-0.8.0-x64.exe`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
 
 2. Estrai **tutto** lo ZIP in una cartella che non sposterai, ad esempio `%LOCALAPPDATA%\Programs\Mascotte`. In PowerShell, dalla cartella `windows`:
 
    ```powershell
    $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Mascotte'
    New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-   Expand-Archive -LiteralPath '.\dist\Mascotte-Windows-0.6.0-x64.zip' -DestinationPath $installDir -Force
+   Expand-Archive -LiteralPath '.\dist\Mascotte-Windows-0.8.0-x64.zip' -DestinationPath $installDir -Force
    ```
 
    Avvia `Mascotte.exe` da quella cartella, non dallo ZIP. Mantieni lì anche DLL e `resources`. Scegli un percorso stabile; non deve contenere `%`, virgolette o ritorni a capo. Spostare o cancellare la cartella dopo aver collegato gli hook ne interrompe l'avvio: in quel caso estrai di nuovo in un percorso stabile e ripeti il collegamento.
@@ -127,13 +151,13 @@ npm.cmd start
 npm.cmd run build:win
 ```
 
-`npm.cmd ci` serve la prima volta o per ricreare `node_modules`; `npm.cmd start` avvia il sorgente; `npm.cmd run build:win` crea `dist\Mascotte-Windows-0.6.0-x64.zip` e copia l'app portatile completa nella radice del repository, così puoi aprire `Mascotte.exe` direttamente da lì. Lascia nella radice anche `resources/`, `locales/` e gli altri file copiati: sono necessari all'eseguibile. La build non aggiorna da sola una copia già estratta altrove.
+`npm.cmd ci` installa le dipendenze di sviluppo; `npm.cmd start` avvia il sorgente. `npm.cmd run build:win` crea ZIP e installer in `windows/dist/` e copia l'app completa in `distribuzione/Windows-portatile/`. Apri `Mascotte.exe` da quella cartella e mantieni insieme tutti i suoi file. Le build sono escluse da Git; la radice contiene i sorgenti. Una vecchia copia avviata dalla radice resta indipendente dalla nuova build.
 
 Per sostituire una copia estratta con lo ZIP appena creato, prima esci da Mascotte e poi esegui dalla cartella `windows`:
 
 ```powershell
 Set-Location .\windows
-npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.6.0-x64.zip" --install-dir "$env:LOCALAPPDATA\Programs\Mascotte"
+npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.8.0-x64.zip" --install-dir "$env:LOCALAPPDATA\Programs\Mascotte"
 ```
 
 `--install-dir` deve indicare la cartella che contiene la vecchia `Mascotte.exe`; usa il percorso effettivo se l'hai estratta altrove. Il comando rifiuta di procedere se Mascotte è ancora aperta, prepara l'aggiornamento in una cartella temporanea e conserva la cartella precedente come `Mascotte.backup-<data>`. Non cancella i dati in `%LOCALAPPDATA%\Mascotte`.
@@ -146,8 +170,22 @@ Comandi rapidi PowerShell, sempre dalla cartella `windows`:
 | Avviare il sorgente | `npm.cmd start` |
 | Eseguire i test automatici | `npm.cmd test` |
 | Creare lo ZIP Windows x64 | `npm.cmd run build:win` |
-| Aggiornare una cartella estratta | `npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.6.0-x64.zip" --install-dir "<cartella-installazione>"` |
+| Aggiornare una cartella estratta | `npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.8.0-x64.zip" --install-dir "<cartella-installazione>"` |
 
 `resources` copia gli asset dalla radice della repo; non modificarli qui. Su Mac l'anteprima usa una cartella separata e `MASCOTTE_PREVIEW=1` sceglie una porta libera, preservando la mascotte nativa attiva. I test principali sono offline; `npm.cmd test` li esegue. `npm.cmd run test:codex-policy` usa opzionalmente la CLI Codex reale contro un mock locale con CODEX_HOME vuoto, senza login.
 
 Riferimenti: [Electron sicurezza](https://www.electronjs.org/docs/latest/tutorial/security), [BrowserWindow](https://www.electronjs.org/docs/latest/api/browser-window), [Codex config](https://learn.chatgpt.com/docs/config-file/config-reference), [variabili Claude](https://code.claude.com/docs/en/env-vars).
+
+
+### Scaricare o aggiornare il modello locale
+
+Su un nuovo PC apri **Gestione > IA locale**, usa **Installa Ollama** per scaricare il programma ufficiale e avvialo. Seleziona Qwen3 4B instruct (circa 2,5 GB) oppure 1.7B (circa 1,4 GB), poi premi **Scarica / aggiorna modello**. Vedi l'avanzamento e puoi annullare; ripetendo il download Ollama riutilizza le parti disponibili. Non servono terminale, Git o Node.js per scaricare il modello dall'app.
+
+Il pulsante aggiorna alla revisione disponibile dello stesso tag supportato, senza passare a una famiglia nuova automaticamente. Prima di rendere disponibile la chat, Mascotte verifica modello locale, formato GGUF e supporto al testo. La compatibilita tecnica non garantisce la qualita delle risposte o la velocita: il modello va scelto anche in base all'hardware. Il download non invia chat o note.
+
+Con Ollama installato separatamente, i modelli sono gestiti nella sua cartella utente (normalmente `%USERPROFILE%\.ollama\models`, salvo configurazione personalizzata). Se esiste il runtime gestito di Mascotte, usa `%LOCALAPPDATA%\Mascotte\local-ai\models`. Nessun modello e incluso in GitHub o nei pacchetti Mascotte. Internet serve per il download; la chat locale usa il modello gia scaricato.
+
+
+Qwen3 8B Q4 e disponibile come terza opzione da scaricare (circa 5,2 GB di pesi). Per Mascotte consigliamo almeno 16 GB di RAM, una GPU supportata da Ollama con 8 GB di VRAM dedicata e almeno 8 GB liberi su disco per il download. Sono indicazioni pratiche, non minimi assoluti: su CPU o con meno VRAM puo funzionare piu lentamente; contesto e programmi aperti possono richiedere ulteriore memoria. L'avviso compare selezionando l'8B; il 4B resta predefinito. Non viene effettuato un rilevamento automatico dell'hardware e l'8B non e stato misurato su questo PC.
+
+Dimensioni del modello: https://ollama.com/library/qwen3:8b

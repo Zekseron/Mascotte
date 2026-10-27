@@ -1,0 +1,40 @@
+name: Release Windows
+on:
+  push:
+    tags:
+      - 'v*'
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Verify release version
+        shell: pwsh
+        run: |
+          $version = (Get-Content windows/package.json -Raw | ConvertFrom-Json).version
+          if ($version -notmatch '^\d+\.\d+\.\d+$' -or $env:GITHUB_REF_NAME -ne "v$version") { throw 'Il tag deve essere v seguito dalla versione stabile di windows/package.json.' }
+      - name: Install dependencies and run tests
+        working-directory: windows
+        run: |
+          npm.cmd ci
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm.cmd test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build installer and portable package
+        working-directory: windows
+        run: npm.cmd run build:win
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = (Get-Content windows/package.json -Raw | ConvertFrom-Json).version
+          gh release create $env:GITHUB_REF_NAME "windows/dist/Mascotte-Windows-$version-x64.zip" "windows/dist/Mascotte-Setup-$version-x64.exe" --verify-tag --generate-notes
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
