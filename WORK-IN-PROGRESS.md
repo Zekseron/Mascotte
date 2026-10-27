@@ -4,6 +4,8 @@ Ultimo aggiornamento: 27 ottobre 2026.
 
 Questo file è il promemoria condiviso per riprendere il progetto anche da un altro PC. Le idee sotto sono da progettare e implementare: non descrivono funzioni già disponibili. Aggiungere qui le nuove proposte, aggiornando stato, decisioni e prossimo passo.
 
+**Richiamo permanente Windows → Mac:** ogni nuova funzione o modifica Windows deve comportare, nello stesso intervento, la revisione della checklist nella sezione [5. Aggiornamento Mac e allineamento con Windows](#5-aggiornamento-mac-e-allineamento-con-windows). Integrare i passi necessari, riaprire quelli già completati se cambia il requisito e annotare le eccezioni motivate. La regola è riportata anche in [AGENTS.md](AGENTS.md), per ritrovarla nelle prossime sessioni di sviluppo.
+
 ## Punto di partenza
 
 - Base: commit `d7ca112`, versione Windows 0.8.0.
@@ -99,9 +101,46 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
 
 **Osservazione dalle prove:** il Qwen3-VL 2B ha risposto erroneamente a due domande Cisco, con spiegazioni sicure ma inesatte. La prova sintetica di lettura dell'immagine non dimostra affidabilità tecnica: distinguere riconoscimento visivo e correttezza della risposta.
 
+## 5. Aggiornamento Mac e allineamento con Windows
+
+**Stato:** pianificato, porting degli aggiornamenti Windows non iniziato.
+
+**Obiettivo:** rendere disponibili su Mac le funzioni attuali di Windows, mantenendo il piano aggiornato quando Windows evolve. La base Mac nativa esiste già in `app/`: personaggio, animazioni, aggancio al Dock e alle finestre, eventi e micro chat Claude/Codex.
+
+**Scelta tecnica da definire al passo 1:** riutilizzare la base Electron di `windows/` anche su macOS è la proposta per condividere più codice in futuro; aggiornare l'app nativa Swift rimane un'alternativa. La scelta non è ancora stata adottata e questo piano non avvia il porting.
+
+**Stima iniziale indicativa:** 3–5 giornate con la base Electron condivisa, oppure 6–10 giornate mantenendo Swift, con accesso a un Mac per compilazione e prove. Da rivedere dopo il primo passo e ogni ampliamento del perimetro. Le proposte delle sezioni 1–4 non ancora implementate non sono incluse nella stima.
+
+### Passi da eseguire in ordine
+
+- [ ] **1. Fotografare le differenze e scegliere la base.** Confrontare il comportamento Windows corrente con `app/`, registrare versione/commit di riferimento e decidere Electron condiviso o Swift. Definire versioni macOS e architetture da supportare (Apple Silicon e, se previsto, Intel), disponibilità del Mac di prova e criteri di parità.
+- [ ] **2. Preparare avvio e struttura del codice.** Separare le funzioni comuni dagli adattatori Windows/macOS; adattare percorsi, ricerca delle CLI, risorse e avvio dei processi. Se si sceglie Electron, predisporre build e identificativo Mac senza sovrascrivere la vecchia app o i suoi dati durante le prove. Verificare avvio e chiusura sul Mac.
+- [ ] **3. Verificare mascotte e integrazione desktop.** Riprodurre personaggi, dimensioni, posizione, trasparenza, trascinamento, menu e stati animati. Adattare aggancio al Dock e alla finestra attiva; provare più schermi, riduzione a icona, cambio scrivania e tutto schermo.
+- [ ] **4. Allineare chat Codex e Claude.** Portare interfaccia e comportamento Windows, conferma prima di ogni invio remoto, cronologie separate, nuova conversazione, interruzione, timeout ed errori. Verificare ricerca delle CLI, permessi dei processi, invio tramite stdin e arresto dei processi figli su Mac, prima con CLI simulate e poi con una prova reale autorizzata.
+- [ ] **5. Portare IA locale e gestione modelli.** Integrare Ollama, selezione, download con avanzamento e annullamento, verifica del modello e gestione degli errori. Includere i modelli testuali 1.7B, 4B Instruct e 8B e i visivi Qwen3-VL 2B/4B Instruct attualmente supportati. Adattare installazione, eventuale runtime gestito e chiusura dei processi a macOS; provare prestazioni e indicazioni hardware sul Mac, senza riutilizzare automaticamente le indicazioni GPU Windows.
+- [ ] **6. Portare memoria e azioni locali.** Aggiungere note modificabili/cancellabili e recupero del contesto per la chat locale, mantenendole separate dagli invii remoti. Adattare «apri calcolatrice» e «apri download» alle applicazioni e cartelle Mac, con conferma per ogni azione. Verificare salvataggio, riavvio e cancellazione delle note.
+- [ ] **7. Portare osservazione e fotogrammi.** Aggiungere scelta della finestra, anteprima locale, arresto e allegato di un solo fotogramma dopo conferma. Gestire i permessi macOS per la cattura e il caso di autorizzazione negata o revocata. Provare immagini con Codex/Claude simulati e Ollama visivo, cancellazione dei temporanei e assenza di immagini nella cronologia.
+- [ ] **8. Portare la gestione degli hook.** Adattare launcher e percorsi macOS, mantenendo anteprima, applicazione con backup, conservazione delle altre integrazioni e controllo delle modifiche concorrenti. Verificare eventi Claude/Codex, aggiornamento degli hook senza duplicati, errori e normale flusso di approvazione degli hook.
+- [ ] **9. Preservare i dati Mac esistenti.** Definire e verificare il trattamento di impostazioni, personaggi e cronologie della precedente app Swift in `~/Library/Application Support/Mascotte`. Se serve una migrazione, predisporre backup e recupero; mantenere fuori dai pacchetti account, modelli, chat e note personali.
+- [ ] **10. Preparare pacchetti e aggiornamenti Mac.** Produrre l'app per le architetture scelte, adattare controllo release, download, verifica di integrità, sostituzione, riavvio e ripristino in caso di errore; definire anche l'aggiornamento da sorgenti. Decidere e documentare firma/notarizzazione e limiti della distribuzione. Provare installazione su un altro Mac o profilo pulito e aggiornamento preservando i dati.
+- [ ] **11. Eseguire il collaudo di parità.** Verificare tutti i passi precedenti su Mac reale, includendo servizi locali non disponibili, CLI mancanti, interruzione, permessi negati, riavvio e aggiornamento fallito. Eseguire i controlli Windows pertinenti se viene modificato codice condiviso. Registrare hardware, versione macOS, risultati e limiti rimasti.
+- [ ] **12. Aggiornare guide e distribuzione.** Aggiornare README principale, istruzioni Mac, privacy, esportazione e procedura di release in base alla soluzione effettiva. Riportare versione Mac, funzioni verificate e differenze residue; ricontrollare questa checklist contro la versione Windows più recente prima di considerare concluso l'allineamento.
+
+**Primo passo:** confronto aggiornato Windows/Mac e decisione sulla base tecnica; nessuna riscrittura prima di aver definito il perimetro.
+
+**Criterio di completamento:** funzioni Windows comprese nel perimetro disponibili e verificate su Mac reale, installazione e aggiornamento provati, dati preservati e differenze residue documentate. Una build riuscita da sola non completa il porting.
+
+### Richiamo per ogni aggiornamento Windows
+
+Prima di chiudere un intervento Windows, controllare se cambia uno dei passi sopra e aggiornare questa sezione nello stesso intervento. Per le nuove attività annotare funzione, passo Mac coinvolto, lavoro mancante e verifica prevista. Le eccezioni devono avere una motivazione esplicita.
+
+Quando le proposte delle sezioni 1–4 diventano funzioni Windows, aggiungere anche i passi Mac per il nuovo motore locale, l'automazione delle finestre e il secondo parere con immagine; fino ad allora restano proposte, non funzioni da dichiarare già disponibili.
+
+**Riferimento iniziale:** Windows 0.8.0 e funzioni descritte nel «Punto di partenza» di questo file; app Mac nativa documentata come versione 0.5. Nessuna eccezione di porting registrata al momento della pianificazione.
+
 ## Riprendere da un altro PC
 
-1. Recuperare il repository aggiornato e leggere questo file, `windows/README.md` e `PUBBLICAZIONE.md`.
+1. Recuperare il repository aggiornato e leggere `AGENTS.md`, questo file (incluso il richiamo Windows → Mac), `windows/README.md` e `PUBBLICAZIONE.md`. Per il porting leggere anche `app/README.md`.
 2. Per sviluppare su Windows, installare Git e Node.js secondo la guida, poi eseguire `npm.cmd ci` nella cartella `windows`.
 3. Eseguire `npm.cmd test` e avviare il sorgente con `npm.cmd start`. Per creare i pacchetti usare `npm.cmd run build:win`.
 4. Per provare l'IA locale, installare e avviare Ollama, quindi scaricare il modello da Gestione. Non aspettarsi di trovare modelli o memoria personale nel clone.
@@ -109,4 +148,4 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
 
 ## Nuove idee
 
-Aggiungere qui le prossime richieste senza perdere le decisioni già prese nelle quattro voci sopra.
+Aggiungere qui le prossime richieste senza perdere le decisioni già prese nelle cinque voci sopra. Se riguardano Windows, aggiornare anche il piano Mac della sezione 5.
