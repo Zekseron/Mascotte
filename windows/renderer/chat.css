@@ -4,3 +4,14 @@
 body{overflow:hidden}header,.tabs,#status,#composer,footer{flex-shrink:0}#messages{min-height:0}#watch-panel{flex-shrink:1;min-height:74px;max-height:200px;overflow:auto;grid-template-columns:minmax(0,1fr)}.watch-controls{min-width:0}#watch-state{overflow-wrap:anywhere}
 .message button{margin-top:8px;padding:4px 7px;font-size:11px}.memory-note{border-top:1px solid #3e424e;margin-top:10px;padding-top:6px}.memory-note p{white-space:pre-wrap;overflow-wrap:anywhere}.memory-note button{margin-left:10px;font-size:11px}#memory-text{min-height:120px;border:1px solid #515563;border-radius:8px;padding:8px;margin-bottom:12px;resize:vertical}
 #remote-text{min-height:120px;border:1px solid #515563;border-radius:8px;padding:8px;margin:12px 0;resize:vertical}.message button+button{margin-left:6px}
+
+/* Keep the conversation usable when the preview is folded or the window is short. */
+#watch-panel{display:block;flex-shrink:0;min-height:0;max-height:none;overflow:visible;padding:0}
+#watch-panel summary{padding:8px 10px;cursor:pointer;font-size:12px;color:#b8becb}
+#watch-panel[open]{flex-shrink:1;overflow:auto;max-height:240px}
+.watch-content{display:grid;gap:7px;padding:0 10px 9px}
+#watch-help{margin:0;font-size:11px;line-height:1.4;color:#b3b7c5}
+#watch-video{max-height:100px}
+#composer{padding:8px 10px}
+#input{min-height:24px;height:28px;max-height:96px;overflow-y:auto;resize:vertical}
+.send-row{margin-top:4px}

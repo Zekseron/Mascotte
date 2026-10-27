@@ -29,7 +29,7 @@ Il seguito della finestra usa un processo PowerShell locale con API User32/DWM e
 
 Installa [Ollama per Windows](https://ollama.com/download/windows), avvialo e scegli uno dei modelli in **Gestione > IA locale**. Premi **Scarica / aggiorna modello**: il predefinito Qwen3 4B instruct richiede circa 2,5 GB; il modello 1.7B circa 1,4 GB, ma e meno affidabile. Al termine della verifica scegli **Locale ? Ollama** nella chat. Le conversazioni locali sono separate da Codex e Claude. Se il modello e gia disponibile all'avvio, viene scelto automaticamente.
 
-La chat locale usa `127.0.0.1:11434` e richiede un modello GGUF presente sul PC; non passa automaticamente a un servizio remoto. Per disabilitare anche le funzioni cloud di Ollama, segui la [configurazione local-only](https://docs.ollama.com/faq#how-can-i-disable-ollamas-cloud-features). Il download iniziale di Ollama e del modello richiede Internet. Il modello viene scaricato dalla RAM dopo ogni risposta, per liberare risorse; ricaricarlo può rendere più lenta la risposta successiva. Modelli piccoli possono dare risposte inesatte: verifica le informazioni importanti. Il modello locale scelto accetta solo testo.
+La chat locale usa `127.0.0.1:11434` e richiede un modello GGUF presente sul PC; non passa automaticamente a un servizio remoto. Per disabilitare anche le funzioni cloud di Ollama, segui la [configurazione local-only](https://docs.ollama.com/faq#how-can-i-disable-ollamas-cloud-features). Il download iniziale di Ollama e del modello richiede Internet. Il modello viene scaricato dalla RAM dopo ogni risposta, per liberare risorse; ricaricarlo può rendere più lenta la risposta successiva. Modelli piccoli possono dare risposte inesatte: verifica le informazioni importanti. I modelli Qwen3 testuali accettano solo testo; Qwen3-VL 2B e 4B Instruct accettano anche il fotogramma allegato e confermato.
 
 Se un runtime autonomo è presente in `%LOCALAPPDATA%\Mascotte\local-ai\runtime` e i modelli sono nella sottocartella `local-ai\models`, Mascotte può avviarlo in locale quando non trova un servizio già in esecuzione. Questo runtime viene avviato con le funzioni cloud disabilitate e viene fermato all'uscita di Mascotte. Un server Ollama esterno già attivo rimane gestito dalla sua installazione.
 
@@ -189,3 +189,13 @@ Con Ollama installato separatamente, i modelli sono gestiti nella sua cartella u
 Qwen3 8B Q4 e disponibile come terza opzione da scaricare (circa 5,2 GB di pesi). Per Mascotte consigliamo almeno 16 GB di RAM, una GPU supportata da Ollama con 8 GB di VRAM dedicata e almeno 8 GB liberi su disco per il download. Sono indicazioni pratiche, non minimi assoluti: su CPU o con meno VRAM puo funzionare piu lentamente; contesto e programmi aperti possono richiedere ulteriore memoria. L'avviso compare selezionando l'8B; il 4B resta predefinito. Non viene effettuato un rilevamento automatico dell'hardware e l'8B non e stato misurato su questo PC.
 
 Dimensioni del modello: https://ollama.com/library/qwen3:8b
+
+
+La sezione **Finestra da condividere** nella micro chat parte chiusa e si apre dal titolo. Chiuderla nasconde i controlli e l'anteprima; per fermare la cattura usare **Smetti**. Il campo messaggio parte da una riga ed e ridimensionabile in altezza. Con i modelli Qwen3 testuali l'anteprima non viene inviata al modello. Per analizzare un fotogramma sul PC scegli Qwen3-VL 2B o 4B Instruct in Gestione, scaricalo e seleziona Locale nella chat. Scrivi una domanda, apri il pannello, scegli la finestra e premi Allega fotogramma: dopo la conferma il singolo fotogramma viene analizzato in locale. Non viene conservato nella cronologia; per una nuova domanda visiva allegane uno nuovo. Con Codex o Claude occorre allegare un fotogramma e confermare l'invio; non ricevono la finestra in diretta.
+
+
+### Modelli visivi locali
+
+Disponibili `qwen3-vl:2b-instruct` (circa 1,9 GB) e `qwen3-vl:4b-instruct` (circa 3,3 GB). Consigliati 16 GB RAM; per il 4B una GPU supportata con almeno 8 GB VRAM. Spazio e RAM effettivi dipendono anche da immagini e contesto. Il modello puo sbagliare testo e dettagli: verificare le configurazioni tecniche. Non esegue azioni tramite mouse/tastiera. La cattura non equivale a un video inviato continuamente all'IA.
+
+Prova CPU del 2B e limiti: [REPORT-VISIONE-LOCALE.md](REPORT-VISIONE-LOCALE.md).

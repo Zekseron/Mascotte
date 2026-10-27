@@ -37,7 +37,7 @@ function startApplication() {
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
-  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.MODEL, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: process.platform === 'win32', watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: process.platform === 'win32' && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed } });
+  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.MODEL, localVision: LocalAI.supportsVision(settings?.localModel), memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: process.platform === 'win32', watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: process.platform === 'win32' && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed } });
   const saveSettings = () => atomicJSON(stateFile, settings);
   async function prepareLocal() {
     try { await LocalAI.checkModel({ model: settings.localModel }); }
@@ -465,7 +465,7 @@ function startApplication() {
         }
         let image = null, imagePath = null, imageDirectory = null;
         if (imageData !== null) {
-          if (engine === 'locale') { notice = 'Il modello locale scelto è solo testuale.'; broadcast(); return; }
+          if (engine === 'locale' && !LocalAI.supportsVision(settings.localModel)) { notice = 'Il modello locale scelto è solo testuale.'; broadcast(); return; }
           if (!watchSource || typeof imageData !== 'string' || imageData.length > 12000000) { notice = 'La vista non è più disponibile: attiva l’osservazione e riprova.'; broadcast(); return; }
           const encoded = imageData.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/)?.[1];
           if (!encoded) { notice = 'Il fotogramma non è valido.'; broadcast(); return; }
@@ -492,7 +492,7 @@ function startApplication() {
         store.set(selected, [...history, { role: 'user', text: prompt + imageNote }]); notice = '';
         const args = selected === 'locale' ? null : CLI.argumentsFor(selected, imagePath, Boolean(image && selected === 'claude'));
         const input = image && selected === 'claude' ? CLI.promptWithImage(completePrompt, image.bytes.toString('base64')) : completePrompt;
-        const run = selected === 'locale' ? LocalAI.runLocal(history, prompt, memory.relevant(prompt), { model: settings.localModel }) : CLI.runCLI(command, args, input, imageDirectory || path.join(dataDirectory, 'chat'));
+        const run = selected === 'locale' ? LocalAI.runLocal(history, prompt, memory.relevant(prompt), { model: settings.localModel, imageBase64: image?.bytes.toString('base64') || null }) : CLI.runCLI(command, args, input, imageDirectory || path.join(dataDirectory, 'chat'));
         currentRun = run; controller.set('thinking', true); broadcast();
         try {
           const output = await run.promise;
