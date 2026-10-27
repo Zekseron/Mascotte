@@ -7,6 +7,8 @@ pixel art.
 
 Progetto e decisioni: [DESIGN.md](DESIGN.md).
 
+Idee e prossimi lavori, anche per riprendere da un altro PC: [WORK-IN-PROGRESS.md](WORK-IN-PROGRESS.md).
+
 ## Struttura
 
 | Cartella | Contenuto |
