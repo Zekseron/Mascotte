@@ -1,6 +1,7 @@
 node_modules/
 windows/resources/
 windows/dist/
+distribuzione/Windows-portatile/
 app/.build/
 app/build.noindex/
 work/
@@ -32,3 +33,11 @@ __pycache__/
 settings.json
 history.json
 events.json
+# Local AI downloads and caches belong in user data, never in source control.
+*.gguf
+*.safetensors
+*.onnx
+**/local-ai/models/
+**/local-ai/runtime/
+**/.ollama/
+*.log

@@ -1,0 +1,61 @@
+{
+  "measuredAtUTC": "2026-10-27T13:34:00.550Z",
+  "ollamaVersion": "0.40.11",
+  "model": {
+    "name": "qwen3:4b-instruct",
+    "sizeBytes": 2497293803,
+    "digest": "0edcdef34593eac1aa2be9c7d06c432dcf81945adca5eca2f27662c18f168ba0",
+    "details": {
+      "parent_model": "",
+      "format": "gguf",
+      "family": "qwen3",
+      "families": [
+        "qwen3"
+      ],
+      "parameter_size": "4.0B",
+      "quantization_level": "Q4_K_M",
+      "context_length": 262144,
+      "embedding_length": 2560,
+      "runner": "ggml"
+    }
+  },
+  "configuration": {
+    "contextTokens": 4096,
+    "maxGeneratedTokens": 512,
+    "thinking": false,
+    "keepAlive": 0
+  },
+  "tests": [
+    {
+      "purpose": "somma elementare",
+      "prompt": "Quanto fa 2 + 3? Rispondi solo con il numero.",
+      "memories": [],
+      "answer": "5",
+      "elapsedSeconds": 7.9,
+      "sampledRunnerWorkingSetMiB": 2828
+    },
+    {
+      "purpose": "spiegazione breve",
+      "prompt": "In una frase, che cosa significa riavviare un computer?",
+      "memories": [],
+      "answer": "Riavviare un computer significa spegnere e poi riprenderlo nuovamente, per far ripartire il sistema operativo e resettare eventuali problemi di funzionamento.",
+      "elapsedSeconds": 13,
+      "sampledRunnerWorkingSetMiB": 3011
+    },
+    {
+      "purpose": "recupero di una nota sintetica",
+      "prompt": "Qual è il nome della mascotte di prova?",
+      "memories": [
+        {
+          "text": "Il nome della mascotte di prova è Lilla.",
+          "source": "manuale"
+        }
+      ],
+      "answer": "Il nome della mascotte di prova è Lilla.",
+      "elapsedSeconds": 9.3,
+      "sampledRunnerWorkingSetMiB": 3041
+    }
+  ],
+  "loadedModelsAfterTests": [],
+  "caveat": "Tre prove sintetiche non costituiscono una valutazione di accuratezza o un benchmark generale; i tempi includono caricamento e generazione sul PC in uso."
+}

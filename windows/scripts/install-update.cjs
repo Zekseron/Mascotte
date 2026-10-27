@@ -116,10 +116,18 @@ async function main(args) {
 
   try {
     const command = `Expand-Archive -LiteralPath '${archive.replace(/'/g, "''")}' -DestinationPath '${staging.replace(/'/g, "''")}' -Force`;
-    const expanded = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 120000 });
+    const powershell = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
+    const expanded = spawnSync(powershell, ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 120000 });
     if (expanded.error || expanded.status !== 0) throw new Error((expanded.stderr || expanded.error?.message || 'Estrazione ZIP non riuscita.').trim());
     if (!fs.existsSync(path.join(staging, 'Mascotte.exe')) || !fs.existsSync(path.join(staging, 'resources', 'app.asar'))) {
       throw new Error('Lo ZIP non contiene Mascotte.exe e resources/app.asar al livello atteso.');
+    }
+    // Keep the NSIS uninstaller registered at this installation path across ZIP updates.
+    const uninstaller = path.join(installDir, 'Uninstall Mascotte.exe');
+    if (fs.existsSync(uninstaller)) {
+      const stat = fs.lstatSync(uninstaller);
+      if (!stat.isFile() || stat.isSymbolicLink()) throw new Error('Il programma di disinstallazione non è un file normale.');
+      fs.copyFileSync(uninstaller, path.join(staging, 'Uninstall Mascotte.exe'), fs.constants.COPYFILE_EXCL);
     }
     if (args['ready-file']) fs.writeFileSync(path.resolve(args['ready-file']), 'ready', { flag: 'wx' });
     if (waitPid !== null) await waitForPid(waitPid);

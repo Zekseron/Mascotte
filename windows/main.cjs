@@ -1,8 +1,10 @@
 'use strict';
 const path = require('node:path');
 const fs = require('node:fs');
+const os = require('node:os');
+const { randomUUID } = require('node:crypto');
 const { pathToFileURL } = require('node:url');
-const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer } = require('electron');
+const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer, shell } = require('electron');
 const dataDirectory = process.env.MASCOTTE_WINDOWS_DATA_DIR || (process.platform === 'win32' ? path.join(process.env.LOCALAPPDATA, 'Mascotte') : path.join(app.getPath('userData'), 'Windows-preview'));
 const endpoint = path.join(dataDirectory, 'events.json');
 if (process.argv.includes('--mascotte-notify')) {
@@ -16,24 +18,42 @@ if (process.argv.includes('--mascotte-notify')) {
 function startApplication() {
   const { prepareDirectory, readJSON, atomicJSON, ChatStore, assertRegularPath } = require('./lib/storage.cjs');
   const CLI = require('./lib/cli.cjs');
+  const LocalAI = require('./lib/local-ai.cjs');
   const { StateController, clampPosition } = require('./lib/state.cjs');
   const { EventServer } = require('./lib/events.cjs');
   const Setup = require('./lib/setup.cjs');
   const Updater = require('./lib/updater.cjs');
+  const Releases = require('./lib/releases.cjs');
   const Attachment = require('./lib/attachment.cjs');
   const { mascotSize, maskHit, dragPosition } = require('./lib/geometry.cjs');
   const P = require('./resources/pack.js');
-  let mascot, chat, tray, controller, server, store, pack, imageData, currentRun, hitMask, mouseTimer;
-  let settings, engine = 'codex', notice = '', setupPreview, drag, quitting = false, mouseIgnored = true;
+  let mascot, chat, tray, controller, server, store, memory, pack, imageData, currentRun, hitMask, mouseTimer;
+  let settings, engine = 'codex', engineTouched = false, notice = '', setupPreview, drag, quitting = false, mouseIgnored = true, localAvailable = false, managedOllama = null;
   let characters = [];
   let attachment = 'free', singing = false, follower, captureFollower, captureTimer, anchorTimer, anchorDisplay, anchorFraction = .8, targetBounds, concealed = false, userVisible = true;
-  let watchSource = null, activeShareDirectory = null;
+  let watchSource = null, activeShareDirectory = null, pendingAction = null;
+  let localDownload = null, localDownloadStatus = '';
   let updateRunning = false, updateStatus = '', updateFailed = false, updateAbort = null;
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
-  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun), notice, available: CLI.ENGINES.filter(e => CLI.findCLI(e)), setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: process.platform === 'win32', watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: process.platform === 'win32' && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed } });
+  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.MODEL, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: process.platform === 'win32', watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: process.platform === 'win32' && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed } });
   const saveSettings = () => atomicJSON(stateFile, settings);
+  async function prepareLocal() {
+    try { await LocalAI.checkModel({ model: settings.localModel }); }
+    catch (error) {
+      if (error.code !== 'ECONNREFUSED' || managedOllama || process.platform !== 'win32') throw error;
+      managedOllama = LocalAI.startManaged(dataDirectory);
+      if (!managedOllama) throw error;
+      for (let i = 0; i < 30; i++) {
+        if (quitting) throw new Error('Avvio locale interrotto.');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        try { await LocalAI.checkModel({ model: settings.localModel }); return; }
+        catch (next) { if (next.code !== 'ECONNREFUSED') throw next; }
+      }
+      throw new Error('Il servizio locale non si è avviato in tempo.');
+    }
+  }
   async function installRepositoryUpdate(repo) {
     const installDir = Updater.installationDirectory(process.execPath, repo.root, dataDirectory);
     const resultFile = path.join(dataDirectory, 'update-result.json');
@@ -43,6 +63,24 @@ function startApplication() {
     // Run the helper from the NEW unpacked build, so no process locks the installed runtime.
     await Updater.launchInstaller({ ...result, installDir, resultFile, logFile, previousExe: process.execPath, parentPid: process.pid, helperScript: path.join(process.resourcesPath, 'mascotte-updater.cjs') });
     app.quit();
+  }
+  async function installPublishedRelease(release) {
+    const work = fs.mkdtempSync(path.join(dataDirectory, 'release-update-'));
+    let handedOff = false;
+    try {
+      const repo = Releases.repositoryContaining(process.execPath);
+      const installDir = Updater.installationDirectory(process.execPath, repo || work, dataDirectory);
+      updateStatus = `Scarico Mascotte ${release.version}…`; broadcast();
+      const archive = await Releases.downloadRelease(release, work, updateAbort.signal);
+      updateStatus = 'Verifica completata. Preparo l’installazione…'; broadcast();
+      const runtime = await Releases.extractRuntime(archive, work, updateAbort.signal);
+      await Updater.launchInstaller({ root: work, archive, runtime, installDir,
+        resultFile: path.join(dataDirectory, 'update-result.json'), logFile: path.join(dataDirectory, 'update.log'),
+        previousExe: process.execPath, parentPid: process.pid, helperScript: path.join(process.resourcesPath, 'mascotte-updater.cjs') });
+      handedOff = true; app.quit();
+    } finally {
+      if (!handedOff) { try { await fs.promises.rm(work, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch {} }
+    }
   }
   const displayAreas = () => screen.getAllDisplays().map(d => d.workArea);
   const displayScale = () => settings.scale/(pack.pixelRatio||1);
@@ -160,6 +198,13 @@ function startApplication() {
       if (fs.lstatSync(target).isDirectory() && !fs.lstatSync(target).isSymbolicLink()) fs.rmSync(target, { recursive: true, force: true });
     }
   }
+  function clearReleaseDownloads() {
+    for (const entry of fs.readdirSync(dataDirectory, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !/^release-update-[a-z0-9]+$/i.test(entry.name)) continue;
+      const target = path.join(dataDirectory, entry.name);
+      try { if (!fs.lstatSync(target).isSymbolicLink()) fs.rmSync(target, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 }); } catch {}
+    }
+  }
   function safeWindow(name, options) {
     const window = new BrowserWindow({ ...options, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
@@ -218,31 +263,35 @@ function startApplication() {
   app.on('window-all-closed', () => {});
   app.on('before-quit', () => {
     updateAbort?.abort();
-    quitting = true; currentRun?.stop(); controller?.close(); clearInterval(mouseTimer);
+    quitting = true; localDownload?.abort(); currentRun?.stop(); controller?.close(); clearInterval(mouseTimer);
     stopWatching();
     if (activeShareDirectory && fs.existsSync(activeShareDirectory)) { try { fs.rmSync(activeShareDirectory, { recursive: true, force: true }); } catch {} }
     activeShareDirectory = null;
     clearTimeout(captureTimer); captureFollower?.close(); captureFollower = null; detach();
     server?.close().catch(() => {});
+    if (managedOllama?.pid && managedOllama.exitCode === null) {
+      require('node:child_process').execFile(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe'), ['/PID', String(managedOllama.pid), '/T', '/F'], { windowsHide: true }, () => {});
+    }
   });
   app.whenReady().then(async () => {
     prepareDirectory(dataDirectory); clearTemporaryShares();
+    // The updater may still be exiting from its temporary runtime after the restart.
+    setTimeout(clearReleaseDownloads, 15000).unref();
     const chatDirectory = path.join(dataDirectory, 'chat'); prepareDirectory(chatDirectory);
     store = new ChatStore(chatDirectory);
+    memory = new LocalAI.LocalMemory(chatDirectory);
     const raw = readJSON(stateFile, {});
-    settings = {scale:[1,2,3,4,5,6].includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:''};
+    settings = {scale:[1,2,3,4,5,6].includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localModel:LocalAI.MODELS.includes(raw.localModel)?raw.localModel:LocalAI.MODEL};
+    prepareLocal().then(() => { localAvailable = true; if (!currentRun && !engineTouched) engine = 'locale'; broadcast(); }).catch(() => { localAvailable = false; broadcast(); });
     const resultFile = path.join(dataDirectory, 'update-result.json'), updateResult = readJSON(resultFile, null);
     if (updateResult && typeof updateResult.message === 'string') {
       updateStatus = updateResult.message.slice(0, 2000); updateFailed = !updateResult.ok;
       fs.unlinkSync(resultFile);
     }
     characters=readCharacters();selectCharacter(characters.some(c=>c.id===raw.character)?raw.character:'rosso',true);
-    session.defaultSession.setPermissionRequestHandler((web, permission, callback) => callback(
-      permission === 'display-capture' && web === chat?.webContents && Boolean(watchSource)
-    ));
-    session.defaultSession.setPermissionCheckHandler((web, permission) =>
-      permission === 'display-capture' && web === chat?.webContents && Boolean(watchSource)
-    );
+    require('./lib/capture.cjs').configureDisplayCapture(session.defaultSession, {
+      getChat: () => chat, getSource: () => watchSource, listSources: windowSources
+    });
     session.defaultSession.webRequest.onBeforeRequest((details, callback) => callback({ cancel: !details.url.startsWith('file:') && !details.url.startsWith('data:') }));
     const width = Math.round(pack.frame.width * displayScale()),height = Math.round(pack.frame.height * displayScale());
     const pos = clampPosition(settings.position, width, height, displayAreas());
@@ -285,6 +334,62 @@ function startApplication() {
     }
     if (chatting) {
       if (action === 'snapshot') return chatSnapshot();
+      if (action === 'local-model' && !localDownload && !currentRun && !updateRunning && LocalAI.MODELS.includes(data)) { settings.localModel = data; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
+      if (action === 'local-download-cancel') { localDownload?.abort(); return chatSnapshot(); }
+      if (action === 'local-download') {
+        if (localDownload || currentRun || updateRunning || setupPreview) return chatSnapshot();
+        localDownload = new AbortController(); localAvailable = false;
+        localDownloadStatus = 'Preparazione download...'; broadcast();
+        try {
+          // Starts our runtime if present; a missing model is expected before pulling.
+          try { await prepareLocal(); } catch (error) { if (error.code === 'ECONNREFUSED') throw error; }
+          await LocalAI.pullModel(settings.localModel, { signal: localDownload.signal, onProgress: message => { localDownloadStatus = message; broadcast(); } });
+          localAvailable = true; localDownloadStatus = 'Modello aggiornato e compatibile, pronto per la chat.';
+        } catch (error) { localDownloadStatus = error.name === 'AbortError' ? 'Download annullato. Puoi riprenderlo con lo stesso pulsante.' : error.message; }
+        finally { localDownload = null; broadcast(); }
+        return chatSnapshot();
+      }
+      if ((action === 'local-check' || action === 'local-model') && !localDownload) { localDownloadStatus = ''; try { await prepareLocal(); localAvailable = true; notice = 'Modello locale pronto.'; } catch (error) { localAvailable = false; notice = error.message; } return chatSnapshot(); }
+      if (action === 'memory-add' && !currentRun && !updateRunning) { try { memory.add(data?.text, data?.source); notice = 'Nota salvata sul PC.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
+      if (action === 'memory-remove' && !currentRun && !updateRunning && typeof data === 'string') { try { memory.remove(data); notice = 'Nota rimossa.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
+      if (action === 'pc-action-cancel') { pendingAction = null; notice = 'Azione annullata.'; return chatSnapshot(); }
+      if (action === 'pc-action-confirm' && pendingAction && data === pendingAction.id) {
+        const selectedAction = pendingAction; pendingAction = null;
+        try {
+          const error = await shell.openPath(selectedAction.target);
+          if (error) throw new Error(error);
+          notice = 'Azione completata.';
+        } catch (error) { notice = `Azione non riuscita: ${error.message}`; }
+        return chatSnapshot();
+      }
+      if (action === 'cli-guide') {
+        const guides = { codex: 'https://developers.openai.com/codex/cli/', claude: 'https://code.claude.com/docs/en/setup', ollama: 'https://ollama.com/download/windows',
+          git: 'https://git-scm.com/install/windows', node: 'https://nodejs.org/en/download' };
+        if (Object.hasOwn(guides, data)) await shell.openExternal(guides[data]);
+        return chatSnapshot();
+      }
+      if (action === 'release-update') {
+        if (process.platform !== 'win32' || !app.isPackaged || updateRunning || currentRun || localDownload || setupPreview) return chatSnapshot();
+        updateRunning = true; updateFailed = false; updateStatus = 'Controllo le versioni disponibili…'; updateAbort = new AbortController(); broadcast();
+        try {
+          const release = await Releases.latestRelease(updateAbort.signal);
+          if (Releases.compareVersions(release.version, app.getVersion()) <= 0) {
+            updateStatus = `Mascotte è aggiornata (versione ${app.getVersion()}).`;
+            updateRunning = false; updateAbort = null; broadcast(); return chatSnapshot();
+          }
+          const repo = Releases.repositoryContaining(process.execPath);
+          const installDir = Updater.installationDirectory(process.execPath, repo || dataDirectory, dataDirectory);
+          const confirmation = await dialog.showMessageBox(chat, { type: 'question', title: 'Aggiorna Mascotte',
+            message: `Installare Mascotte ${release.version}?`,
+            detail: `Il pacchetto Windows verrà scaricato dalla release ufficiale e verificato prima dell’installazione.\nDestinazione: ${installDir}\n\nMascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${path.dirname(process.execPath).toLowerCase() !== installDir.toLowerCase() ? '\n\nDopo il riavvio aggiorna gli hook per collegarli al nuovo percorso.' : ''}`,
+            buttons: ['Annulla', 'Aggiorna e riavvia'], defaultId: 1, cancelId: 0 });
+          if (confirmation.response !== 1) { updateRunning = false; updateAbort = null; updateStatus = 'Aggiornamento annullato.'; broadcast(); return chatSnapshot(); }
+          void installPublishedRelease(release).catch(error => {
+            updateRunning = false; updateFailed = true; updateStatus = `Aggiornamento non riuscito: ${error.message}`; broadcast();
+          }).finally(() => { updateAbort = null; });
+        } catch (error) { updateRunning = false; updateAbort = null; updateFailed = true; updateStatus = error.message; broadcast(); }
+        return chatSnapshot();
+      }
       if (action === 'repo-select' && !updateRunning) {
         if (process.platform !== 'win32' || !app.isPackaged) return chatSnapshot();
         try {
@@ -298,7 +403,7 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'update-run') {
-        if (process.platform !== 'win32' || !app.isPackaged || updateRunning || currentRun || setupPreview) return chatSnapshot();
+        if (process.platform !== 'win32' || !app.isPackaged || updateRunning || currentRun || localDownload || setupPreview) return chatSnapshot();
         // Reserve the operation before opening the native dialog to prevent duplicate updates.
         updateRunning = true; updateFailed = false; broadcast();
         try {
@@ -320,7 +425,7 @@ function startApplication() {
         watchSource = source; notice = ''; broadcast(); return { id: source.id, name: source.name };
       }
       if (action === 'watch-disable') { stopWatching(); return chatSnapshot(); }
-      if (action === 'engine' && !currentRun && CLI.ENGINES.includes(data)) { engine = data; notice = ''; return chatSnapshot(); }
+      if (action === 'engine' && !currentRun && [...CLI.ENGINES, 'locale'].includes(data)) { engine = data; engineTouched = true; notice = ''; return chatSnapshot(); }
       if (action === 'new' && !currentRun) { store.set(engine, []); notice = ''; return chatSnapshot(); }
       if (action === 'stop') { currentRun?.stop(); return; }
       if (action === 'setup-preview') {
@@ -341,10 +446,26 @@ function startApplication() {
       if (action === 'setup-dismiss') { setupPreview = null; return chatSnapshot(); }
       if (action === 'send') {
         const text = typeof data === 'string' ? data : data?.text;
-        const imageData = typeof data === 'object' && data ? data.imageData : null;
-        if (currentRun || updateRunning || typeof text !== 'string' || !text.trim() || text.length > 8000 || Buffer.byteLength(text) > 32768) return;
+        const imageData = typeof data === 'object' && data ? data.imageData ?? null : null;
+        if (localDownload || currentRun || updateRunning || typeof text !== 'string' || !text.trim() || text.length > 8000 || Buffer.byteLength(text) > 32768) return;
+        if (pendingAction) { notice = 'Conferma o annulla prima l’azione proposta.'; broadcast(); return; }
+        if (process.platform === 'win32' && engine === 'locale' && !imageData) {
+          const normalized = text.trim().toLocaleLowerCase('it').replace(/[.!?]+$/, '').replace(/\s+/g, ' ');
+          const actions = {
+            'apri calcolatrice': { description: 'Aprire la Calcolatrice di Windows.', target: path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'calc.exe') },
+            'apri la calcolatrice': { description: 'Aprire la Calcolatrice di Windows.', target: path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'calc.exe') },
+            'apri download': { description: 'Aprire la cartella Download del tuo utente.', target: path.join(os.homedir(), 'Downloads') },
+            'apri la cartella download': { description: 'Aprire la cartella Download del tuo utente.', target: path.join(os.homedir(), 'Downloads') }
+          };
+          if (Object.hasOwn(actions, normalized)) {
+            const history = store.get('locale');
+            store.set('locale', [...history, { role: 'user', text: text.trim() }, { role: 'assistant', text: 'Posso farlo: controlla e conferma l’azione.' }]);
+            pendingAction = { id: randomUUID(), ...actions[normalized] }; notice = ''; broadcast(); return chatSnapshot();
+          }
+        }
         let image = null, imagePath = null, imageDirectory = null;
         if (imageData !== null) {
+          if (engine === 'locale') { notice = 'Il modello locale scelto è solo testuale.'; broadcast(); return; }
           if (!watchSource || typeof imageData !== 'string' || imageData.length > 12000000) { notice = 'La vista non è più disponibile: attiva l’osservazione e riprova.'; broadcast(); return; }
           const encoded = imageData.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/)?.[1];
           if (!encoded) { notice = 'Il fotogramma non è valido.'; broadcast(); return; }
@@ -352,8 +473,8 @@ function startApplication() {
           if (bytes.length > 8000000 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes.at(-2) !== 0xff || bytes.at(-1) !== 0xd9) { notice = 'Il fotogramma supera il limite o non è valido.'; broadcast(); return; }
           image = { bytes, name: watchSource.name };
         }
-        const command = CLI.findCLI(engine);
-        if (!command) { notice = 'CLI non trovata. Installa e accedi a ' + engine + ' sul tuo PC.'; broadcast(); return; }
+        const command = engine === 'locale' ? null : CLI.findCLI(engine);
+        if (engine !== 'locale' && !command) { notice = 'CLI non trovata. Installa e accedi a ' + engine + ' sul tuo PC.'; broadcast(); return; }
         const selected = engine, prompt = text.trim(), history = store.get(selected);
         const imageNote = image ? `\n\n[Fotogramma condiviso: ${image.name}]` : '';
         if (image && selected === 'codex') {
@@ -367,18 +488,18 @@ function startApplication() {
             notice = 'Non riesco a preparare il fotogramma in modo temporaneo.'; broadcast(); return;
           }
         }
-        const completePrompt = CLI.promptWithHistory(history, prompt + imageNote);
-        const args = CLI.argumentsFor(selected, imagePath, Boolean(image && selected === 'claude'));
-        const input = image && selected === 'claude' ? CLI.promptWithImage(completePrompt, image.bytes.toString('base64')) : completePrompt;
+        const completePrompt = CLI.promptWithHistory(data?.noHistory === true ? [] : history, prompt + imageNote);
         store.set(selected, [...history, { role: 'user', text: prompt + imageNote }]); notice = '';
-        const run = CLI.runCLI(command, args, input, imageDirectory || path.join(dataDirectory, 'chat'));
+        const args = selected === 'locale' ? null : CLI.argumentsFor(selected, imagePath, Boolean(image && selected === 'claude'));
+        const input = image && selected === 'claude' ? CLI.promptWithImage(completePrompt, image.bytes.toString('base64')) : completePrompt;
+        const run = selected === 'locale' ? LocalAI.runLocal(history, prompt, memory.relevant(prompt), { model: settings.localModel }) : CLI.runCLI(command, args, input, imageDirectory || path.join(dataDirectory, 'chat'));
         currentRun = run; controller.set('thinking', true); broadcast();
         try {
           const output = await run.promise;
-          const text = CLI.decodeOutput(selected, output.stdout, output.code, output.stderr);
+          const text = selected === 'locale' ? output : CLI.decodeOutput(selected, output.stdout, output.code, output.stderr);
           store.set(selected, [...store.get(selected), { role: 'assistant', text }]); controller.set('talk');
         } catch (e) {
-          notice = e.message.slice(0, 1500); controller.set('error');
+          notice = (e.name === 'AbortError' ? 'Risposta interrotta.' : e.message).slice(0, 1500); controller.set('error');
         } finally {
           currentRun = null;
           if (imageDirectory && fs.existsSync(imageDirectory)) { try { fs.rmSync(imageDirectory, { recursive: true, force: true }); } catch {} }

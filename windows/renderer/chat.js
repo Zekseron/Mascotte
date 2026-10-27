@@ -1,6 +1,6 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let current = null, drafts = { codex: '', claude: '' }, watchStream = null, pendingImage = null;
+let current = null, drafts = { codex: '', claude: '', locale: '' }, watchStream = null, pendingImage = null, memorySource = 'manuale', remotePending = null;
 let selectedTab = 'chat';
 function selectTab(tab) {
   selectedTab = tab;
@@ -43,9 +43,9 @@ async function startWatching() {
   const source = await invoke('watch-enable', { id });
   if (!source?.id) { if (source?.messages) render(source); return; }
   try {
-    watchStream = await navigator.mediaDevices.getUserMedia({ audio: false, video: { mandatory: {
-      chromeMediaSource: 'desktop', chromeMediaSourceId: source.id, maxWidth: 1600, maxHeight: 900, maxFrameRate: 5
-    } } });
+    watchStream = await navigator.mediaDevices.getDisplayMedia({ audio: false, video: {
+      width: { max: 1600 }, height: { max: 900 }, frameRate: { max: 5 }
+    } });
     $('watch-video').srcObject = watchStream; $('watch-video').classList.add('active');
     await $('watch-video').play(); $('watch-state').textContent = `Osservazione locale attiva · ${source.name}`;
     for (const track of watchStream.getTracks()) track.addEventListener('ended', () => { if (watchStream) stopWatching(); }, { once: true });
@@ -64,46 +64,89 @@ function render(value) {
   $('app-version').textContent = `MASCOTTE ${management.version || ''}`;
   $('repo-path').textContent = management.repoPath || 'Nessuna repo selezionata.';
   $('choose-repo').disabled = !management.available || management.running;
+  $('release-update').disabled = !management.available || locked || Boolean(value.setup);
+  $('release-update').textContent = management.running ? 'Aggiornamento in corso…' : 'Controlla aggiornamenti';
+  $('cli-status').textContent = `Codex: ${value.available.includes('codex') ? 'trovato' : 'non trovato'} · Claude: ${value.available.includes('claude') ? 'trovato' : 'non trovato'}`;
+  $('local-download').disabled = locked || Boolean(value.setup);
+  $('local-download-cancel').hidden = !value.localDownloading;
+  $('local-check').disabled = locked;
+  $('local-status').textContent = value.localDownloadStatus || (value.available.includes('locale') ? 'Modello locale pronto.' : 'Ollama o modello locale non disponibile.');
+  $('local-model').value = value.localModel;
+  $('local-hardware').hidden = value.localModel !== 'qwen3:8b';
+  $('local-model').disabled = locked;
+  $('local-install-command').textContent = `Nel terminale: ollama pull ${value.localModel}`;
+  $('memory-list').replaceChildren();
+  for (const note of value.memories || []) {
+    const item = document.createElement('div'); item.className = 'memory-note';
+    const text = document.createElement('p'); text.textContent = note.text;
+    const origin = document.createElement('small'); origin.textContent = 'Fonte: ' + note.source;
+    const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Elimina'; remove.disabled = locked;
+    remove.addEventListener('click', async () => render(await invoke('memory-remove', note.id)));
+    item.append(text, origin, remove); $('memory-list').append(item);
+  }
   $('update-app').disabled = !management.available || !management.repoPath || locked || Boolean(value.setup);
-  $('update-app').textContent = management.running ? 'Aggiornamento in corso…' : 'Aggiorna e riavvia';
+  $('update-app').textContent = management.running ? 'Aggiornamento in corso…' : 'Compila e aggiorna';
   $('manage-hooks').disabled = !management.available || locked;
   $('update-status').textContent = management.available ? management.status || '' : 'Aggiornamenti e hook disponibili nel pacchetto Windows.';
   $('update-status').className = management.failed ? 'error' : '';
   $('hook-status').textContent = value.notice || '';
   $('engine').value = value.engine;
+  $('account-hint').textContent = value.engine === 'locale' ? 'Chat locale su questo PC' : 'Usa il tuo account IA';
   $('engine').disabled = $('new').disabled = $('input').disabled = locked;
   $('messages').replaceChildren();
   if (!value.messages.length) {
     const intro = document.createElement('p'); intro.className = 'intro';
-    intro.textContent = 'Ciao! Scegli Claude o Codex e scrivimi qui. Le due conversazioni restano separate.';
+    intro.textContent = 'Ciao! Scegli Locale, Codex o Claude e scrivimi qui. Le conversazioni restano separate.';
     $('messages').append(intro);
   }
-  for (const message of value.messages) {
+  for (const [index, message] of value.messages.entries()) {
     const item = document.createElement('section'); item.className = 'message ' + message.role;
-    const name = document.createElement('strong'); name.textContent = message.role === 'user' ? 'Tu' : value.engine === 'codex' ? 'Codex' : 'Claude';
+    const name = document.createElement('strong'); name.textContent = message.role === 'user' ? 'Tu' : value.engine === 'codex' ? 'Codex' : value.engine === 'claude' ? 'Claude' : 'Locale';
     const text = document.createElement('span'); text.textContent = message.text;
-    item.append(name, text); $('messages').append(item);
+    item.append(name, text);
+    if (message.role === 'assistant') { const remember = document.createElement('button'); remember.type = 'button'; remember.textContent = 'Ricorda…'; remember.disabled = locked; remember.addEventListener('click', () => openMemory(message.text, value.engine)); item.append(remember); }
+    if (message.role === 'assistant' && value.engine === 'locale') {
+      const question = [...value.messages.slice(0, index)].reverse().find(entry => entry.role === 'user')?.text || '';
+      const ask = document.createElement('button'); ask.type = 'button'; ask.textContent = 'Chiedi a Codex o Claude…'; ask.disabled = locked;
+      ask.addEventListener('click', () => openRemote(`Domanda: ${question}\n\nRisposta locale da approfondire o verificare: ${message.text}`.slice(0, 8000), 'codex', null, true));
+      item.append(ask);
+    }
+    $('messages').append(item);
   }
   $('messages').scrollTop = $('messages').scrollHeight;
-  $('status').textContent = value.busy ? 'Sta pensando…' : value.notice || (value.available.includes(value.engine) ? 'Pronto · ' + (value.engine === 'codex' ? 'Codex' : 'Claude') : 'Installa e accedi alla CLI ' + value.engine);
+  $('status').textContent = value.busy ? 'Sta pensando…' : value.notice || (value.available.includes(value.engine) ? 'Pronto · ' + (value.engine === 'codex' ? 'Codex' : value.engine === 'claude' ? 'Claude' : 'locale') : value.engine === 'locale' ? 'Installa Ollama e il modello in Gestione.' : 'Installa e accedi alla CLI ' + value.engine);
   $('status').className = value.notice ? 'error' : '';
   $('send').textContent = value.busy ? 'Interrompi' : 'Invia ↗';
   $('send').disabled = management.running || (!value.busy && !$('input').value.trim());
-  $('share-view').disabled = !value.watching || locked || !watchStream;
+  $('share-view').disabled = value.engine === 'locale' || !value.watching || locked || !watchStream;
+  $('share-view').title = value.engine === 'locale' ? 'Il modello locale scelto accetta solo testo.' : '';
   $('toggle-watch').hidden = value.watching; $('stop-watch').hidden = !value.watching;
   $('watch-source').disabled = value.watching;
   if (value.setup) {
     $('claude-preview').textContent = value.setup.claude; $('codex-preview').textContent = value.setup.codex;
     if (!$('setup-dialog').open) $('setup-dialog').showModal();
   } else if ($('setup-dialog').open) $('setup-dialog').close();
+  if (value.pendingAction) { $('pc-action-description').textContent = value.pendingAction.description; if (!$('pc-action-dialog').open) $('pc-action-dialog').showModal(); }
+  else if ($('pc-action-dialog').open) $('pc-action-dialog').close();
 }
-async function submit(imageData = null) {
+function openMemory(text = '', source = 'manuale') { memorySource = source; $('memory-text').value = text.slice(0, 2000); $('memory-dialog').showModal(); }
+function openRemote(text, engine, imageData = null, noHistory = false) {
+  remotePending = { imageData, noHistory };
+  $('remote-engine').value = engine; $('remote-engine').disabled = !noHistory;
+  $('remote-text').value = text;
+  const context = noHistory ? [] : current.messages.filter(message => ['user', 'assistant'].includes(message.role)).slice(-20);
+  $('remote-context').textContent = context.length ? JSON.stringify(context, null, 2) : 'Nessun messaggio precedente.';
+  $('remote-image-status').textContent = imageData ? 'È incluso anche il fotogramma che hai appena approvato.' : 'Nessuna immagine allegata.';
+  $('remote-dialog').showModal();
+}
+async function submit(imageData = null, noHistory = false, confirmed = false) {
   if (current?.management?.running) return;
   if (current?.busy) { await invoke('stop'); return; }
   const text = $('input').value.trim(); if (!text) return;
   const engine = current.engine;
+  if (engine !== 'locale' && !confirmed) { openRemote(text, engine, imageData, noHistory); return; }
   $('input').value = ''; drafts[engine] = ''; $('send').disabled = true;
-  await invoke('send', imageData ? { text, imageData } : text);
+  await invoke('send', imageData ? { text, imageData } : noHistory ? { text, noHistory: true } : text);
   const next = await invoke('snapshot');
   if (next?.notice) { $('input').value = text; drafts[engine] = text; }
   render(next); $('input').focus();
@@ -129,6 +172,25 @@ $('new').addEventListener('click', async () => { $('input').value = ''; drafts[c
 $('tab-chat').addEventListener('click', () => selectTab('chat'));
 $('tab-management').addEventListener('click', () => selectTab('management'));
 $('choose-repo').addEventListener('click', async () => render(await invoke('repo-select')));
+$('release-update').addEventListener('click', async () => render(await invoke('release-update')));
+$('guide-codex').addEventListener('click', () => invoke('cli-guide', 'codex'));
+$('guide-claude').addEventListener('click', () => invoke('cli-guide', 'claude'));
+$('local-download').addEventListener('click', async () => render(await invoke('local-download')));
+$('local-download-cancel').addEventListener('click', async () => render(await invoke('local-download-cancel')));
+$('guide-ollama').addEventListener('click', () => invoke('cli-guide', 'ollama'));
+$('local-check').addEventListener('click', async () => render(await invoke('local-check')));
+$('local-model').addEventListener('change', async () => render(await invoke('local-model', $('local-model').value)));
+$('memory-new').addEventListener('click', () => openMemory());
+$('memory-cancel').addEventListener('click', () => $('memory-dialog').close());
+$('memory-save').addEventListener('click', async () => { const text = $('memory-text').value.trim(); if (!text) return; const result = await invoke('memory-add', { text, source: memorySource }); if (result?.notice === 'Nota salvata sul PC.') $('memory-dialog').close(); render(result); });
+$('pc-action-cancel').addEventListener('click', async () => render(await invoke('pc-action-cancel')));
+$('pc-action-confirm').addEventListener('click', async () => render(await invoke('pc-action-confirm', current?.pendingAction?.id)));
+$('pc-action-dialog').addEventListener('cancel', () => invoke('pc-action-cancel'));
+$('remote-cancel').addEventListener('click', () => { remotePending = null; $('remote-dialog').close(); });
+$('remote-dialog').addEventListener('cancel', () => { remotePending = null; });
+$('remote-confirm').addEventListener('click', async () => { const text = $('remote-text').value.trim(); if (!text || !remotePending) return; const selected = $('remote-engine').value, pending = remotePending; remotePending = null; $('remote-dialog').close(); const next = await invoke('engine', selected); $('input').value = text; render(next); await submit(pending.imageData, pending.noHistory, true); });
+$('guide-git').addEventListener('click', () => invoke('cli-guide', 'git'));
+$('guide-node').addEventListener('click', () => invoke('cli-guide', 'node'));
 $('update-app').addEventListener('click', async () => render(await invoke('update-run')));
 $('manage-hooks').addEventListener('click', async () => render(await invoke('setup-preview')));
 $('apply').addEventListener('click', async () => render(await invoke('setup-apply')));

@@ -49,9 +49,9 @@ class ChatStore {
     return Array.isArray(messages) ? messages.filter(m => ['user', 'assistant', 'notice'].includes(m.role) && typeof m.text === 'string').slice(-60).map(m => ({ role: m.role, text: m.text.slice(0, 8000) })) : [];
   }
   set(engine, messages) {
-    this.value = { codex: this.get('codex'), claude: this.get('claude'), [engine]: messages.slice(-60).map(m => ({ role: m.role, text: m.text.slice(0, 8000) })) };
+    this.value = { codex: this.get('codex'), claude: this.get('claude'), locale: this.get('locale'), [engine]: messages.slice(-60).map(m => ({ role: m.role, text: m.text.slice(0, 8000) })) };
     while (Buffer.byteLength(JSON.stringify(this.value)) > 1048576) {
-      const largest = this.value.codex.length >= this.value.claude.length ? 'codex' : 'claude';
+      const largest = ['codex', 'claude', 'locale'].sort((a, b) => this.value[b].length - this.value[a].length)[0];
       this.value[largest].shift();
     }
     atomicJSON(this.file, this.value);
