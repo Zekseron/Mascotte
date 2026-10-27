@@ -9,6 +9,8 @@ Progetto e decisioni: [DESIGN.md](DESIGN.md).
 
 Idee e prossimi lavori, anche per riprendere da un altro PC: [WORK-IN-PROGRESS.md](WORK-IN-PROGRESS.md).
 
+Il [piano di aggiornamento Mac](WORK-IN-PROGRESS.md#5-aggiornamento-mac-e-allineamento-con-windows) va rivisto a ogni modifica Windows; la regola per le sessioni di sviluppo è in [AGENTS.md](AGENTS.md).
+
 ## Struttura
 
 | Cartella | Contenuto |
