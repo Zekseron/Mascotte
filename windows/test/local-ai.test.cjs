@@ -113,3 +113,29 @@ test('Qwen3 8B si scarica e usa la chat senza cambiare il modello predefinito', 
   assert.equal(chat.think, false);
   assert.equal(chat.options.num_ctx, 4096);
 });
+
+for (const model of ['qwen3-vl:2b-instruct', 'qwen3-vl:4b-instruct']) test(`immagini locali: ${model}, verifica visione e singolo allegato`, async t => {
+  let vision = true;
+  const calls = [], imageBase64 = Buffer.from('synthetic-image').toString('base64');
+  const server = http.createServer((req, res) => {
+    let body = ''; req.on('data', chunk => body += chunk); req.on('end', () => {
+      const payload = body && JSON.parse(body); calls.push({ endpoint: req.url, payload });
+      if (req.url === '/api/pull') res.end('{"status":"success"}\n');
+      else if (req.url === '/api/tags') res.end(JSON.stringify({ models: [{ name: model, size: 100, details: { format: 'gguf' } }] }));
+      else if (req.url === '/api/show') res.end(JSON.stringify({ details: { format: 'gguf' }, capabilities: vision ? ['completion', 'vision'] : ['completion'] }));
+      else res.end(JSON.stringify({ done: true, message: { content: 'Immagine ricevuta.' } }));
+    });
+  });
+  await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const options = { port: server.address().port, model };
+  await pullModel(model, options);
+  await runLocal([], 'Descrivi', [], { ...options, imageBase64 }).promise;
+  const chat = calls.find(item => item.endpoint === '/api/chat').payload;
+  assert.deepEqual(chat.messages.at(-1).images, [imageBase64]);
+  await runLocal([], 'Solo testo', [], options).promise;
+  assert.equal(calls.at(-1).payload.messages.at(-1).images, undefined);
+  vision = false;
+  await assert.rejects(checkModel(options), /non supporta le immagini/);
+  await assert.rejects(runLocal([], 'Descrivi', [], { ...options, model: 'qwen3:4b-instruct', imageBase64 }).promise, /solo testuale/);
+});

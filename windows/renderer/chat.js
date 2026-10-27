@@ -72,6 +72,7 @@ function render(value) {
   $('local-check').disabled = locked;
   $('local-status').textContent = value.localDownloadStatus || (value.available.includes('locale') ? 'Modello locale pronto.' : 'Ollama o modello locale non disponibile.');
   $('local-model').value = value.localModel;
+  $('local-vision-hardware').hidden = !value.localVision;
   $('local-hardware').hidden = value.localModel !== 'qwen3:8b';
   $('local-model').disabled = locked;
   $('local-install-command').textContent = `Nel terminale: ollama pull ${value.localModel}`;
@@ -118,8 +119,16 @@ function render(value) {
   $('status').className = value.notice ? 'error' : '';
   $('send').textContent = value.busy ? 'Interrompi' : 'Invia ↗';
   $('send').disabled = management.running || (!value.busy && !$('input').value.trim());
-  $('share-view').disabled = value.engine === 'locale' || !value.watching || locked || !watchStream;
-  $('share-view').title = value.engine === 'locale' ? 'Il modello locale scelto accetta solo testo.' : '';
+  $('watch-summary').textContent = value.watching
+    ? (value.engine === 'locale' && !value.localVision ? 'Anteprima attiva - IA locale senza visione' : 'Anteprima attiva - allega un fotogramma')
+    : 'Finestra da condividere';
+  $('watch-summary').title = value.watching ? value.watchName : '';
+  $('watch-help').textContent = value.engine === 'locale' && !value.localVision
+    ? 'I modelli locali disponibili leggono solo testo: questa anteprima non viene vista da Ollama. Per fare una domanda su un fotogramma, scegli Codex o Claude e allegalo: ogni invio richiede conferma.'
+    : value.engine === 'locale' ? 'Il modello locale vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Il fotogramma resta sul PC e non viene salvato nella cronologia. Per fermare la cattura usa Smetti.'
+    : "L'anteprima resta sul PC. Il servizio vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Chiudere questa sezione nasconde l'anteprima ma non ferma la cattura: usa Smetti.";
+  $('share-view').disabled = (value.engine === 'locale' && !value.localVision) || !value.watching || locked || !watchStream;
+  $('share-view').title = value.engine === 'locale' && !value.localVision ? 'Scegli un modello Qwen3-VL in Gestione per analizzare immagini.' : '';
   $('toggle-watch').hidden = value.watching; $('stop-watch').hidden = !value.watching;
   $('watch-source').disabled = value.watching;
   if (value.setup) {
@@ -161,7 +170,7 @@ function prepareShare() {
   canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
   pendingImage = canvas.toDataURL('image/jpeg', .78);
   $('share-preview').src = pendingImage;
-  $('share-notice').textContent = `Il fotogramma resta sul dispositivo finché non confermi. Confermando, viene inviato a ${current.engine === 'codex' ? 'Codex' : 'Claude'} con il tuo account. Non viene salvato nella cronologia Mascotte.`;
+  $('share-notice').textContent = current.engine === 'locale' ? 'Confermando, il fotogramma viene analizzato dal modello locale sul PC. Non viene inviato a Codex o Claude e non viene salvato nella cronologia.' : `Il fotogramma resta sul dispositivo finché non confermi. Confermando, viene inviato a ${current.engine === 'codex' ? 'Codex' : 'Claude'} con il tuo account. Non viene salvato nella cronologia Mascotte.`;
   $('share-dialog').showModal();
 }
 $('composer').addEventListener('submit', event => { event.preventDefault(); submit(); });

@@ -11,7 +11,7 @@ Questo file è il promemoria condiviso per riprendere il progetto anche da un al
 - Memoria locale tramite note esplicite e recupero per parole in comune; non è addestramento del modello.
 - Ogni invio a Codex o Claude richiede conferma dell'utente. Mantenere questa scelta nelle evoluzioni future.
 - Le azioni attuali sul PC sono limitate ad aprire Calcolatrice e Download, con conferma ogni volta.
-- L'osservazione delle finestre esiste, ma l'IA locale attuale accetta solo testo: non interpreta immagini e non controlla le finestre.
+- L'osservazione permette ora di allegare e confermare singoli fotogrammi anche ai modelli locali Qwen3-VL 2B e 4B Instruct. Il 2B e stato provato realmente su CPU (vedi windows/REPORT-VISIONE-LOCALE.md). Nessun controllo automatico delle finestre e ancora disponibile.
 - Modelli, runtime scaricati, chat e note personali non sono nel repository. Su un nuovo PC vanno predisposti separatamente.
 
 ## 1. Integrazione di llama.cpp
@@ -46,7 +46,7 @@ Da chiarire durante la progettazione:
 
 - Quale switch e quale configurazione esportare: corrente, salvata o entrambe; formato e destinazione del file.
 - Come accedere ai dati: valutare prima interfacce accessibili o funzioni di esportazione dell'app, poi eventuale automazione di tastiera e mouse. Non presumere l'esistenza di un'API Packet Tracer.
-- Quando servono OCR o un modello con capacità visive. Gli attuali modelli locali testuali non possono leggere direttamente un fotogramma.
+- Quando servono OCR o un modello con capacità visive. I modelli Qwen3-VL sono ora disponibili per analizzare singoli fotogrammi; i modelli testuali restano senza visione. Va verificata l'affidabilita delle letture sul programma concreto.
 - Quali passaggi possono restare deterministici e quali richiedono interpretazione del modello.
 
 Da fare:
@@ -64,6 +64,41 @@ Da fare:
 
 Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazione e azioni in `windows/main.cjs`, `windows/renderer/chat.js`.
 
+## 3. Strumenti di automazione per processi semplici
+
+**Stato:** da progettare. Estende il caso Packet Tracer della voce 2 a procedure riutilizzabili in altre applicazioni.
+
+**Obiettivo:** permettere a Mascotte di eseguire compiti richiesti dall'utente, utilizzando strumenti controllati anziché affidarsi soltanto alla descrizione di una schermata.
+
+- [ ] Definire strumenti per leggere i controlli della finestra, selezionare elementi, digitare testo ed esportare file; valutare accessibilità Windows prima delle coordinate del mouse.
+- [ ] Introdurre un catalogo di procedure per compiti concreti, con condizioni iniziali, passaggi e verifica del risultato.
+- [ ] Mostrare piano, finestra interessata e file coinvolti; richiedere conferma prima dell'esecuzione, con possibilità di interrompere.
+- [ ] Fermarsi se cambia la finestra prevista, manca un controllo o il risultato non coincide con quello atteso. Richiedere una nuova conferma se il piano cambia.
+- [ ] Salvare una procedura riuscita come proposta riutilizzabile soltanto dopo la revisione dell'utente.
+
+**Primo passo:** realizzare una procedura limitata di lettura/esportazione su una finestra di prova, senza modificare la configurazione dell'applicazione.
+
+**Criterio di completamento:** esecuzione confermata, risultato verificabile, annullamento funzionante e nessuna azione su finestre diverse da quella scelta. La lettura di testo e documenti deve restare distinta dalle istruzioni autorizzate dall'utente.
+
+## 4. Collegamento ad altre IA e secondo parere sulle schermate
+
+**Stato:** integrazione parziale esistente; da aggiungere il passaggio diretto dalla risposta locale al secondo parere con immagine.
+
+**Obiettivo:** consentire all'utente di chiedere aiuto a Codex o Claude quando il modello locale non basta, includendo un fotogramma scelto e il contesto necessario.
+
+- [ ] Aggiungere “Chiedi un secondo parere su questa schermata” alle risposte locali, mantenendo anche l'invio del solo testo.
+- [ ] Chiedere un nuovo fotogramma o conservarlo temporaneamente per il secondo parere con una durata e una cancellazione definite; oggi le immagini non sono conservate nella cronologia.
+- [ ] Mostrare servizio destinatario, domanda, immagine e contesto prima di ogni invio; consentire modifica o annullamento. Nessun passaggio remoto automatico senza conferma.
+- [ ] Usare le sessioni Codex/Claude avviate da Mascotte e chiarire l'utilizzo dell'account remoto; non presumere un collegamento automatico a questa conversazione di sviluppo.
+- [ ] Consentire di salvare una nota verificata dalla risposta remota soltanto dopo revisione dell'utente; non trattarla come addestramento automatico.
+- [ ] Rendere il secondo parere sempre richiedibile dall'utente, senza dipendere dalla capacità del modello locale di riconoscere i propri errori.
+
+**Primo passo:** collegare la conferma esistente di invio dei fotogrammi al pulsante di approfondimento locale, mantenendo isolati memoria e cronologie non selezionate.
+
+**Criterio di completamento:** immagine e testo inviati solo dopo conferma al destinatario scelto, risposta mostrata, annullamento senza invio e rimozione dei dati temporanei. Verificare inizialmente con servizi simulati.
+
+**Osservazione dalle prove:** il Qwen3-VL 2B ha risposto erroneamente a due domande Cisco, con spiegazioni sicure ma inesatte. La prova sintetica di lettura dell'immagine non dimostra affidabilità tecnica: distinguere riconoscimento visivo e correttezza della risposta.
+
 ## Riprendere da un altro PC
 
 1. Recuperare il repository aggiornato e leggere questo file, `windows/README.md` e `PUBBLICAZIONE.md`.
@@ -74,4 +109,4 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
 
 ## Nuove idee
 
-Per ora sono previste soltanto le due proposte sopra. Aggiungere qui le prossime richieste senza perdere le decisioni già prese.
+Aggiungere qui le prossime richieste senza perdere le decisioni già prese nelle quattro voci sopra.
