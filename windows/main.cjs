@@ -334,6 +334,9 @@ function startApplication() {
   app.whenReady().then(async () => {
     if (can.appMenu) Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }]));
     prepareDirectory(dataDirectory); clearTemporaryShares();
+    // Mac: al primo avvio importa una sola volta impostazioni e cronologia della vecchia app Swift (in sola lettura).
+    let legacyImport = null;
+    try { legacyImport = require('./lib/legacy-mac.cjs').importLegacy(dataDirectory, { characters: JSON.parse(fs.readFileSync(path.join(__dirname, 'resources/characters/index.json'), 'utf8')).characters.map(c => c.id) }); } catch {}
     // The updater may still be exiting from its temporary runtime after the restart.
     setTimeout(clearReleaseDownloads, 15000).unref();
     const chatDirectory = path.join(dataDirectory, 'chat'); prepareDirectory(chatDirectory);
@@ -345,6 +348,10 @@ function startApplication() {
     if (startEngine !== 'ollama' && !(raw.localModelSource === 'installed' && LocalAI.validName(raw.localModel))) startEngine = 'ollama';
     const startModel = startEngine === 'ollama' ? LocalAI.normalizeModel(raw.localModel, undefined, raw.localModelSource) : raw.localModel;
     settings = {scale:[1,2,3,4,5,6].includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localEngine:startEngine,localModel:startModel,localModelSource:startEngine==='ollama'&&LocalAI.isModel(startModel)?'catalog':'installed',extraFolders:ExtraFolders.normalizeExtraFolders(raw.extraFolders,ExtraFolders.realOpts({platform:process.platform,home:os.homedir(),dataDir:dataDirectory}))};
+    if (legacyImport) {
+      const count = Object.values(legacyImport.messages).reduce((sum, n) => sum + n, 0);
+      notice = `Importato dalla vecchia Mascotte per Mac: ${[legacyImport.settings.length ? 'impostazioni' : '', count ? `${count} messaggi` : ''].filter(Boolean).join(' e ') || 'nessun dato da trasferire'}. La vecchia app e i suoi dati restano invariati.`;
+    }
     prepareLocal().then(note => { localAvailable = true; if (note) notice = note; if (!currentRun && !engineTouched) engine = 'locale'; broadcast(); }).catch(() => { localAvailable = false; broadcast(); });
     const resultFile = path.join(dataDirectory, 'update-result.json'), updateResult = readJSON(resultFile, null);
     if (updateResult && typeof updateResult.message === 'string') {
