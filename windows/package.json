@@ -11,7 +11,8 @@
     "test": "node --test test/*.test.cjs",
     "test:codex-policy": "node test/codex-policy.cjs",
     "build:win:package": "npm run resources && electron-builder --win zip --x64",
-    "build:mac": "npm run resources && node scripts/mac-helper.cjs --required && electron-builder --mac --arm64 --config.appId=local.mascotte.desktop",
+    "build:mac": "npm run resources && node scripts/build-mac.cjs",
+    "install:mac": "node scripts/install-mac.cjs",
     "build:win": "npm run resources && electron-builder --win zip nsis --x64 && node scripts/copy-root-build.cjs",
     "update:win": "node scripts/install-update.cjs"
   },

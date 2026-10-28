@@ -17,7 +17,7 @@ function release() {
   }] };
 }
 test('selects only stable official Windows release with a valid digest', () => {
-  assert.equal(parseRelease(release()).version, '0.7.0');
+  assert.equal(parseRelease(release(), 'win32').version, '0.7.0');
   assert.equal(compareVersions('0.10.0', '0.9.9'), 1);
   assert.equal(compareVersions('0.7.0', 'v0.7.0'), 0);
   assert.equal(compareVersions('0.6.9', '0.7.0'), -1);
@@ -27,12 +27,12 @@ test('selects only stable official Windows release with a valid digest', () => {
     r => { r.assets[0].size = 0; }, r => { r.assets[0].browser_download_url = 'https://example.com/file.zip'; },
     r => { r.assets[0].browser_download_url = 'https://github.com/other/project/releases/download/v0.7.0/Mascotte-Windows-0.7.0-x64.zip'; },
     r => { r.assets.push({ ...r.assets[0] }); }
-  ]) { const value = release(); mutate(value); assert.throws(() => parseRelease(value)); }
+  ]) { const value = release(); mutate(value); assert.throws(() => parseRelease(value, 'win32')); }
 });
 test('downloads a verified archive and rejects altered or incomplete bytes', async t => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte release '));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const item = parseRelease(release());
+  const item = parseRelease(release(), 'win32');
   const file = await downloadRelease(item, dir, undefined, async () => Readable.from([bytes]));
   assert.deepEqual(fs.readFileSync(file), bytes); fs.unlinkSync(file);
   for (const content of [Buffer.from('download fixturf'), bytes.subarray(0, 4), Buffer.concat([bytes, bytes])]) {

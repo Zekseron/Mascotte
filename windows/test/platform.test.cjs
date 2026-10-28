@@ -34,7 +34,10 @@ test('link di root ignorato fuori da Windows ma sempre rifiutato su Windows', t 
 
 test('capacità e cartella dati per piattaforma', () => {
   const win = capabilities('win32'), mac = capabilities('darwin', { macHelper: false });
-  for (const k of ['windowAttach', 'managedOllama', 'management']) { assert.equal(win[k], true, k); assert.equal(mac[k], false, k); }
+  for (const k of ['windowAttach', 'managedOllama']) { assert.equal(win[k], true, k); assert.equal(mac[k], false, k); }
+  assert.equal(win.management, true); assert.equal(mac.management, true); // passo 10: aggiornamenti anche su Mac
+  assert.equal(win.packageName, 'Windows'); assert.equal(mac.packageName, 'Mac');
+  assert.match(mac.gitGuide, /\/mac$/); assert.match(win.gitGuide, /\/windows$/); assert.equal(mac.nodeGuide, win.nodeGuide);
   assert.equal(win.localActions, true); assert.equal(mac.localActions, true); // passo 6: azioni locali anche su Mac
   assert.equal(win.watch, true); assert.equal(mac.watch, true); // passo 7: osservazione anche su Mac
   assert.equal(win.hooks, true); assert.equal(mac.hooks, true); // passo 8: hook anche su Mac
