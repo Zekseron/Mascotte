@@ -4,10 +4,16 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 
-function assertRegularPath(target) {
+// Rifiuta link negli antenati del percorso, così un link creato dall'utente o da un processo non dirotta i dati.
+// Fuori da Windows i link di proprietà di root (/var, /tmp su macOS) sono di sistema e un processo utente non può
+// crearli: si accettano. Su Windows uid vale sempre 0, quindi lì il controllo resta totale.
+function assertRegularPath(target, { platform = process.platform, lstat = fs.lstatSync } = {}) {
   let current = path.resolve(target);
   while (true) {
-    if (fs.existsSync(current) && fs.lstatSync(current).isSymbolicLink()) throw new Error('Percorso dati con link non consentito.');
+    if (fs.existsSync(current)) {
+      const info = lstat(current);
+      if (info.isSymbolicLink() && (platform === 'win32' || info.uid !== 0)) throw new Error('Percorso dati con link non consentito.');
+    }
     const parent = path.dirname(current);
     if (parent === current) break;
     current = parent;

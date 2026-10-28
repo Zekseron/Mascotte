@@ -8,7 +8,7 @@ const { pathToFileURL } = require('node:url');
 const { spawnSync } = require('node:child_process');
 const { installationDirectory } = require('../lib/updater.cjs');
 
-test('updates from repo root and win-unpacked choose a separate installation', t => {
+test('updates from repo root and win-unpacked choose a separate installation', { skip: process.platform !== 'win32' && 'updater solo Windows fino al passo 10 del piano Mac (percorsi /var e /private/var)' }, t => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte paths '));
   t.after(() => fs.rmSync(base, { recursive: true, force: true }));
   const repository = path.join(base, 'repo'), data = path.join(base, 'data');

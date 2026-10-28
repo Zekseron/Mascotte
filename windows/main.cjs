@@ -5,7 +5,9 @@ const os = require('node:os');
 const { randomUUID } = require('node:crypto');
 const { pathToFileURL } = require('node:url');
 const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer, shell } = require('electron');
-const dataDirectory = process.env.MASCOTTE_WINDOWS_DATA_DIR || (process.platform === 'win32' ? path.join(process.env.LOCALAPPDATA, 'Mascotte') : path.join(app.getPath('userData'), 'Windows-preview'));
+const Platform = require('./lib/platform.cjs');
+const can = Platform.capabilities();
+const dataDirectory = Platform.dataDirectory({ appData: app.getPath('appData') });
 const endpoint = path.join(dataDirectory, 'events.json');
 if (process.argv.includes('--mascotte-notify')) {
   require('./lib/notify.cjs').notifyMain(process.argv.slice(process.argv.indexOf('--mascotte-notify') + 1), endpoint).finally(() => app.exit(0));
@@ -16,6 +18,7 @@ if (process.argv.includes('--mascotte-notify')) {
 }
 
 function startApplication() {
+  if (can.hideDock) app.dock?.hide();
   const { prepareDirectory, readJSON, atomicJSON, ChatStore, assertRegularPath } = require('./lib/storage.cjs');
   const CLI = require('./lib/cli.cjs');
   const LocalAI = require('./lib/local-ai.cjs');
@@ -37,12 +40,12 @@ function startApplication() {
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
-  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.MODEL, localVision: LocalAI.supportsVision(settings?.localModel), memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: process.platform === 'win32', watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: process.platform === 'win32' && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed } });
+  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.MODEL, localVision: LocalAI.supportsVision(settings?.localModel), memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: can.management && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed } });
   const saveSettings = () => atomicJSON(stateFile, settings);
   async function prepareLocal() {
     try { await LocalAI.checkModel({ model: settings.localModel }); }
     catch (error) {
-      if (error.code !== 'ECONNREFUSED' || managedOllama || process.platform !== 'win32') throw error;
+      if (error.code !== 'ECONNREFUSED' || managedOllama || !can.managedOllama) throw error;
       managedOllama = LocalAI.startManaged(dataDirectory);
       if (!managedOllama) throw error;
       for (let i = 0; i < 30; i++) {
@@ -150,13 +153,13 @@ function startApplication() {
     updatePose();placeAttachment(); anchorTimer = setInterval(placeAttachment, 1000); saveSettings();
   }
   function prepareWindowCapture() {
-    if (process.platform !== 'win32') return;
+    if (!can.windowAttach) return;
     clearTimeout(captureTimer); captureFollower?.close();
     captureFollower = new Attachment.WindowFollower(() => {}, () => {});
     captureTimer = setTimeout(() => { captureFollower?.close(); captureFollower = null; }, 30000);
   }
   function attachWindow({ automatic = false, dropPoint } = {}) {
-    if (process.platform !== 'win32') return;
+    if (!can.windowAttach) return;
     const selected = automatic ? null : captureFollower;
     clearTimeout(captureTimer); captureFollower = null;
     detach(); attachment = 'window'; updatePose(); saveSettings(); let first = true;
@@ -247,7 +250,7 @@ function startApplication() {
       { label: 'Aggancio', submenu: [
         { label: 'Libera / sgancia', type: 'radio', checked: attachment === 'free', click: () => { detach(); saveSettings(); } },
         { label: 'Aggancia alla barra delle applicazioni', type: 'radio', checked: attachment === 'bar', click: attachBar },
-        { label: 'Aggancia alla finestra attiva', type: 'radio', checked: attachment === 'window', enabled: process.platform === 'win32', click: attachWindow }
+        { label: 'Aggancia alla finestra attiva', type: 'radio', checked: attachment === 'window', enabled: can.windowAttach, click: attachWindow }
       ] },
       { label: 'Osservazione', submenu: [
         { label: watchSource ? `Interrompi osservazione · ${watchSource.name}` : 'Interrompi osservazione', enabled: Boolean(watchSource), click: stopWatching },
@@ -296,6 +299,7 @@ function startApplication() {
     const width = Math.round(pack.frame.width * displayScale()),height = Math.round(pack.frame.height * displayScale());
     const pos = clampPosition(settings.position, width, height, displayAreas());
     mascot = safeWindow('mascot', { ...pos, width, height, frame: false, transparent: true, backgroundColor: '#00000000', alwaysOnTop: true, skipTaskbar: true, resizable: false, maximizable: false, fullscreenable: false, thickFrame: false, focusable: false, show: false, hasShadow: false });
+    if (can.allSpaces) { mascot.setAlwaysOnTop(true, 'screen-saver'); mascot.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); if (can.hideDock) app.dock?.hide(); }
     mascot.setIgnoreMouseEvents(true, { forward: true });
     mascot.once('ready-to-show', () => mascot.showInactive());
     controller.set('idle');
@@ -363,13 +367,13 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'cli-guide') {
-        const guides = { codex: 'https://developers.openai.com/codex/cli/', claude: 'https://code.claude.com/docs/en/setup', ollama: 'https://ollama.com/download/windows',
-          git: 'https://git-scm.com/install/windows', node: 'https://nodejs.org/en/download' };
+        const guides = { codex: 'https://developers.openai.com/codex/cli/', claude: 'https://code.claude.com/docs/en/setup', ollama: can.ollamaGuide,
+          git: can.gitGuide, node: 'https://nodejs.org/en/download' };
         if (Object.hasOwn(guides, data)) await shell.openExternal(guides[data]);
         return chatSnapshot();
       }
       if (action === 'release-update') {
-        if (process.platform !== 'win32' || !app.isPackaged || updateRunning || currentRun || localDownload || setupPreview) return chatSnapshot();
+        if (!can.management || !app.isPackaged || updateRunning || currentRun || localDownload || setupPreview) return chatSnapshot();
         updateRunning = true; updateFailed = false; updateStatus = 'Controllo le versioni disponibili…'; updateAbort = new AbortController(); broadcast();
         try {
           const release = await Releases.latestRelease(updateAbort.signal);
@@ -391,7 +395,7 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'repo-select' && !updateRunning) {
-        if (process.platform !== 'win32' || !app.isPackaged) return chatSnapshot();
+        if (!can.management || !app.isPackaged) return chatSnapshot();
         try {
           const selected = await dialog.showOpenDialog(chat, { title: 'Scegli la repo Mascotte clonata da GitHub', properties: ['openDirectory'], defaultPath: settings.updateRepoPath || undefined });
           if (!selected.canceled && selected.filePaths[0]) {
@@ -403,7 +407,7 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'update-run') {
-        if (process.platform !== 'win32' || !app.isPackaged || updateRunning || currentRun || localDownload || setupPreview) return chatSnapshot();
+        if (!can.management || !app.isPackaged || updateRunning || currentRun || localDownload || setupPreview) return chatSnapshot();
         // Reserve the operation before opening the native dialog to prevent duplicate updates.
         updateRunning = true; updateFailed = false; broadcast();
         try {
@@ -418,8 +422,8 @@ function startApplication() {
         } catch (error) { updateRunning = false; updateFailed = true; updateStatus = error.message; broadcast(); }
         return chatSnapshot();
       }
-      if (action === 'watch-sources' && process.platform === 'win32') return windowSources();
-      if (action === 'watch-enable' && process.platform === 'win32' && typeof data?.id === 'string') {
+      if (action === 'watch-sources' && can.watch) return windowSources();
+      if (action === 'watch-enable' && can.watch && typeof data?.id === 'string') {
         const sources = await windowSources(), source = sources.find(item => item.id === data.id);
         if (!source) { notice = 'La finestra non è più disponibile. Aggiorna l’elenco e riprova.'; return chatSnapshot(); }
         watchSource = source; notice = ''; broadcast(); return { id: source.id, name: source.name };
@@ -430,7 +434,7 @@ function startApplication() {
       if (action === 'stop') { currentRun?.stop(); return; }
       if (action === 'setup-preview') {
         if (updateRunning || currentRun) return chatSnapshot();
-        if (process.platform !== 'win32' || !app.isPackaged) { notice = 'Configurazione hook disponibile nel pacchetto Windows.'; return chatSnapshot(); }
+        if (!can.hooks || !app.isPackaged) { notice = 'Configurazione hook disponibile nel pacchetto Windows.'; return chatSnapshot(); }
         try {
           const paths = Setup.configPaths(), before = Setup.snapshot(paths);
           const after = Setup.prepareHooks(before.claude.text, before.codex.text, process.execPath);
@@ -449,7 +453,7 @@ function startApplication() {
         const imageData = typeof data === 'object' && data ? data.imageData ?? null : null;
         if (localDownload || currentRun || updateRunning || typeof text !== 'string' || !text.trim() || text.length > 8000 || Buffer.byteLength(text) > 32768) return;
         if (pendingAction) { notice = 'Conferma o annulla prima l’azione proposta.'; broadcast(); return; }
-        if (process.platform === 'win32' && engine === 'locale' && !imageData) {
+        if (can.localActions && engine === 'locale' && !imageData) {
           const normalized = text.trim().toLocaleLowerCase('it').replace(/[.!?]+$/, '').replace(/\s+/g, ' ');
           const actions = {
             'apri calcolatrice': { description: 'Aprire la Calcolatrice di Windows.', target: path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'calc.exe') },
