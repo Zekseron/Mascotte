@@ -197,7 +197,7 @@ $('local-check').addEventListener('click', async () => render(await invoke('loca
 $('local-model').addEventListener('change', async () => render(await invoke('local-model', $('local-model').value)));
 $('memory-new').addEventListener('click', () => openMemory());
 $('memory-cancel').addEventListener('click', () => $('memory-dialog').close());
-$('memory-save').addEventListener('click', async () => { const text = $('memory-text').value.trim(); if (!text) return; const result = await invoke('memory-add', { text, source: memorySource }); if (result?.notice === 'Nota salvata sul PC.') $('memory-dialog').close(); render(result); });
+$('memory-save').addEventListener('click', async () => { const text = $('memory-text').value.trim(); if (!text) return; const result = await invoke('memory-add', { text, source: memorySource }); if (result?.notice?.startsWith('Nota salvata')) $('memory-dialog').close(); render(result); });
 $('pc-action-cancel').addEventListener('click', async () => render(await invoke('pc-action-cancel')));
 $('pc-action-confirm').addEventListener('click', async () => render(await invoke('pc-action-confirm', current?.pendingAction?.id)));
 $('pc-action-dialog').addEventListener('cancel', () => invoke('pc-action-cancel'));

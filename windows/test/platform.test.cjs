@@ -34,7 +34,8 @@ test('link di root ignorato fuori da Windows ma sempre rifiutato su Windows', t 
 
 test('capacità e cartella dati per piattaforma', () => {
   const win = capabilities('win32'), mac = capabilities('darwin', { macHelper: false });
-  for (const k of ['windowAttach', 'managedOllama', 'localActions', 'watch', 'hooks', 'management']) { assert.equal(win[k], true, k); assert.equal(mac[k], false, k); }
+  for (const k of ['windowAttach', 'managedOllama', 'watch', 'hooks', 'management']) { assert.equal(win[k], true, k); assert.equal(mac[k], false, k); }
+  assert.equal(win.localActions, true); assert.equal(mac.localActions, true); // passo 6: azioni locali anche su Mac
   assert.equal(capabilities('darwin', { macHelper: true }).windowAttach, true);
   assert.equal(capabilities('win32', { macHelper: false }).windowAttach, true);
   assert.equal(mac.barLabel, 'Aggancia al Dock'); assert.match(win.barLabel, /barra delle applicazioni/);

@@ -28,6 +28,7 @@ function startApplication() {
   const Updater = require('./lib/updater.cjs');
   const Releases = require('./lib/releases.cjs');
   const Attachment = require('./lib/attachment.cjs');
+  const LocalCommands = require('./lib/local-commands.cjs');
   const { mascotSize, maskHit, dragPosition, barEdge, barHit } = require('./lib/geometry.cjs');
   const P = require('./resources/pack.js');
   let mascot, chat, tray, controller, server, store, memory, pack, imageData, currentRun, hitMask, mouseTimer;
@@ -363,15 +364,18 @@ function startApplication() {
         return chatSnapshot();
       }
       if ((action === 'local-check' || action === 'local-model') && !localDownload) { localDownloadStatus = ''; try { await prepareLocal(); localAvailable = true; notice = 'Modello locale pronto.'; } catch (error) { localAvailable = false; notice = error.message; } return chatSnapshot(); }
-      if (action === 'memory-add' && !currentRun && !updateRunning) { try { memory.add(data?.text, data?.source); notice = 'Nota salvata sul PC.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
+      if (action === 'memory-add' && !currentRun && !updateRunning) { try { memory.add(data?.text, data?.source); notice = `Nota salvata sul ${can.deviceName}.`; } catch (error) { notice = error.message; } return chatSnapshot(); }
       if (action === 'memory-remove' && !currentRun && !updateRunning && typeof data === 'string') { try { memory.remove(data); notice = 'Nota rimossa.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
       if (action === 'pc-action-cancel') { pendingAction = null; notice = 'Azione annullata.'; return chatSnapshot(); }
       if (action === 'pc-action-confirm' && pendingAction && data === pendingAction.id) {
         const selectedAction = pendingAction; pendingAction = null;
         try {
-          const error = await shell.openPath(selectedAction.target);
-          if (error) throw new Error(error);
-          notice = 'Azione completata.';
+          if (selectedAction.kind === 'remember') { memory.add(selectedAction.text, 'manuale'); notice = `Nota salvata sul ${can.deviceName}.`; }
+          else {
+            const error = await shell.openPath(selectedAction.target);
+            if (error) throw new Error(error);
+            notice = 'Azione completata.';
+          }
         } catch (error) { notice = `Azione non riuscita: ${error.message}`; }
         return chatSnapshot();
       }
@@ -462,19 +466,13 @@ function startApplication() {
         const imageData = typeof data === 'object' && data ? data.imageData ?? null : null;
         if (localDownload || currentRun || updateRunning || typeof text !== 'string' || !text.trim() || text.length > 8000 || Buffer.byteLength(text) > 32768) return;
         if (pendingAction) { notice = 'Conferma o annulla prima l’azione proposta.'; broadcast(); return; }
-        if (can.localActions && engine === 'locale' && !imageData) {
-          const normalized = text.trim().toLocaleLowerCase('it').replace(/[.!?]+$/, '').replace(/\s+/g, ' ');
-          const actions = {
-            'apri calcolatrice': { description: 'Aprire la Calcolatrice di Windows.', target: path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'calc.exe') },
-            'apri la calcolatrice': { description: 'Aprire la Calcolatrice di Windows.', target: path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'calc.exe') },
-            'apri download': { description: 'Aprire la cartella Download del tuo utente.', target: path.join(os.homedir(), 'Downloads') },
-            'apri la cartella download': { description: 'Aprire la cartella Download del tuo utente.', target: path.join(os.homedir(), 'Downloads') }
-          };
-          if (Object.hasOwn(actions, normalized)) {
-            const history = store.get('locale');
-            store.set('locale', [...history, { role: 'user', text: text.trim() }, { role: 'assistant', text: 'Posso farlo: controlla e conferma l’azione.' }]);
-            pendingAction = { id: randomUUID(), ...actions[normalized] }; notice = ''; broadcast(); return chatSnapshot();
-          }
+        if (engine === 'locale' && !imageData) {
+          // Comandi gestiti da Mascotte, non dal modello: azioni predefinite e note, sempre con conferma.
+          const command = LocalCommands.parseLocalCommand(text, { actions: can.localActions });
+          const reply = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer }]); notice = ''; };
+          if (command?.type === 'list-notes') { reply(LocalCommands.describeNotes(memory.list())); broadcast(); return chatSnapshot(); }
+          if (command?.type === 'open') { reply('Posso farlo: controlla e conferma l’azione.'); pendingAction = { id: randomUUID(), kind: 'open', description: command.description, target: command.target }; broadcast(); return chatSnapshot(); }
+          if (command?.type === 'remember') { reply('Posso salvarla tra le note: controlla e conferma.'); pendingAction = { id: randomUUID(), kind: 'remember', description: `Salvare questa nota sul ${can.deviceName}: «${command.text}»`, text: command.text }; broadcast(); return chatSnapshot(); }
         }
         let image = null, imagePath = null, imageDirectory = null;
         if (imageData !== null) {
