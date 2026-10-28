@@ -21,7 +21,7 @@ function startApplication() {
   if (can.hideDock) app.dock?.hide();
   const { prepareDirectory, readJSON, atomicJSON, ChatStore, assertRegularPath } = require('./lib/storage.cjs');
   const CLI = require('./lib/cli.cjs');
-  const LocalAI = require('./lib/local-ai.cjs');
+  const LocalAI = require('./lib/local-ai.cjs'), LocalEngines = require('./lib/local-engines.cjs');
   const { StateController, clampPosition } = require('./lib/state.cjs');
   const { EventServer } = require('./lib/events.cjs');
   const Setup = require('./lib/setup.cjs');
@@ -32,7 +32,7 @@ function startApplication() {
   const { mascotSize, maskHit, dragPosition, barEdge, barHit } = require('./lib/geometry.cjs');
   const P = require('./resources/pack.js');
   let mascot, chat, tray, controller, server, store, memory, pack, imageData, currentRun, hitMask, mouseTimer;
-  let settings, engine = 'codex', engineTouched = false, notice = '', setupPreview, drag, quitting = false, mouseIgnored = true, localAvailable = false, managedOllama = null, installedCache = null, localScanning = false;
+  let settings, engine = 'codex', engineTouched = false, notice = '', setupPreview, drag, quitting = false, mouseIgnored = true, localAvailable = false, managedOllama = null, installedCache = null, localScanning = false, engineStatus = null;
   let characters = [];
   let attachment = 'free', singing = false, follower, captureFollower, captureTimer, anchorTimer, anchorDisplay, anchorFraction = .8, targetBounds, concealed = false, userVisible = true;
   let watchSource = null, activeShareDirectory = null, pendingAction = null;
@@ -41,23 +41,37 @@ function startApplication() {
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
-  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: LocalAI.supportsVision(settings?.localModel), localCatalog: LocalAI.uiCatalog(), localInstalled: installedCache, localScanning, deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: can.management && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed, folders: { defaults: FolderView.viewableFolders().map(folder => ({ name: folder.display, path: folder.target })), extra: (settings?.extraFolders || []).map(folder => ({ name: folder.name, path: folder.path })), max: ExtraFolders.MAX_EXTRA, status: folderStatus, failed: folderStatusFailed } } });
+  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(), localEngine: settings?.localEngine || 'ollama', localEngineLabel: LocalEngines.label(settings?.localEngine), localEngines: engineStatus ? engineStatus.map(({ id, label, state, count, message }) => ({ id, label, state, count, message: message || '' })) : null, localEngineModels: settings?.localEngine && settings.localEngine !== 'ollama' ? engineStatus?.find(item => item.id === settings.localEngine) || null : null, localCatalog: LocalAI.uiCatalog(), localInstalled: installedCache, localScanning, deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: can.management && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed, folders: { defaults: FolderView.viewableFolders().map(folder => ({ name: folder.display, path: folder.target })), extra: (settings?.extraFolders || []).map(folder => ({ name: folder.name, path: folder.path })), max: ExtraFolders.MAX_EXTRA, status: folderStatus, failed: folderStatusFailed } } });
+  // Immagini: Ollama le legge dal modello; gli altri motori solo se il server le dichiara (altrimenti allegati disattivati).
+  const localVision = () => settings?.localEngine && settings.localEngine !== 'ollama' ? LocalEngines.supportsVision(settings.localEngine, settings.localModel) : LocalAI.supportsVision(settings?.localModel);
   const saveSettings = () => atomicJSON(stateFile, settings);
   // Opzioni del modello scelto: un modello fuori catalogo vale solo se approvato come «già presente» (localModelSource).
   const modelOptions = () => ({ model: settings.localModel, installed: !LocalAI.isModel(settings.localModel) });
-  // Il modello già presente scelto non è più installato / idoneo: si torna al predefinito e si spiega perché.
+  // Il modello già presente scelto (o il motore) non è più disponibile: si torna a Ollama e al predefinito e si spiega perché.
   function fallbackToDefault(reason) {
-    settings.localModel = LocalAI.defaultModel(); settings.localModelSource = 'catalog'; saveSettings(); installedCache = null; localAvailable = false;
-    return `${reason} Sono tornato al modello predefinito (${settings.localModel}).`;
+    const other = settings.localEngine !== 'ollama';
+    settings.localEngine = 'ollama'; settings.localModel = LocalAI.defaultModel(); settings.localModelSource = 'catalog'; saveSettings(); installedCache = null; localAvailable = false;
+    return other ? `${reason} Sono tornato a Ollama e al modello predefinito (${settings.localModel}).` : `${reason} Sono tornato al modello predefinito (${settings.localModel}).`;
   }
   // Restituisce '' se il modello è valido, oppure il messaggio del ritorno al predefinito (se poi anche questo è valido).
-  async function checkSelected() {
+  async function checkOllama() {
     try { await LocalAI.checkModel(modelOptions()); return ''; }
     catch (error) {
       if (error.code !== 'MODEL_INVALID') throw error;
       const message = fallbackToDefault(error.message);
       try { await LocalAI.checkModel(modelOptions()); } catch (next) { next.message = `${message} ${next.message}`; throw next; }
       return message;
+    }
+  }
+  // Altri motori: server già avviato dall'utente. Se non risponde, non è quello atteso o il modello non c'è più, si torna a Ollama.
+  async function checkSelected() {
+    if (settings.localEngine === 'ollama') return checkOllama();
+    const other = LocalEngines.get(settings.localEngine);
+    try { await other.checkModel(settings.localModel); return ''; }
+    catch (error) {
+      if (error.name === 'AbortError') throw error;
+      const message = fallbackToDefault(error.message);
+      try { return [message, await checkOllama()].filter(Boolean).join(' '); } catch (next) { next.message = `${message} ${next.message}`; throw next; }
     }
   }
   async function prepareLocal() {
@@ -309,8 +323,11 @@ function startApplication() {
     store = new ChatStore(chatDirectory);
     memory = new LocalAI.LocalMemory(chatDirectory);
     const raw = readJSON(stateFile, {});
-    const startModel = LocalAI.normalizeModel(raw.localModel, undefined, raw.localModelSource);
-    settings = {scale:[1,2,3,4,5,6].includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localModel:startModel,localModelSource:LocalAI.isModel(startModel)?'catalog':'installed',extraFolders:ExtraFolders.normalizeExtraFolders(raw.extraFolders,ExtraFolders.realOpts({platform:process.platform,home:os.homedir(),dataDir:dataDirectory}))};
+    // Motore: un valore sconosciuto, o un modello di un altro motore senza nome valido, torna a Ollama e al predefinito.
+    let startEngine = LocalEngines.normalizeEngine(raw.localEngine);
+    if (startEngine !== 'ollama' && !(raw.localModelSource === 'installed' && LocalAI.validName(raw.localModel))) startEngine = 'ollama';
+    const startModel = startEngine === 'ollama' ? LocalAI.normalizeModel(raw.localModel, undefined, raw.localModelSource) : raw.localModel;
+    settings = {scale:[1,2,3,4,5,6].includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localEngine:startEngine,localModel:startModel,localModelSource:startEngine==='ollama'&&LocalAI.isModel(startModel)?'catalog':'installed',extraFolders:ExtraFolders.normalizeExtraFolders(raw.extraFolders,ExtraFolders.realOpts({platform:process.platform,home:os.homedir(),dataDir:dataDirectory}))};
     prepareLocal().then(note => { localAvailable = true; if (note) notice = note; if (!currentRun && !engineTouched) engine = 'locale'; broadcast(); }).catch(() => { localAvailable = false; broadcast(); });
     const resultFile = path.join(dataDirectory, 'update-result.json'), updateResult = readJSON(resultFile, null);
     if (updateResult && typeof updateResult.message === 'string') {
@@ -370,20 +387,39 @@ function startApplication() {
         if (localDownload || currentRun || updateRunning || localScanning) return chatSnapshot();
         // Solo su richiesta dell'utente (apertura di Gestione o pulsante): legge /api/tags e /api/show su 127.0.0.1 e ricorda il risultato.
         localScanning = true; broadcast();
+        // Rileva Ollama e gli altri motori già avviati (solo 127.0.0.1, GET /v1/models); nessun avvio, chiusura o download.
+        try { engineStatus = await LocalEngines.detectAll(); } catch { engineStatus = null; }
+        // Il motore scelto non risponde più o il modello non c'è più (anche se le ultime risposte non sono passate dal modello): torna a Ollama.
+        if (settings.localEngine !== 'ollama' && engineStatus) {
+          const current = engineStatus.find(item => item.id === settings.localEngine);
+          if (!current?.available) notice = fallbackToDefault(`${LocalEngines.label(settings.localEngine)}: ${current?.message === 'non avviato' ? 'non è avviato.' : current?.message || 'non risponde.'}`);
+          else if (!current.models.some(model => model.name === settings.localModel)) notice = fallbackToDefault(`Il modello ${settings.localModel} non è più disponibile in ${current.label} o non è idoneo.`);
+        }
         try { installedCache = await LocalAI.discoverInstalled(); } catch (error) { installedCache = { models: [], excluded: [], error: error.code === 'ECONNREFUSED' ? 'Ollama non è avviato.' : 'Non riesco a leggere i modelli di Ollama.' }; }
         finally { localScanning = false; }
         // Il modello «già presente» scelto non compare più tra gli idonei (es. «ollama rm»): torna subito al predefinito,
         // anche se le ultime risposte (conteggi cartelle, note) non sono passate dal modello.
-        if (!installedCache.error && settings.localModelSource === 'installed' && !LocalAI.isModel(settings.localModel) && !installedCache.models.some(model => model.name === settings.localModel))
+        if (!installedCache.error && settings.localEngine === 'ollama' && settings.localModelSource === 'installed' && !LocalAI.isModel(settings.localModel) && !installedCache.models.some(model => model.name === settings.localModel))
           notice = fallbackToDefault(`Il modello ${settings.localModel} non è più installato o idoneo.`);
         return chatSnapshot();
       }
       // Un modello fuori catalogo si sceglie solo se è nell'elenco idoneo restituito da Ollama alla scansione.
-      const chosenInstalled = typeof data === 'string' && !LocalAI.isModel(data) && installedCache?.models.some(model => model.name === data);
-      if (action === 'local-model' && !localDownload && !currentRun && !updateRunning && (LocalAI.isModel(data) || chosenInstalled)) { settings.localModel = data; settings.localModelSource = chosenInstalled ? 'installed' : 'catalog'; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
+      const otherEngine = settings.localEngine !== 'ollama';
+      const chosenInstalled = !otherEngine && typeof data === 'string' && !LocalAI.isModel(data) && installedCache?.models.some(model => model.name === data);
+      // Un altro motore: il modello si sceglie solo dall'elenco che quel motore ha restituito alla ricerca.
+      const chosenOther = otherEngine && typeof data === 'string' && Boolean(engineStatus?.find(item => item.id === settings.localEngine)?.models?.some(model => model.name === data));
+      // Scelta del motore: solo uno rilevato alla ricerca con almeno un modello idoneo (il primo), oppure Ollama con il predefinito.
+      if (action === 'local-engine' && !localDownload && !currentRun && !updateRunning && LocalEngines.isEngine(data)) {
+        const found = data === 'ollama' ? null : engineStatus?.find(item => item.id === data);
+        if (data === 'ollama') { settings.localEngine = 'ollama'; settings.localModel = LocalAI.defaultModel(); settings.localModelSource = 'catalog'; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
+        else if (found?.available && found.models?.length) { settings.localEngine = data; settings.localModel = found.models[0].name; settings.localModelSource = 'installed'; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
+        else { notice = `${LocalEngines.label(data)} non è disponibile: avvialo e premi «Cerca motori locali».`; return chatSnapshot(); }
+      }
+      if (action === 'local-model' && !localDownload && !currentRun && !updateRunning && (otherEngine ? chosenOther : (LocalAI.isModel(data) || chosenInstalled))) { settings.localModel = data; settings.localModelSource = chosenInstalled || chosenOther ? 'installed' : 'catalog'; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
       if (action === 'local-download-cancel') { localDownload?.abort(); return chatSnapshot(); }
       if (action === 'local-download') {
         if (localDownload || currentRun || updateRunning || setupPreview) return chatSnapshot();
+        if (settings.localEngine !== 'ollama') { localDownloadStatus = `I modelli si gestiscono da ${LocalEngines.label(settings.localEngine)}: Mascotte non scarica nulla.`; return chatSnapshot(); }
         if (!LocalAI.isModel(settings.localModel)) { localDownloadStatus = 'Mascotte non scarica né aggiorna modelli fuori catalogo: aggiornalo da Ollama. Puoi verificarlo qui.'; return chatSnapshot(); }
         localDownload = new AbortController(); localAvailable = false;
         localDownloadStatus = 'Preparazione download...'; broadcast();
@@ -396,7 +432,7 @@ function startApplication() {
         finally { localDownload = null; broadcast(); }
         return chatSnapshot();
       }
-      if ((action === 'local-check' || action === 'local-model') && !localDownload) { localDownloadStatus = ''; try { notice = (await prepareLocal()) || 'Modello locale pronto.'; localAvailable = true; } catch (error) { localAvailable = false; notice = error.message; } return chatSnapshot(); }
+      if ((action === 'local-check' || action === 'local-model' || action === 'local-engine') && !localDownload) { localDownloadStatus = ''; try { notice = (await prepareLocal()) || 'Modello locale pronto.'; localAvailable = true; } catch (error) { localAvailable = false; notice = error.message; } return chatSnapshot(); }
       if (action === 'memory-add' && !currentRun && !updateRunning) { try { memory.add(data?.text, data?.source); notice = `Nota salvata sul ${can.deviceName}.`; } catch (error) { notice = error.message; } return chatSnapshot(); }
       if (action === 'memory-remove' && !currentRun && !updateRunning && typeof data === 'string') { try { memory.remove(data); notice = 'Nota rimossa.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
       if (action === 'pc-action-cancel') { pendingAction = null; notice = 'Azione annullata.'; return chatSnapshot(); }
@@ -545,7 +581,7 @@ function startApplication() {
         }
         let image = null, imagePath = null, imageDirectory = null;
         if (imageData !== null) {
-          if (engine === 'locale' && !LocalAI.supportsVision(settings.localModel)) { notice = 'Il modello locale scelto è solo testuale.'; broadcast(); return; }
+          if (engine === 'locale' && !localVision()) { notice = settings.localEngine !== 'ollama' ? `${LocalEngines.label(settings.localEngine)} non dichiara il supporto alle immagini per questo modello: allegati disattivati.` : 'Il modello locale scelto è solo testuale.'; broadcast(); return; }
           if (!watchSource || typeof imageData !== 'string' || imageData.length > 12000000) { notice = 'La vista non è più disponibile: attiva l’osservazione e riprova.'; broadcast(); return; }
           const encoded = imageData.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/)?.[1];
           if (!encoded) { notice = 'Il fotogramma non è valido.'; broadcast(); return; }
@@ -572,14 +608,14 @@ function startApplication() {
         store.set(selected, [...history, { role: 'user', text: prompt + imageNote }]); notice = '';
         const args = selected === 'locale' ? null : CLI.argumentsFor(selected, imagePath, Boolean(image && selected === 'claude'));
         const input = image && selected === 'claude' ? CLI.promptWithImage(completePrompt, image.bytes.toString('base64')) : completePrompt;
-        const run = selected === 'locale' ? LocalAI.runLocal(history, prompt, memory.relevant(prompt), { ...modelOptions(), imageBase64: image?.bytes.toString('base64') || null, folderContext: folderRead?.context || null }) : CLI.runCLI(command, args, input, imageDirectory || path.join(dataDirectory, 'chat'));
+        const run = selected === 'locale' ? LocalEngines.run(settings.localEngine, history, prompt, memory.relevant(prompt), { ...modelOptions(), imageBase64: image?.bytes.toString('base64') || null, folderContext: folderRead?.context || null }) : CLI.runCLI(command, args, input, imageDirectory || path.join(dataDirectory, 'chat'));
         currentRun = run; controller.set('thinking', true); broadcast();
         try {
           const output = await run.promise;
           const text = selected === 'locale' ? (folderRead ? folderRead.notice + '\n\n' + output : output) : CLI.decodeOutput(selected, output.stdout, output.code, output.stderr);
           store.set(selected, [...store.get(selected), { role: 'assistant', text }]); controller.set('talk');
         } catch (e) {
-          notice = (e.name === 'AbortError' ? 'Risposta interrotta.' : e.code === 'MODEL_INVALID' && selected === 'locale' && !LocalAI.isModel(settings.localModel) ? fallbackToDefault(e.message) : e.message).slice(0, 1500); controller.set('error');
+          notice = (e.name === 'AbortError' ? 'Risposta interrotta.' : selected === 'locale' && settings.localEngine !== 'ollama' && ['MODEL_INVALID', 'ECONNREFUSED', 'AUTH', 'UNRECOGNIZED'].includes(e.code) ? fallbackToDefault(e.message) : e.code === 'MODEL_INVALID' && selected === 'locale' && !LocalAI.isModel(settings.localModel) ? fallbackToDefault(e.message) : e.message).slice(0, 1500); controller.set('error');
         } finally {
           currentRun = null;
           if (imageDirectory && fs.existsSync(imageDirectory)) { try { fs.rmSync(imageDirectory, { recursive: true, force: true }); } catch {} }
