@@ -1,11 +1,20 @@
 'use strict';
+const fs = require('node:fs');
 const path = require('node:path');
+const HELPER_NAME = 'mascotte-window-helper';
+// Helper Swift dell'aggancio: nel pacchetto sta in Contents/Resources (extraResources), da sorgente in resources/mac
+// (compilato da scripts/mac-helper.cjs). Restituisce il primo percorso esistente, o il percorso di sviluppo.
+function macHelperPath({ resourcesPath = process.resourcesPath, exists = fs.existsSync } = {}) {
+  const dev = path.join(__dirname, '..', 'resources', 'mac', HELPER_NAME);
+  const packaged = resourcesPath && path.join(resourcesPath, HELPER_NAME);
+  return packaged && exists(packaged) ? packaged : dev;
+}
 // Capacità per piattaforma: un solo punto dove decidere cosa è attivo. Su macOS le funzioni dei passi 3–10
 // del piano Mac restano spente finché non vengono portate e verificate.
-function capabilities(platform = process.platform) {
+function capabilities(platform = process.platform, { macHelper } = {}) {
   const win = platform === 'win32', mac = platform === 'darwin';
   return {
-    windowAttach: win,     // aggancio alla finestra attiva (helper PowerShell; su Mac: passo 3)
+    windowAttach: win || (mac && (macHelper ?? fs.existsSync(macHelperPath()))), // aggancio alla finestra attiva (helper PowerShell; su Mac helper Swift, solo se compilato)
     managedOllama: win,    // avvio di ollama.exe gestito dall'app (su Mac si guida l'installazione: passo 5)
     localActions: win,     // azioni locali con conferma (Calcolatrice, Download: passo 6)
     watch: win,            // osservazione e fotogrammi (passo 7)
@@ -13,6 +22,8 @@ function capabilities(platform = process.platform) {
     management: win,       // aggiornamenti dal pacchetto (passo 10)
     hideDock: mac,         // app da barra dei menu, senza icona nel Dock (come la vecchia app, LSUIElement)
     allSpaces: mac,        // mascotte visibile su tutte le scrivanie e sopra le app a tutto schermo (verifica completa: passo 3)
+    barLabel: mac ? 'Aggancia al Dock' : 'Aggancia alla barra delle applicazioni',
+    barName: mac ? 'al Dock' : 'alla barra',
     gitGuide: mac ? 'https://git-scm.com/install/mac' : 'https://git-scm.com/install/windows',
     ollamaGuide: mac ? 'https://ollama.com/download/mac' : 'https://ollama.com/download/windows'
   };
@@ -23,4 +34,4 @@ function dataDirectory({ env = process.env, platform = process.platform, appData
   // Su Mac mai in «Application Support/Mascotte»: è la cartella della vecchia app Swift (migrazione: passo 9).
   return path.join(appData, 'Mascotte Electron');
 }
-module.exports = { capabilities, dataDirectory };
+module.exports = { capabilities, dataDirectory, macHelperPath };

@@ -28,7 +28,7 @@ function startApplication() {
   const Updater = require('./lib/updater.cjs');
   const Releases = require('./lib/releases.cjs');
   const Attachment = require('./lib/attachment.cjs');
-  const { mascotSize, maskHit, dragPosition } = require('./lib/geometry.cjs');
+  const { mascotSize, maskHit, dragPosition, barEdge, barHit } = require('./lib/geometry.cjs');
   const P = require('./resources/pack.js');
   let mascot, chat, tray, controller, server, store, memory, pack, imageData, currentRun, hitMask, mouseTimer;
   let settings, engine = 'codex', engineTouched = false, notice = '', setupPreview, drag, quitting = false, mouseIgnored = true, localAvailable = false, managedOllama = null;
@@ -133,7 +133,7 @@ function startApplication() {
     const b = mascot.getBounds();
     const display = attachment === 'bar' ? screen.getAllDisplays().find(d => d.id === anchorDisplay) || screen.getDisplayMatching(b) : screen.getDisplayMatching(targetBounds || b);
     if (attachment === 'window' && !targetBounds) return;
-    const edge = attachment === 'bar' ? { ...display.workArea, y: display.workArea.y + display.workArea.height } : targetBounds;
+    const edge = attachment === 'bar' ? barEdge(display) : targetBounds;
     const anchor=pack.perch?{x:pack.perch.anchor.x*displayScale(),y:pack.perch.anchor.y*displayScale()}:undefined;
     const position = Attachment.origin(b, edge, display.workArea, anchorFraction,anchor);
     if (b.x !== position.x || b.y !== position.y) moveMascot(position.x, position.y);
@@ -141,10 +141,8 @@ function startApplication() {
     updateHit();
   }
   function taskbarDisplayAt(point) {
-    const d = screen.getDisplayNearestPoint(point), { x, y, width, height } = d.bounds, a = d.workArea;
-    const onDisplay = point.x >= x && point.x < x + width && point.y >= y && point.y < y + height;
-    const inBottomTaskbar = point.x >= a.x && point.x < a.x + a.width && point.y >= a.y + a.height && point.y < y + height;
-    return onDisplay && inBottomTaskbar ? d : null;
+    const d = screen.getDisplayNearestPoint(point);
+    return barHit(d, point) ? d : null;
   }
   function attachBar(displayOverride) {
     detach(); const b = mascot.getBounds(), d = displayOverride || screen.getDisplayMatching(b);
@@ -168,8 +166,10 @@ function startApplication() {
       if (state.status === 'closed' || (automatic && state.status === 'unavailable')) { detach(); return; }
       if (state.status === 'unavailable') { detach(); dialog.showErrorBox('Nessuna finestra agganciabile', 'Porta in primo piano la finestra desiderata e riprova dal clic destro sulla mascotte.'); return; }
       if (state.status === 'hidden') { targetBounds = null; if (userVisible) { mascot.hide(); concealed = true; } return; }
-      const top = screen.screenToDipPoint({ x: state.x, y: state.y });
-      const bottom = screen.screenToDipPoint({ x: state.x + state.width, y: state.y + state.height });
+      // Windows: l'helper dà pixel fisici. Mac: l'helper dà già punti, come `screen`.
+      const toDip = point => process.platform === 'win32' ? screen.screenToDipPoint(point) : point;
+      const top = toDip({ x: state.x, y: state.y });
+      const bottom = toDip({ x: state.x + state.width, y: state.y + state.height });
       targetBounds = { x: top.x, y: top.y, width: bottom.x-top.x, height: bottom.y-top.y };
       if (first) {
         if (automatic) {
@@ -181,7 +181,7 @@ function startApplication() {
         const b = mascot.getBounds(); anchorFraction = Math.max(0, Math.min(1, (b.x+b.width/2-top.x)/targetBounds.width)); first = false;
       }
       placeAttachment();
-    }, () => { detach(); if (!automatic && !quitting) dialog.showErrorBox('Aggancio non disponibile', 'Il lettore locale della posizione finestra non è disponibile su questo PC. Puoi usare l’aggancio alla barra.'); });
+    }, () => { detach(); if (!automatic && !quitting) dialog.showErrorBox('Aggancio non disponibile', 'Il lettore locale della posizione finestra non è disponibile su questo PC. Puoi usare l’aggancio ' + can.barName + '.'); });
   }
   async function windowSources() {
     const sources = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 0, height: 0 }, fetchWindowIcons: false });
@@ -249,7 +249,7 @@ function startApplication() {
       { label: 'Grandezza', submenu: [1,2,3,4,5,6].filter(scale=>Math.max(pack.frame.width,pack.frame.height)*scale/(pack.pixelRatio||1)<=2048).map(scale => ({ label: `${scale}×`, type: 'radio', checked: scale === settings.scale, click: () => setScale(scale) })) },
       { label: 'Aggancio', submenu: [
         { label: 'Libera / sgancia', type: 'radio', checked: attachment === 'free', click: () => { detach(); saveSettings(); } },
-        { label: 'Aggancia alla barra delle applicazioni', type: 'radio', checked: attachment === 'bar', click: attachBar },
+        { label: can.barLabel, type: 'radio', checked: attachment === 'bar', click: () => attachBar() },
         { label: 'Aggancia alla finestra attiva', type: 'radio', checked: attachment === 'window', enabled: can.windowAttach, click: attachWindow }
       ] },
       { label: 'Osservazione', submenu: [
@@ -299,7 +299,8 @@ function startApplication() {
     const width = Math.round(pack.frame.width * displayScale()),height = Math.round(pack.frame.height * displayScale());
     const pos = clampPosition(settings.position, width, height, displayAreas());
     mascot = safeWindow('mascot', { ...pos, width, height, frame: false, transparent: true, backgroundColor: '#00000000', alwaysOnTop: true, skipTaskbar: true, resizable: false, maximizable: false, fullscreenable: false, thickFrame: false, focusable: false, show: false, hasShadow: false });
-    if (can.allSpaces) { mascot.setAlwaysOnTop(true, 'screen-saver'); mascot.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); if (can.hideDock) app.dock?.hide(); }
+    // Mac: prima tutte le scrivanie e il tutto schermo, poi il livello (l'ordine inverso può perdere il livello).
+    if (can.allSpaces) { if (can.hideDock) app.dock?.hide(); mascot.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true }); mascot.setAlwaysOnTop(true, 'screen-saver'); }
     mascot.setIgnoreMouseEvents(true, { forward: true });
     mascot.once('ready-to-show', () => mascot.showInactive());
     controller.set('idle');
@@ -308,12 +309,13 @@ function startApplication() {
     const rosso=characters.find(c=>c.id==='rosso');
     const icon = nativeImage.createFromDataURL(rosso.imageData).crop({x:0,y:0,width:rosso.pack.frame.width,height:rosso.pack.frame.height}).resize({width:24,height:24});
     tray = new Tray(icon); tray.setToolTip('Mascotte'); tray.on('click', showChat); tray.on('right-click', () => { prepareWindowCapture(); tray.popUpContextMenu(menu()); });
+    if (process.platform === 'darwin') screen.on('display-added', () => setScale(settings.scale));
     screen.on('display-removed', () => setScale(settings.scale));
     screen.on('display-metrics-changed', () => setScale(settings.scale));
     server = new EventServer(endpoint, Object.keys(P.STATES.states), event => { if (!currentRun) controller.set(event.state); });
     try { await server.start(process.env.MASCOTTE_PREVIEW ? 0 : 8766); }
     catch { notice = 'Server eventi non disponibile: controlla se la porta 8766 è occupata.'; }
-    console.log('Mascotte Windows preview pronta. Nessuna richiesta IA automatica.');
+    console.log('Mascotte pronta. Nessuna richiesta IA automatica.');
   }).catch(error => { dialog.showErrorBox('Mascotte non riesce ad avviarsi', error.message); app.quit(); });
 
   ipcMain.handle('mascotte', async (event, action, data) => {

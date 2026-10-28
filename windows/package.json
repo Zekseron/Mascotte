@@ -11,7 +11,7 @@
     "test": "node --test test/*.test.cjs",
     "test:codex-policy": "node test/codex-policy.cjs",
     "build:win:package": "npm run resources && electron-builder --win zip --x64",
-    "build:mac": "npm run resources && electron-builder --mac --arm64 --config.appId=local.mascotte.desktop",
+    "build:mac": "npm run resources && node scripts/mac-helper.cjs --required && electron-builder --mac --arm64 --config.appId=local.mascotte.desktop",
     "build:win": "npm run resources && electron-builder --win zip nsis --x64 && node scripts/copy-root-build.cjs",
     "update:win": "node scripts/install-update.cjs"
   },
@@ -36,7 +36,8 @@
       "lib/**",
       "renderer/**",
       "resources/**",
-      "package.json"
+      "package.json",
+      "!resources/mac/**"
     ],
     "win": {
       "target": "zip",
@@ -49,7 +50,8 @@
       "notarize": false,
       "hardenedRuntime": false,
       "artifactName": "Mascotte-Mac-${version}-${arch}.${ext}",
-      "extendInfo": { "LSUIElement": true }
+      "extendInfo": { "LSUIElement": true },
+      "extraResources": [{ "from": "resources/mac/mascotte-window-helper", "to": "mascotte-window-helper" }]
     },
     "nsis": {
       "oneClick": true,

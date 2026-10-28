@@ -33,8 +33,11 @@ test('link di root ignorato fuori da Windows ma sempre rifiutato su Windows', t 
 });
 
 test('capacità e cartella dati per piattaforma', () => {
-  const win = capabilities('win32'), mac = capabilities('darwin');
+  const win = capabilities('win32'), mac = capabilities('darwin', { macHelper: false });
   for (const k of ['windowAttach', 'managedOllama', 'localActions', 'watch', 'hooks', 'management']) { assert.equal(win[k], true, k); assert.equal(mac[k], false, k); }
+  assert.equal(capabilities('darwin', { macHelper: true }).windowAttach, true);
+  assert.equal(capabilities('win32', { macHelper: false }).windowAttach, true);
+  assert.equal(mac.barLabel, 'Aggancia al Dock'); assert.match(win.barLabel, /barra delle applicazioni/);
   assert.equal(mac.hideDock, true); assert.equal(win.hideDock, false);
   assert.match(mac.ollamaGuide, /\/mac$/); assert.match(win.ollamaGuide, /\/windows$/);
   const appData = '/Users/x/Library/Application Support';
@@ -42,4 +45,11 @@ test('capacità e cartella dati per piattaforma', () => {
   assert.equal(dataDirectory({ env: { MASCOTTE_DATA_DIR: '/a' }, platform: 'darwin', appData }), '/a');
   assert.equal(dataDirectory({ env: { MASCOTTE_DATA_DIR: '/a', MASCOTTE_WINDOWS_DATA_DIR: '/b' }, platform: 'darwin', appData }), '/b');
   assert.equal(dataDirectory({ env: { LOCALAPPDATA: 'C:\\L' }, platform: 'win32' }), path.join('C:\\L', 'Mascotte'));
+});
+
+test('percorso dell’helper Mac: pacchetto se presente, altrimenti resources/mac', () => {
+  const { macHelperPath } = require('../lib/platform.cjs');
+  assert.equal(macHelperPath({ resourcesPath: '/App/Contents/Resources', exists: p => p === '/App/Contents/Resources/mascotte-window-helper' }), '/App/Contents/Resources/mascotte-window-helper');
+  assert.equal(macHelperPath({ resourcesPath: '/App/Contents/Resources', exists: () => false }), path.join(__dirname, '..', 'resources', 'mac', 'mascotte-window-helper'));
+  assert.equal(macHelperPath({ resourcesPath: undefined }), path.join(__dirname, '..', 'resources', 'mac', 'mascotte-window-helper'));
 });

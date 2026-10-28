@@ -9,4 +9,5 @@ for (const name of ['characters', 'spec']) {
   fs.cpSync(path.join(root, name), path.join(dest, name), { recursive: true });
 }
 fs.copyFileSync(path.join(root, 'viewer/pack.js'), path.join(dest, 'pack.js'));
+require('./mac-helper.cjs').build(); // solo su macOS: compila l'helper dell'aggancio finestre
 console.log('Rosso, spec e parser copiati dalla fonte comune.');
