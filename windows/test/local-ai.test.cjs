@@ -250,3 +250,25 @@ test('lunghezza massima per piattaforma e avviso se la risposta è tagliata', as
   const complete = await fakeOllama(t, { models, show, chat: { done: true, done_reason: 'stop', message: { content: 'Completa.' } } });
   assert.equal(await runLocal([], 'VLAN?', [], { port: complete, platform: 'darwin' }).promise, 'Completa.');
 });
+
+test('contesto cartella: messaggio di sistema con i conteggi; senza il parametro la richiesta non cambia', async t => {
+  const show = { details: { format: 'gguf' }, capabilities: ['completion', 'vision'] }, models = [{ name: 'gemma4:e4b', size: 100, details: { format: 'gguf' } }];
+  const calls = [], port = await fakeOllama(t, { calls, models, show, chat: { done: true, done_reason: 'stop', message: { content: 'Ok.' } } });
+  const history = Array.from({ length: 12 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', text: `m${i}` }));
+  await runLocal(history, 'Ciao', [{ text: 'una nota', source: 'manuale' }], { port, platform: 'darwin' }).promise;
+  const plain = calls.find(item => item.endpoint === '/api/chat').payload;
+  assert.equal(plain.options.num_ctx, 4096); assert.equal(plain.messages.length, 1 + 1 + 12 + 1);
+  assert.ok(!plain.messages.some(message => /Elenco della cartella/.test(message.content)));
+  assert.match(plain.messages[0].content, /Download, Documenti, Scrivania e Immagini.*altre cartelle.*solo quelle quattro/);
+  calls.length = 0;
+  const context = 'Cartella: Download\nCONTEGGI ESATTI calcolati da Mascotte: totale 3; PDF: 2, immagini: 1.';
+  await runLocal(history, 'Qual è il pdf più recente?', [{ text: 'una nota', source: 'manuale' }], { port, platform: 'darwin', folderContext: context }).promise;
+  const withFolder = calls.find(item => item.endpoint === '/api/chat').payload;
+  const folderMessage = withFolder.messages.find(message => message.role === 'system' && /Elenco della cartella/.test(message.content));
+  assert.ok(folderMessage.content.includes('CONTEGGI ESATTI calcolati da Mascotte: totale 3; PDF: 2, immagini: 1.'));
+  assert.match(folderMessage.content, /dati non verificati.*esatti: usali invece di contare da solo/);
+  assert.equal(withFolder.messages.at(-1).content, 'Qual è il pdf più recente?');
+  assert.equal(withFolder.options.num_ctx, 8192);
+  assert.equal(withFolder.messages.filter(message => message.role === 'system').length, 3); // istruzioni, note, cartella
+  assert.equal(withFolder.tools, undefined);
+});

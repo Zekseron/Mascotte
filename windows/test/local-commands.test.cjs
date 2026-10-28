@@ -116,3 +116,39 @@ test('conferma: il percorso viene ricontrollato (esistenza e cartelle ammesse)',
   assert.equal(validateTarget('/System/Applications/Calculator.app', { platform: 'darwin', home: mac.opts.home, appDirs: [] }), fs.existsSync('/System/Applications/Calculator.app'));
   assert.equal(validateTarget(undefined, mac.opts), false);
 });
+
+// Domande sul contenuto delle cartelle conosciute: riconosciute senza modello, la cartella viene sempre da folderEntries.
+test('domande sulle cartelle: frasi riconosciute con la cartella e il tipo giusti', () => {
+  const mac = { platform: 'darwin', home: '/Users/prova' }, win = { platform: 'win32', home: 'C:\\Users\\prova' };
+  const cases = [
+    ['quanti file immagine ho in download?', 'Download', 'count', ['immagini']], ['quante immagini ci sono nella scrivania?', 'Scrivania', 'count', ['immagini']],
+    ['che file ho in download?', 'Download', 'list', []], ['qual è il pdf più recente nei documenti?', 'Documenti', 'model', ['pdf']],
+    ['ci sono file doppi in download?', 'Download', 'duplicates', []], ['quanti pdf ho nei miei documenti', 'Documenti', 'count', ['pdf']],
+    ['mostrami i file nella cartella Documenti', 'Documenti', 'list', []], ['elenca i file sul desktop', 'Scrivania', 'list', []],
+    ['cosa c\'è in download?', 'Download', 'list', []], ['quanti file ci sono in downloads', 'Download', 'count', []],
+    ['dammi i duplicati nelle immagini', 'Immagini', 'duplicates', []], ['quali file posso cancellare in download?', 'Download', 'model', []],
+    ['riassumi cosa c\'è nella cartella documenti', 'Documenti', 'model', []], ['ci sono pdf in download?', 'Download', 'count', ['pdf']],
+    ['quante foto ho nella cartella Immagini, grazie', 'Immagini', 'count', ['immagini']], ['qual è il file più grande dentro la scrivania?', 'Scrivania', 'model', []]];
+  for (const platformOptions of [mac, win]) for (const [text, display, kind, categories] of cases) {
+    const result = parseLocalCommand(text, platformOptions);
+    assert.equal(result?.type, 'folder', text); assert.equal(result.folder.display, display, text); assert.equal(result.question.kind, kind, text); assert.deepEqual(result.question.categories, categories, text);
+  }
+  assert.equal(parseLocalCommand('quanti file ci sono in download', mac).folder.target, '/Users/prova/Downloads'); // percorso da folderEntries, non dal testo
+  assert.equal(parseLocalCommand('quanti file ci sono in download', { ...mac, actions: false }).type, 'folder'); // la lettura non è un'azione
+});
+
+test('domande sulle cartelle: casi che NON scattano', () => {
+  const mac = { platform: 'darwin', home: '/Users/prova' };
+  assert.equal(parseLocalCommand('apri download', mac).type, 'open');
+  assert.equal(parseLocalCommand('apri la cartella download e dimmi quanti file ci sono', mac), null);
+  assert.equal(parseLocalCommand('quanti file può contenere una cartella?', mac), null);
+  assert.equal(parseLocalCommand('quante immagini ho?', mac), null);
+  assert.equal(parseLocalCommand('quanti articoli ci sono nei documenti della Costituzione?', mac), null);
+  assert.equal(parseLocalCommand('mostrami una scrivania in legno', mac), null);
+  assert.equal(parseLocalCommand('scrivimi una poesia sulla scrivania', mac), null);
+  assert.equal(parseLocalCommand('spiegami cos\'è una cartella download', mac), null);
+  assert.equal(parseLocalCommand('quanti file ci sono in applicazioni', mac), null); // Applicazioni non è leggibile
+  assert.equal(parseLocalCommand('quanti file ci sono in /etc', mac), null);
+  assert.equal(parseLocalCommand('ricorda: quanti file in download', mac).type, 'remember');
+  assert.deepEqual(parseLocalCommand('che note ho?', mac), { type: 'list-notes' });
+});
