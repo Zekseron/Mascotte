@@ -40,7 +40,7 @@ function startApplication() {
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
-  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.MODEL, localVision: LocalAI.supportsVision(settings?.localModel), memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: can.management && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed } });
+  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localVision: LocalAI.supportsVision(settings?.localModel), localCatalog: LocalAI.uiCatalog(), deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: can.management && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed } });
   const saveSettings = () => atomicJSON(stateFile, settings);
   async function prepareLocal() {
     try { await LocalAI.checkModel({ model: settings.localModel }); }
@@ -291,7 +291,7 @@ function startApplication() {
     store = new ChatStore(chatDirectory);
     memory = new LocalAI.LocalMemory(chatDirectory);
     const raw = readJSON(stateFile, {});
-    settings = {scale:[1,2,3,4,5,6].includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localModel:LocalAI.MODELS.includes(raw.localModel)?raw.localModel:LocalAI.MODEL};
+    settings = {scale:[1,2,3,4,5,6].includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localModel:LocalAI.normalizeModel(raw.localModel)};
     prepareLocal().then(() => { localAvailable = true; if (!currentRun && !engineTouched) engine = 'locale'; broadcast(); }).catch(() => { localAvailable = false; broadcast(); });
     const resultFile = path.join(dataDirectory, 'update-result.json'), updateResult = readJSON(resultFile, null);
     if (updateResult && typeof updateResult.message === 'string') {
@@ -347,7 +347,7 @@ function startApplication() {
     }
     if (chatting) {
       if (action === 'snapshot') return chatSnapshot();
-      if (action === 'local-model' && !localDownload && !currentRun && !updateRunning && LocalAI.MODELS.includes(data)) { settings.localModel = data; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
+      if (action === 'local-model' && !localDownload && !currentRun && !updateRunning && LocalAI.isModel(data)) { settings.localModel = data; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
       if (action === 'local-download-cancel') { localDownload?.abort(); return chatSnapshot(); }
       if (action === 'local-download') {
         if (localDownload || currentRun || updateRunning || setupPreview) return chatSnapshot();
