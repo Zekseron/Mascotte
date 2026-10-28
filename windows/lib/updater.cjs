@@ -38,8 +38,9 @@ function git(root, args) {
   if (result.error || result.status !== 0) throw new Error((result.stderr || result.error?.message || 'Comando Git non riuscito.').trim());
   return result.stdout.trim();
 }
+// Il nome utente nell'URL HTTPS (https://utente@github.com/…, usato per scegliere l'account del push) non cambia la repo.
 function normalizedOrigin(value) {
-  return value.trim().replace(/^git@github\.com:/i, 'https://github.com/').replace(/^ssh:\/\/git@github\.com\//i, 'https://github.com/').replace(/\.git$/i, '').replace(/\/$/, '').toLowerCase();
+  return value.trim().replace(/^https:\/\/[^@/]+@github\.com\//i, 'https://github.com/').replace(/^git@github\.com:/i, 'https://github.com/').replace(/^ssh:\/\/git@github\.com\//i, 'https://github.com/').replace(/\.git$/i, '').replace(/\/$/, '').toLowerCase();
 }
 function validateRepository(directory, { requireClean = false } = {}) {
   if (!['win32', 'darwin'].includes(process.platform)) throw new Error('L’aggiornamento è disponibile solo su Windows e Mac.');
@@ -194,4 +195,4 @@ async function launchInstaller({ root, archive, runtime, installDir, resultFile,
     }, 150000);
   });
 }
-module.exports = { validateRepository, updateFromRepository, updateFromRepositoryMac, installationDirectory, currentLocation, launchInstaller, findTool, toolEnvironment, OFFICIAL_ORIGIN, MAC_APP };
+module.exports = { normalizedOrigin, validateRepository, updateFromRepository, updateFromRepositoryMac, installationDirectory, currentLocation, launchInstaller, findTool, toolEnvironment, OFFICIAL_ORIGIN, MAC_APP };
