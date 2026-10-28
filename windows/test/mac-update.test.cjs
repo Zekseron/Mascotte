@@ -307,3 +307,12 @@ test('hook: avviso solo se puntano a un’app diversa (sola lettura)', t => {
   assert.equal(Setup.hooksPointElsewhere(record, '/dist/Mascotte.app/Contents/MacOS/Mascotte'), false);
   fs.writeFileSync(config, '{}'); assert.equal(Setup.hooksPointElsewhere(record, '/x'), false);
 });
+
+test('origine della repo: nome utente nell’URL HTTPS accettato, altre repo no', () => {
+  const { normalizedOrigin, OFFICIAL_ORIGIN } = require('../lib/updater.cjs');
+  const official = OFFICIAL_ORIGIN.toLowerCase();
+  for (const url of ['https://Zekseron@github.com/Zekseron/Mascotte.git', 'https://github.com/Zekseron/Mascotte', 'git@github.com:Zekseron/Mascotte.git', 'ssh://git@github.com/Zekseron/Mascotte.git'])
+    assert.equal(normalizedOrigin(url), official, url);
+  for (const url of ['https://Zekseron@github.com/altro/Mascotte.git', 'https://github.com@evil.test/Zekseron/Mascotte', 'https://x@evil.test/Zekseron/Mascotte'])
+    assert.notEqual(normalizedOrigin(url), official, url);
+});
