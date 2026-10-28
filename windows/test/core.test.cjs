@@ -6,7 +6,7 @@ const { StateController, clampPosition } = require('../lib/state.cjs');
 const { prepareDirectory, ChatStore, readJSON } = require('../lib/storage.cjs');
 const { parseRequest, EventServer } = require('../lib/events.cjs');
 const { sendEvent, hookState } = require('../lib/notify.cjs');
-const { argumentsFor, promptWithHistory, runCLI, decodeOutput, commandFor, DISABLED } = require('../lib/cli.cjs');
+const { argumentsFor, promptWithHistory, runCLI, decodeOutput, commandFor, findCLI, DISABLED } = require('../lib/cli.cjs');
 const { prepareHooks, snapshot, applyHooks } = require('../lib/setup.cjs');
 const toml = require('smol-toml');
 const raw = JSON.parse(fs.readFileSync(path.join(__dirname, '../../characters/Cat/rosso/character.json')));
@@ -115,6 +115,9 @@ test('stop, timeout, errore e limite output', async t => {
   const output = await runCLI(command, ['--fail'], 'test', directory).promise;
   assert.throws(() => decodeOutput('codex', output.stdout, output.code, output.stderr), /Errore fixture/);
   assert.throws(() => decodeOutput('codex', '', 0, ''), /incompleta/);
+  // Claude json: errore su stdout con uscita 1 e stderr vuoto (es. accesso scaduto) → messaggio reale, non generico.
+  assert.throws(() => decodeOutput('claude', JSON.stringify({ type: 'result', is_error: true, result: 'Failed to authenticate: OAuth session expired' }), 1, ''), /OAuth session expired/);
+  assert.throws(() => decodeOutput('claude', 'non json', 1, ''), /verifica accesso/);
 });
 test('wrapper npm Codex con spazi risolto come JS, niente cmd.exe', t => {
   const directory = temporary(t), wrapper = path.join(directory, 'codex.cmd'); fs.writeFileSync(wrapper, 'not executed');
@@ -144,4 +147,40 @@ test('configurazione account pulito/esistente e conservazione notify', t => {
   const before = snapshot(paths); const backups = applyHooks(paths, before, proposal, path.join(directory, 'record.json'));
   assert.equal(fs.readFileSync(backups.claude, 'utf8'), initial); assert.equal(fs.readFileSync(backups.codex, 'utf8'), codex);
   assert.throws(() => applyHooks(paths, before, proposal, path.join(directory, 'record.json')), /cambiata/);
+});
+
+const alive = pid => { try { process.kill(pid, 0); return true; } catch { return false; } };
+const waitFor = async (condition, ms = 5000) => { const end = Date.now() + ms; while (Date.now() < end) { if (await condition()) return true; await new Promise(r => setTimeout(r, 25)); } return false; };
+for (const how of ['stop', 'timeout']) test('arresto dell\'intero gruppo di processi, nipoti compresi (' + how + ')', { skip: process.platform === 'win32' && 'su Windows usa taskkill /T' }, async t => {
+  const directory = temporary(t), pidFile = path.join(directory, 'nipote.pid'), command = { file: process.execPath, prefix: [path.join(__dirname, 'fixture.cjs')], env: {} };
+  const run = runCLI(command, ['--grandchild=' + pidFile], 'x', directory, how === 'timeout' ? 1500 : 180000);
+  assert.ok(await waitFor(() => fs.existsSync(pidFile) && fs.readFileSync(pidFile, 'utf8')), 'il nipote deve partire');
+  const pid = Number(fs.readFileSync(pidFile, 'utf8')); assert.ok(alive(pid));
+  if (how === 'stop') run.stop();
+  await assert.rejects(run.promise, how === 'stop' ? /interrotta/ : /scaduto/);
+  assert.ok(await waitFor(() => !alive(pid), 3000), 'il nipote deve morire con il gruppo');
+});
+test('chiusura app: stop forzato uccide subito il gruppo', { skip: process.platform === 'win32' && 'su Windows usa taskkill /T' }, async t => {
+  const directory = temporary(t), pidFile = path.join(directory, 'nipote.pid'), command = { file: process.execPath, prefix: [path.join(__dirname, 'fixture.cjs')], env: {} };
+  const run = runCLI(command, ['--grandchild=' + pidFile], 'x', directory);
+  assert.ok(await waitFor(() => fs.existsSync(pidFile) && fs.readFileSync(pidFile, 'utf8')));
+  const pid = Number(fs.readFileSync(pidFile, 'utf8')); run.stop('Risposta interrotta.', true);
+  await assert.rejects(run.promise, /interrotta/); assert.ok(await waitFor(() => !alive(pid), 3000));
+});
+test('CLI script npm con shebang env node: runtime di Electron e PATH minimo, binari nativi invariati', { skip: process.platform === 'win32' && 'comportamento solo macOS/Linux' }, async t => {
+  const directory = temporary(t), bin = path.join(directory, 'prefix', 'bin'), lib = path.join(directory, 'prefix', 'lib', 'pkg'); fs.mkdirSync(bin, { recursive: true }); fs.mkdirSync(lib, { recursive: true });
+  fs.writeFileSync(path.join(lib, 'cli.js'), '#!/usr/bin/env node\n' + fs.readFileSync(path.join(__dirname, 'fixture.cjs'), 'utf8'), { mode: 0o755 });
+  fs.symlinkSync(path.join('..', 'lib', 'pkg', 'cli.js'), path.join(bin, 'claude'));
+  const command = commandFor(path.join(bin, 'claude')), real = fs.realpathSync(path.join(lib, 'cli.js'));
+  assert.equal(command.file, process.execPath); assert.deepEqual(command.prefix, [real]); assert.equal(command.env.ELECTRON_RUN_AS_NODE, '1'); assert.ok(command.pathDirs.includes(bin));
+  const saved = process.env.PATH, savedCli = process.env.MASCOTTE_CHAT_CLAUDE; process.env.PATH = '/usr/bin:/bin'; process.env.MASCOTTE_CHAT_CLAUDE = path.join(bin, 'claude');
+  try {
+    const found = findCLI('claude'); assert.deepEqual(found.prefix, [real]);
+    const output = await runCLI(found, argumentsFor('claude'), 'ciao', directory).promise;
+    assert.equal(decodeOutput('claude', output.stdout, output.code, output.stderr), 'Risposta simulata: ciao');
+  } finally { process.env.PATH = saved; if (savedCli === undefined) delete process.env.MASCOTTE_CHAT_CLAUDE; else process.env.MASCOTTE_CHAT_CLAUDE = savedCli; }
+  const native = path.join(directory, 'nativo'); fs.writeFileSync(native, 'binario', { mode: 0o755 });
+  assert.deepEqual(commandFor(native), { file: native, prefix: [], env: {} });
+  const sh = path.join(directory, 'sh-script'); fs.writeFileSync(sh, '#!/bin/sh\n', { mode: 0o755 });
+  assert.deepEqual(commandFor(sh), { file: sh, prefix: [], env: {} });
 });

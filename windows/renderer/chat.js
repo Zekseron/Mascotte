@@ -216,3 +216,5 @@ $('share-dialog').addEventListener('cancel', clearPendingImage);
 window.mascotte.onWatchStop(stopWatchLocal);
 window.mascotte.onChat(render);
 invoke('snapshot').then(value => { render(value); $('input').focus(); });
+// Riaprendo la chat (barra dei menu, mascotte) il cursore torna nel campo, se non c'è un dialogo aperto o un altro campo/elenco in uso.
+window.addEventListener('focus', () => { if (!document.querySelector('dialog[open]') && !document.activeElement?.matches('textarea, input, select') && !$('input').disabled) $('input').focus(); });

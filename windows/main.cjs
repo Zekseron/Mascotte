@@ -224,13 +224,17 @@ function startApplication() {
   function showChat() {
     if (!chat || chat.isDestroyed()) {
       chat = safeWindow('chat', { width: 440, height: 680, minWidth: 400, minHeight: 600, show: false, title: 'Mascotte · micro chat', alwaysOnTop: true, autoHideMenuBar: true, backgroundColor: '#191b22' });
-      chat.once('ready-to-show', () => { chat.show(); chat.focus(); });
+      // Mac: app senza Dock, la chat deve comparire sulla scrivania/tutto schermo corrente e non riportare altrove.
+      if (can.allSpaces) chat.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
+      chat.once('ready-to-show', () => { if (can.hideDock) app.focus({ steal: true }); chat.show(); chat.focus(); });
       chat.on('close', event => { if (!quitting) { event.preventDefault(); currentRun?.stop(); chat.hide(); } });
       chat.webContents.on('render-process-gone', stopWatching);
     }
     const b = mascot.getBounds(), d = screen.getDisplayMatching(b).workArea;
     const pos = clampPosition({ x: b.x - 410, y: b.y }, chat.getBounds().width, chat.getBounds().height, [d]);
-    chat.setPosition(pos.x, pos.y); chat.show(); chat.focus(); broadcast();
+    chat.setPosition(pos.x, pos.y);
+    if (can.hideDock) app.focus({ steal: true }); // Mac: app accessoria (LSUIElement), senza questo la tastiera può restare all'app precedente
+    chat.show(); chat.focus(); broadcast();
   }
   function setScale(scale) {
     settings.scale = scale;
@@ -264,9 +268,11 @@ function startApplication() {
   }
   app.on('second-instance', () => { mascot?.showInactive(); if (chat) showChat(); });
   app.on('window-all-closed', () => {});
+  // Mac/Linux: un SIGTERM/SIGHUP/SIGINT all'app passi da before-quit, così il gruppo di processi della CLI viene chiuso.
+  if (process.platform !== 'win32') for (const signal of ['SIGTERM', 'SIGHUP', 'SIGINT']) process.on(signal, () => app.quit());
   app.on('before-quit', () => {
     updateAbort?.abort();
-    quitting = true; localDownload?.abort(); currentRun?.stop(); controller?.close(); clearInterval(mouseTimer);
+    quitting = true; localDownload?.abort(); currentRun?.stop('Risposta interrotta.', true); controller?.close(); clearInterval(mouseTimer);
     stopWatching();
     if (activeShareDirectory && fs.existsSync(activeShareDirectory)) { try { fs.rmSync(activeShareDirectory, { recursive: true, force: true }); } catch {} }
     activeShareDirectory = null;
@@ -277,6 +283,7 @@ function startApplication() {
     }
   });
   app.whenReady().then(async () => {
+    if (can.appMenu) Menu.setApplicationMenu(Menu.buildFromTemplate([{ role: 'appMenu' }, { role: 'editMenu' }]));
     prepareDirectory(dataDirectory); clearTemporaryShares();
     // The updater may still be exiting from its temporary runtime after the restart.
     setTimeout(clearReleaseDownloads, 15000).unref();
@@ -480,7 +487,7 @@ function startApplication() {
           image = { bytes, name: watchSource.name };
         }
         const command = engine === 'locale' ? null : CLI.findCLI(engine);
-        if (engine !== 'locale' && !command) { notice = 'CLI non trovata. Installa e accedi a ' + engine + ' sul tuo PC.'; broadcast(); return; }
+        if (engine !== 'locale' && !command) { notice = 'CLI non trovata. Installa e accedi a ' + engine + ' sul tuo ' + can.deviceName + '.'; broadcast(); return; }
         const selected = engine, prompt = text.trim(), history = store.get(selected);
         const imageNote = image ? `\n\n[Fotogramma condiviso: ${image.name}]` : '';
         if (image && selected === 'codex') {
