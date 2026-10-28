@@ -103,7 +103,7 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
 
 ## 5. Aggiornamento Mac e allineamento con Windows
 
-**Stato:** passi 1–5 completati. Prossimo: passo 6 (memoria e azioni locali). Il passo 1 ha fissato le scelte: base Electron, solo Apple Silicon, nessuna notarizzazione, migrazione dei dati con backup.
+**Stato:** passi 1–6 completati. In corso: estensione delle azioni locali (frasi naturali e apertura di altre app), poi passo 7 (osservazione e fotogrammi). Il passo 1 ha fissato le scelte: base Electron, solo Apple Silicon, nessuna notarizzazione, migrazione dei dati con backup.
 
 **Obiettivo:** rendere disponibili su Mac le funzioni attuali di Windows, mantenendo il piano aggiornato quando Windows evolve. La base Mac nativa esiste già in `app/`: personaggio, animazioni, aggancio al Dock e alle finestre, eventi e micro chat Claude/Codex.
 
@@ -230,7 +230,19 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
     8. Se vuoi, scarica `qwen3.5:2b` e `qwen3.5:9b` (circa 2,7 e 6,6 GB), cambia modello dall'elenco e ripeti le domande 4 e 5; con il 9B guarda la pressione della memoria e l'eventuale uso di swap. Controlla che l'avviso del 9B compaia solo selezionandolo.
     9. Salva in `settings.json` (cartella `~/Library/Application Support/Mascotte Electron`) un `localModel` che non esiste, per esempio `qwen3:8b`, e riavvia: deve tornare a Gemma 4 E4B senza errori.
 
-- [ ] **6. Portare memoria e azioni locali.** Aggiungere note modificabili/cancellabili e recupero del contesto per la chat locale, mantenendole separate dagli invii remoti. Adattare «apri calcolatrice» e «apri download» alle applicazioni e cartelle Mac, con conferma per ogni azione. Verificare salvataggio, riavvio e cancellazione delle note.
+- [x] **6. Portare memoria e azioni locali.** Aggiungere note modificabili/cancellabili e recupero del contesto per la chat locale, mantenendole separate dagli invii remoti. Adattare «apri calcolatrice» e «apri download» alle applicazioni e cartelle Mac, con conferma per ogni azione. Verificare salvataggio, riavvio e cancellazione delle note.
+  - **Eseguito il 28 ottobre 2026 su Mac M3. Prove dell'utente superate.**
+    - **Problema emerso nelle prove.** L'utente aveva chiesto al modello di salvare una nota e poi aveva fatto «Nuova». La nota non era mai stata salvata: `memory.json` non esisteva, e le note si salvavano solo dal pulsante «Ricorda…» o dalla scheda Gestione. Il modello rispondeva come se l'avesse fatto.
+    - **Nuovo modulo `windows/lib/local-commands.cjs`, con test in `test/local-commands.test.cjs`.** Gestisce senza modello:
+      - le azioni predefinite: su Mac Calcolatrice in `/System/Applications/Calculator.app` e cartella `~/Downloads`; su Windows invariate;
+      - «ricorda: …», «ricordati che …» e «salva nota: …», che propongono il salvataggio con conferma;
+      - «che note ho?» e simili, che elencano le note.
+    - **Istruzioni del modello.** Ora dicono che il modello non può salvare o leggere note da solo e non deve dire di averlo fatto.
+    - **Mac.** `can.localActions` è attivo; il messaggio di salvataggio dice «Mac» invece di «PC».
+    - **Codice comune.** I comandi per le note e le istruzioni del modello valgono anche per Windows e vanno riprovati lì.
+    - **Richieste dell'utente dopo le prove (estensione in corso):**
+      - capire frasi naturali come «puoi aprirmi la calcolatrice?», non solo le frasi esatte;
+      - aprire anche altre app installate.
 - [ ] **7. Portare osservazione e fotogrammi.** Aggiungere scelta della finestra, anteprima locale, arresto e allegato di un solo fotogramma dopo conferma. Gestire i permessi macOS per la cattura e il caso di autorizzazione negata o revocata. Provare immagini con Codex/Claude simulati e Ollama visivo, cancellazione dei temporanei e assenza di immagini nella cronologia.
 - [ ] **8. Portare la gestione degli hook.** Adattare launcher e percorsi macOS, mantenendo anteprima, applicazione con backup, conservazione delle altre integrazioni e controllo delle modifiche concorrenti. Verificare eventi Claude/Codex, aggiornamento degli hook senza duplicati, errori e normale flusso di approvazione degli hook.
 - [ ] **9. Preservare i dati Mac esistenti.** Definire e verificare il trattamento di impostazioni, personaggi e cronologie della precedente app Swift in `~/Library/Application Support/Mascotte`. Se serve una migrazione, predisporre backup e recupero; mantenere fuori dai pacchetti account, modelli, chat e note personali.
