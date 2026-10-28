@@ -316,3 +316,13 @@ test('origine della repo: nome utente nell’URL HTTPS accettato, altre repo no'
   for (const url of ['https://Zekseron@github.com/altro/Mascotte.git', 'https://github.com@evil.test/Zekseron/Mascotte', 'https://x@evil.test/Zekseron/Mascotte'])
     assert.notEqual(normalizedOrigin(url), official, url);
 });
+
+test('aggiornamento da sorgenti: rimuove solo le vecchie compilazioni mascotte-update', t => {
+  const { removeOldOutputs } = require('../lib/updater.cjs');
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte dist ')); t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const dist = path.join(base, 'dist'), old = 'mascotte-update-cffb3f5d-4dff-44bc-8723-d944446ed10a', running = 'mascotte-update-11111111-2222-3333-4444-555555555555';
+  for (const name of [old, running, 'mac-arm64', 'mascotte-update-non-uuid']) fs.mkdirSync(path.join(dist, name, 'x'), { recursive: true });
+  fs.writeFileSync(path.join(dist, 'Mascotte-Mac-0.8.0-arm64.zip'), 'zip');
+  removeOldOutputs(base, path.join(dist, running, 'x', 'Mascotte'));
+  assert.deepEqual(fs.readdirSync(dist).sort(), ['Mascotte-Mac-0.8.0-arm64.zip', 'mac-arm64', 'mascotte-update-non-uuid', running].sort());
+});

@@ -121,6 +121,18 @@ function run(command, args, cwd, onProgress, label, signal, env) {
     });
   });
 }
+// Le compilazioni degli aggiornamenti precedenti (dist/mascotte-update-<uuid>, circa 400 MB ciascuna) non servono più:
+// l'app installata sta altrove. Si salta la cartella da cui gira il processo attuale, per prudenza.
+function removeOldOutputs(windowsDirectory, executable = process.execPath) {
+  const dist = path.join(windowsDirectory, 'dist');
+  let entries; try { entries = fs.readdirSync(dist, { withFileTypes: true }); } catch { return; }
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !/^mascotte-update-[0-9a-f-]{36}$/.test(entry.name)) continue;
+    const folder = path.join(dist, entry.name);
+    if (isWithin(folder, executable)) continue;
+    try { fs.rmSync(folder, { recursive: true, force: true }); } catch {}
+  }
+}
 async function updateFromRepository(directory, onProgress = () => {}, signal) {
   if (process.platform === 'darwin') return updateFromRepositoryMac(directory, onProgress, signal);
   const repo = validateRepository(directory, { requireClean: true });
@@ -130,6 +142,7 @@ async function updateFromRepository(directory, onProgress = () => {}, signal) {
   await run('git.exe', ['-C', repo.root, 'pull', '--ff-only', 'origin', repo.mergeRef], repo.root, onProgress, 'Scarico gli aggiornamenti della repo…', signal);
   const afterPull = validateRepository(repo.root, { requireClean: true });
   await run(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', 'npm.cmd ci'], windowsDirectory, onProgress, 'Preparo le dipendenze Windows…', signal);
+  removeOldOutputs(windowsDirectory);
   // A separate output also supports an app currently running from dist/win-unpacked.
   const outputRelative = `dist/mascotte-update-${require('node:crypto').randomUUID()}`;
   const outputDirectory = path.join(windowsDirectory, outputRelative);
@@ -154,6 +167,7 @@ async function updateFromRepositoryMac(directory, onProgress, signal, { tools } 
   await run(found.git, ['-C', repo.root, 'pull', '--ff-only', 'origin', repo.mergeRef], repo.root, onProgress, 'Scarico gli aggiornamenti della repo…', signal, env);
   const afterPull = validateRepository(repo.root, { requireClean: true });
   await run(found.npm, ['ci'], windowsDirectory, onProgress, 'Preparo le dipendenze…', signal, env);
+  removeOldOutputs(windowsDirectory);
   const outputRelative = `dist/mascotte-update-${require('node:crypto').randomUUID()}`;
   const outputDirectory = path.join(windowsDirectory, outputRelative);
   const buildStarted = Date.now();
@@ -195,4 +209,4 @@ async function launchInstaller({ root, archive, runtime, installDir, resultFile,
     }, 150000);
   });
 }
-module.exports = { normalizedOrigin, validateRepository, updateFromRepository, updateFromRepositoryMac, installationDirectory, currentLocation, launchInstaller, findTool, toolEnvironment, OFFICIAL_ORIGIN, MAC_APP };
+module.exports = { removeOldOutputs, normalizedOrigin, validateRepository, updateFromRepository, updateFromRepositoryMac, installationDirectory, currentLocation, launchInstaller, findTool, toolEnvironment, OFFICIAL_ORIGIN, MAC_APP };
