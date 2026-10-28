@@ -67,21 +67,44 @@ function render(value) {
   $('release-update').disabled = !management.available || locked || Boolean(value.setup);
   $('release-update').textContent = management.running ? 'Aggiornamento in corso…' : 'Controlla aggiornamenti';
   $('cli-status').textContent = `Codex: ${value.available.includes('codex') ? 'trovato' : 'non trovato'} · Claude: ${value.available.includes('claude') ? 'trovato' : 'non trovato'}`;
-  $('local-download').disabled = locked || Boolean(value.setup);
   $('local-download-cancel').hidden = !value.localDownloading;
   $('local-check').disabled = locked;
   $('local-status').textContent = value.localDownloadStatus || (value.available.includes('locale') ? 'Modello locale pronto.' : 'Ollama o modello locale non disponibile.');
   const localCatalog = value.localCatalog;
   $('local-intro').textContent = localCatalog.intro;
-  if ($('local-model').options.length !== localCatalog.models.length || localCatalog.models.some((model, index) => $('local-model').options[index].value !== model.tag || $('local-model').options[index].textContent !== model.label))
-    $('local-model').replaceChildren(...localCatalog.models.map(model => { const option = document.createElement('option'); option.value = model.tag; option.textContent = model.label; return option; }));
+  // Elenco modelli: catalogo + gruppo «Già presenti sul computer» (letto da Ollama, solo su richiesta in Gestione).
+  const found = value.localInstalled?.models || [];
+  const present = found.slice();
+  if (value.localInstalledSource && !present.some(model => model.name === value.localModel)) present.push({ name: value.localModel, size: 0, vision: value.localVision });
+  const gb = size => size > 0 ? ' · ' + (size / 1e9).toFixed(1).replace('.', ',') + ' GB' : '';
+  const installedLabel = model => model.name + gb(model.size) + (model.vision ? ' · immagini' : '');
+  const signature = JSON.stringify([localCatalog.models.map(model => [model.tag, model.label]), present.map(installedLabel)]);
+  if ($('local-model').dataset.signature !== signature) {
+    const options = localCatalog.models.map(model => { const option = document.createElement('option'); option.value = model.tag; option.textContent = model.label; return option; });
+    if (present.length) {
+      const group = document.createElement('optgroup'); group.label = 'Già presenti sul computer';
+      group.append(...present.map(model => { const option = document.createElement('option'); option.value = model.name; option.textContent = installedLabel(model); return option; }));
+      options.push(group);
+    }
+    $('local-model').replaceChildren(...options); $('local-model').dataset.signature = signature;
+  }
   $('local-model').value = value.localModel;
+  $('local-scan').disabled = locked || value.localScanning;
+  $('local-scan').textContent = value.localScanning ? 'Cerco…' : 'Cerca modelli già installati';
+  $('local-download').disabled = locked || Boolean(value.setup) || value.localInstalledSource;
+  $('local-download').title = value.localInstalledSource ? 'Mascotte non scarica né aggiorna modelli fuori catalogo.' : '';
+  const excluded = value.localInstalled?.excluded || [];
+  $('local-installed-note').textContent = value.localInstalled?.error || (value.localInstalled ? (found.length ? `Trovati ${found.length} modelli già presenti, usabili senza scaricare altro. Tutto resta sul computer.` : 'Nessun altro modello idoneo già presente in Ollama.') : '');
+  $('local-installed-note').hidden = !value.localInstalled;
+  $('local-excluded').hidden = !excluded.length;
+  $('local-excluded-summary').textContent = `${excluded.length} ${excluded.length === 1 ? 'modello escluso' : 'modelli esclusi'}`;
+  $('local-excluded-list').replaceChildren(...excluded.map(model => { const item = document.createElement('li'); item.textContent = `${model.name} — escluso: ${model.reason}`; return item; }));
   $('local-vision-hardware').textContent = localCatalog.visionNote;
   $('local-vision-hardware').hidden = !value.localVision;
-  const localWarning = localCatalog.models.find(model => model.tag === value.localModel)?.warning || '';
+  const localWarning = localCatalog.models.find(model => model.tag === value.localModel)?.warning || found.find(model => model.name === value.localModel)?.warning || '';
   $('local-hardware').textContent = localWarning; $('local-hardware').hidden = !localWarning;
   $('local-model').disabled = locked;
-  $('local-install-command').textContent = `Nel terminale: ollama pull ${value.localModel}`;
+  $('local-install-command').textContent = value.localInstalledSource ? 'Modello già presente in Ollama: Mascotte lo usa così com’è, senza scaricarlo né aggiornarlo.' : `Nel terminale: ollama pull ${value.localModel}`;
   $('memory-list').replaceChildren();
   for (const note of value.memories || []) {
     const item = document.createElement('div'); item.className = 'memory-note';
@@ -198,7 +221,8 @@ $('input').addEventListener('input', () => { if (current) drafts[current.engine]
 $('engine').addEventListener('change', async () => { const next = await invoke('engine', $('engine').value); $('input').value = drafts[next.engine] || ''; render(next); $('input').focus(); });
 $('new').addEventListener('click', async () => { $('input').value = ''; drafts[current.engine] = ''; render(await invoke('new')); });
 $('tab-chat').addEventListener('click', () => selectTab('chat'));
-$('tab-management').addEventListener('click', () => selectTab('management'));
+$('tab-management').addEventListener('click', async () => { selectTab('management'); render(await invoke('local-scan')); });
+$('local-scan').addEventListener('click', async () => render(await invoke('local-scan')));
 $('folders-add').addEventListener('click', async () => render(await invoke('folders-add')));
 $('choose-repo').addEventListener('click', async () => render(await invoke('repo-select')));
 $('release-update').addEventListener('click', async () => render(await invoke('release-update')));
