@@ -158,6 +158,17 @@ function prepareHooks(claudeText, codexText, executable, bridge, platform = /^[A
 function configPaths(home = os.homedir()) {
   return { claude: path.join(process.env.CLAUDE_CONFIG_DIR || path.join(home, '.claude'), 'settings.json'), codex: path.join(process.env.CODEX_HOME || path.join(home, '.codex'), 'config.toml') };
 }
+// Gli hook installati puntano a un'app diversa da quella in esecuzione? Sola lettura (Mac: il bundle può essere stato spostato).
+function hooksPointElsewhere(recordFile, executable) {
+  if (!fs.existsSync(recordFile)) return false;
+  const record = JSON.parse(fs.readFileSync(recordFile, 'utf8'));
+  for (const file of Object.values(record.paths || {})) {
+    if (typeof file !== 'string' || !fs.existsSync(file)) continue;
+    const text = fs.readFileSync(file, 'utf8');
+    if (text.includes('--mascotte-notify') && !text.includes(executable)) return true;
+  }
+  return false;
+}
 function snapshot(paths) {
   return Object.fromEntries(Object.entries(paths).map(([engine, file]) => {
     assertRegularPath(file);
@@ -198,4 +209,4 @@ function applyHooks(paths, before, after, recordFile) {
   }
   return backups;
 }
-module.exports = { prepareHooks, configPaths, snapshot, applyHooks };
+module.exports = { prepareHooks, configPaths, snapshot, applyHooks, hooksPointElsewhere };

@@ -67,7 +67,11 @@ function render(value) {
   const management = value.management || {};
   const locked = value.busy || management.running;
   selectTab(selectedTab);
-  $('app-version').textContent = `MASCOTTE ${management.version || ''}`;
+  const packageName = management.packageName || 'Windows';
+  $('app-version').textContent = `MASCOTTE ${packageName.toUpperCase()} ${management.version || ''}`.trim();
+  $('update-intro').textContent = packageName === 'Mac'
+    ? 'Controlla le versioni pubblicate e installa l’ultimo pacchetto Mac in Applicazioni. Se in Applicazioni c’è un’altra app Mascotte (la vecchia app Swift), ne viene fatto prima un backup ZIP; poi Mascotte si riavvia.'
+    : 'Controlla le versioni pubblicate e installa l’ultimo pacchetto Windows. La versione precedente viene conservata come backup.';
   $('repo-path').textContent = management.repoPath || 'Nessuna repo selezionata.';
   $('choose-repo').disabled = !management.available || management.running;
   $('release-update').disabled = !management.available || locked || Boolean(value.setup);
@@ -152,7 +156,7 @@ function render(value) {
   $('update-app').disabled = !management.available || !management.repoPath || locked || Boolean(value.setup);
   $('update-app').textContent = management.running ? 'Aggiornamento in corso…' : 'Compila e aggiorna';
   $('manage-hooks').disabled = !value.hooksAvailable || locked;
-  $('update-status').textContent = management.available ? management.status || '' : value.deviceName === 'Mac' ? 'Gli aggiornamenti dall’app non sono ancora disponibili su Mac.' : 'Aggiornamenti e hook disponibili nel pacchetto Windows.';
+  $('update-status').textContent = management.available ? management.status || '' : value.deviceName === 'Mac' ? 'Gli aggiornamenti sono disponibili nell’app installata dal pacchetto (non da npm start).' : 'Aggiornamenti e hook disponibili nel pacchetto Windows.';
   $('update-status').className = management.failed ? 'error' : '';
   $('hook-status').textContent = value.notice || '';
   $('engine').value = value.engine;

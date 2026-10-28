@@ -42,7 +42,7 @@ function startApplication() {
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
-  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(), localEngine: settings?.localEngine || 'ollama', localEngineLabel: LocalEngines.label(settings?.localEngine), localEngines: engineStatus ? engineStatus.map(({ id, label, state, count, message }) => ({ id, label, state, count, message: message || '' })) : null, localEngineModels: settings?.localEngine && settings.localEngine !== 'ollama' ? engineStatus?.find(item => item.id === settings.localEngine) || null : null, localCatalog: LocalAI.uiCatalog(), localInstalled: installedCache, localScanning, deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, hooksAvailable: can.hooks && app.isPackaged, watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: can.management && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed, folders: { defaults: FolderView.viewableFolders().map(folder => ({ name: folder.display, path: folder.target })), extra: (settings?.extraFolders || []).map(folder => ({ name: folder.name, path: folder.path })), max: ExtraFolders.MAX_EXTRA, status: folderStatus, failed: folderStatusFailed } } });
+  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(), localEngine: settings?.localEngine || 'ollama', localEngineLabel: LocalEngines.label(settings?.localEngine), localEngines: engineStatus ? engineStatus.map(({ id, label, state, count, message }) => ({ id, label, state, count, message: message || '' })) : null, localEngineModels: settings?.localEngine && settings.localEngine !== 'ollama' ? engineStatus?.find(item => item.id === settings.localEngine) || null : null, localCatalog: LocalAI.uiCatalog(), localInstalled: installedCache, localScanning, deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, hooksAvailable: can.hooks && app.isPackaged, watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed, folders: { defaults: FolderView.viewableFolders().map(folder => ({ name: folder.display, path: folder.target })), extra: (settings?.extraFolders || []).map(folder => ({ name: folder.name, path: folder.path })), max: ExtraFolders.MAX_EXTRA, status: folderStatus, failed: folderStatusFailed } } });
   // Immagini: Ollama le legge dal modello; gli altri motori solo se il server le dichiara (altrimenti allegati disattivati).
   const localVision = () => settings?.localEngine && settings.localEngine !== 'ollama' ? LocalEngines.supportsVision(settings.localEngine, settings.localModel) : LocalAI.supportsVision(settings?.localModel);
   const saveSettings = () => atomicJSON(stateFile, settings);
@@ -90,6 +90,10 @@ function startApplication() {
       throw new Error('Il servizio locale non si è avviato in tempo.');
     }
   }
+  // Nota sul percorso: se l'app in esecuzione sta altrove rispetto alla destinazione, gli hook vanno ricollegati.
+  const movedNote = (installDir, text) => Updater.currentLocation(process.execPath).toLowerCase() !== installDir.toLowerCase() ? text : '';
+  // Mac: la vecchia app Swift in Applicazioni (altro identificativo) viene salvata in un ZIP prima di essere sostituita.
+  const backupNote = installDir => process.platform === 'darwin' && fs.existsSync(installDir) && installDir !== Updater.currentLocation(process.execPath) ? `\n\nSe in ${installDir} c’è un’altra app Mascotte (per esempio la vecchia app Swift), ne viene fatto prima un backup ZIP in ${path.join(dataDirectory, 'backup')}.` : '';
   async function installRepositoryUpdate(repo) {
     const installDir = Updater.installationDirectory(process.execPath, repo.root, dataDirectory);
     const resultFile = path.join(dataDirectory, 'update-result.json');
@@ -97,7 +101,7 @@ function startApplication() {
     const result = await Updater.updateFromRepository(repo.root, message => { updateStatus = message; broadcast(); }, updateAbort.signal);
     updateStatus = 'Pacchetto pronto. Chiudo Mascotte per installare e riavviare…'; broadcast();
     // Run the helper from the NEW unpacked build, so no process locks the installed runtime.
-    await Updater.launchInstaller({ ...result, installDir, resultFile, logFile, previousExe: process.execPath, parentPid: process.pid, helperScript: path.join(process.resourcesPath, 'mascotte-updater.cjs') });
+    await Updater.launchInstaller({ ...result, installDir, resultFile, logFile, previousExe: process.execPath, parentPid: process.pid, dataDir: dataDirectory, helperScript: path.join(process.resourcesPath, 'mascotte-updater.cjs') });
     app.quit();
   }
   async function installPublishedRelease(release) {
@@ -112,7 +116,7 @@ function startApplication() {
       const runtime = await Releases.extractRuntime(archive, work, updateAbort.signal);
       await Updater.launchInstaller({ root: work, archive, runtime, installDir,
         resultFile: path.join(dataDirectory, 'update-result.json'), logFile: path.join(dataDirectory, 'update.log'),
-        previousExe: process.execPath, parentPid: process.pid, helperScript: path.join(process.resourcesPath, 'mascotte-updater.cjs') });
+        previousExe: process.execPath, parentPid: process.pid, dataDir: dataDirectory, helperScript: path.join(process.resourcesPath, 'mascotte-updater.cjs') });
       handedOff = true; app.quit();
     } finally {
       if (!handedOff) { try { await fs.promises.rm(work, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch {} }
@@ -357,6 +361,8 @@ function startApplication() {
     if (updateResult && typeof updateResult.message === 'string') {
       updateStatus = updateResult.message.slice(0, 2000); updateFailed = !updateResult.ok;
       fs.unlinkSync(resultFile);
+      // Mac: se gli hook installati puntano a un'altra posizione dell'app, solo un avviso (mai applicare senza conferma).
+      try { if (updateResult.ok && process.platform === 'darwin' && Setup.hooksPointElsewhere(path.join(dataDirectory, 'hook-installation.json'), process.execPath) && !/hook/i.test(updateStatus)) updateStatus += ' Premi Crea / aggiorna hook in Gestione: l’app è stata spostata.'; } catch {}
     }
     characters=readCharacters();selectCharacter(characters.some(c=>c.id===raw.character)?raw.character:'rosso',true);
     Capture.configureDisplayCapture(session.defaultSession, {
@@ -475,7 +481,7 @@ function startApplication() {
       }
       if (action === 'cli-guide') {
         const guides = { codex: 'https://developers.openai.com/codex/cli/', claude: 'https://code.claude.com/docs/en/setup', ollama: can.ollamaGuide,
-          git: can.gitGuide, node: 'https://nodejs.org/en/download' };
+          git: can.gitGuide, node: can.nodeGuide };
         if (Object.hasOwn(guides, data)) await shell.openExternal(guides[data]);
         return chatSnapshot();
       }
@@ -492,7 +498,7 @@ function startApplication() {
           const installDir = Updater.installationDirectory(process.execPath, repo || dataDirectory, dataDirectory);
           const confirmation = await dialog.showMessageBox(chat, { type: 'question', title: 'Aggiorna Mascotte',
             message: `Installare Mascotte ${release.version}?`,
-            detail: `Il pacchetto Windows verrà scaricato dalla release ufficiale e verificato prima dell’installazione.\nDestinazione: ${installDir}\n\nMascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${path.dirname(process.execPath).toLowerCase() !== installDir.toLowerCase() ? '\n\nDopo il riavvio aggiorna gli hook per collegarli al nuovo percorso.' : ''}`,
+            detail: `Il pacchetto ${can.packageName} verrà scaricato dalla release ufficiale e verificato prima dell’installazione.\nDestinazione: ${installDir}\n\nMascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${movedNote(installDir, '\n\nDopo il riavvio aggiorna gli hook per collegarli al nuovo percorso.')}${backupNote(installDir)}`,
             buttons: ['Annulla', 'Aggiorna e riavvia'], defaultId: 1, cancelId: 0 });
           if (confirmation.response !== 1) { updateRunning = false; updateAbort = null; updateStatus = 'Aggiornamento annullato.'; broadcast(); return chatSnapshot(); }
           void installPublishedRelease(release).catch(error => {
@@ -542,7 +548,7 @@ function startApplication() {
         try {
           const repo = Updater.validateRepository(settings.updateRepoPath, { requireClean: true });
           const installDir = Updater.installationDirectory(process.execPath, repo.root, dataDirectory);
-          const confirmation = await dialog.showMessageBox(chat, { type: 'question', title: 'Aggiorna Mascotte', message: 'Scaricare, compilare e installare l’aggiornamento?', detail: `Repo: ${repo.root}\nDestinazione: ${installDir}\n\nServono Git e Node.js 22+ con npm. La repo viene aggiornata con git pull --ff-only. A fine build Mascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${path.dirname(process.execPath).toLowerCase() !== installDir.toLowerCase() ? '\n\nL’app verrà installata in una cartella stabile: dopo il riavvio premi Crea / aggiorna hook per collegarli al nuovo percorso.' : ''}`, buttons: ['Annulla', 'Aggiorna e riavvia'], defaultId: 1, cancelId: 0 });
+          const confirmation = await dialog.showMessageBox(chat, { type: 'question', title: 'Aggiorna Mascotte', message: 'Scaricare, compilare e installare l’aggiornamento?', detail: `Repo: ${repo.root}\nDestinazione: ${installDir}\n\nServono Git e Node.js 22+ con npm. La repo viene aggiornata con git pull --ff-only. A fine build Mascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${movedNote(installDir, '\n\nL’app verrà installata in una cartella stabile: dopo il riavvio premi Crea / aggiorna hook per collegarli al nuovo percorso.')}${backupNote(installDir)}`, buttons: ['Annulla', 'Aggiorna e riavvia'], defaultId: 1, cancelId: 0 });
           if (confirmation.response !== 1) { updateRunning = false; broadcast(); return chatSnapshot(); }
           updateAbort = new AbortController();
           void installRepositoryUpdate(repo).catch(error => {

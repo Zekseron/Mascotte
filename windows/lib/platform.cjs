@@ -9,8 +9,8 @@ function macHelperPath({ resourcesPath = process.resourcesPath, exists = fs.exis
   const packaged = resourcesPath && path.join(resourcesPath, HELPER_NAME);
   return packaged && exists(packaged) ? packaged : dev;
 }
-// Capacità per piattaforma: un solo punto dove decidere cosa è attivo. Su macOS le funzioni dei passi 3–10
-// del piano Mac restano spente finché non vengono portate e verificate.
+// Capacità per piattaforma: un solo punto dove decidere cosa è attivo. Su macOS le funzioni si accendono passo dopo passo
+// del piano Mac, man mano che vengono portate e verificate.
 function capabilities(platform = process.platform, { macHelper } = {}) {
   const win = platform === 'win32', mac = platform === 'darwin';
   return {
@@ -19,14 +19,16 @@ function capabilities(platform = process.platform, { macHelper } = {}) {
     localActions: win || mac, // azioni locali con conferma: Calcolatrice e cartella Download (Mac: passo 6)
     watch: win || mac,     // osservazione e fotogrammi (Mac: passo 7, con permesso «Registrazione schermo»)
     hooks: win || mac,     // gestione hook Claude/Codex (Mac: passo 8, comando di shell al posto di PowerShell)
-    management: win,       // aggiornamenti dal pacchetto (passo 10)
+    management: win || mac, // aggiornamenti da release e da sorgenti (Mac: passo 10, installazione in /Applications)
     appMenu: mac,          // menu applicazione minimale (appMenu + editMenu): senza, Cmd+C/V/X/A/Z non arrivano ai campi di testo
     hideDock: mac,         // app da barra dei menu, senza icona nel Dock (come la vecchia app, LSUIElement)
     allSpaces: mac,        // mascotte visibile su tutte le scrivanie e sopra le app a tutto schermo (verifica completa: passo 3)
     deviceName: mac ? 'Mac' : 'PC',
+    packageName: mac ? 'Mac' : 'Windows', // nome del pacchetto negli aggiornamenti
     barLabel: mac ? 'Aggancia al Dock' : 'Aggancia alla barra delle applicazioni',
     barName: mac ? 'al Dock' : 'alla barra',
     gitGuide: mac ? 'https://git-scm.com/install/mac' : 'https://git-scm.com/install/windows',
+    nodeGuide: 'https://nodejs.org/en/download',
     ollamaGuide: mac ? 'https://ollama.com/download/mac' : 'https://ollama.com/download/windows'
   };
 }
