@@ -9,7 +9,7 @@ Questo file è il promemoria condiviso per riprendere il progetto anche da un al
 ## Punto di partenza
 
 - Base: commit `d7ca112`, versione Windows 0.8.0.
-- IA locale tramite Ollama: Qwen3 1.7B, 4B Instruct (predefinito) e 8B scaricabili da Gestione, con verifica tecnica e avviso hardware per l'8B.
+- IA locale tramite Ollama: Qwen3 1.7B, 4B Instruct (predefinito) e 8B scaricabili da Gestione, con verifica tecnica e avviso hardware per l'8B. **Su Mac il catalogo è diverso** (eccezione motivata, scelta dell'utente per l'hardware Mac da 16 GB di memoria condivisa): `gemma4:e4b` predefinito, `qwen3.5:2b` leggero, `qwen3.5:9b` pesante, tutti multimodali. Windows non richiede porting inverso: il catalogo per piattaforma sta in `windows/lib/local-ai.cjs`.
 - Memoria locale tramite note esplicite e recupero per parole in comune; non è addestramento del modello.
 - Ogni invio a Codex o Claude richiede conferma dell'utente. Mantenere questa scelta nelle evoluzioni future.
 - Le azioni attuali sul PC sono limitate ad aprire Calcolatrice e Download, con conferma ogni volta.
@@ -103,7 +103,7 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
 
 ## 5. Aggiornamento Mac e allineamento con Windows
 
-**Stato:** passi 1–4 completati. Prossimo: passo 5 (IA locale e gestione modelli). Il passo 1 ha fissato le scelte: base Electron, solo Apple Silicon, nessuna notarizzazione, migrazione dei dati con backup.
+**Stato:** passi 1–5 completati. Prossimo: passo 6 (memoria e azioni locali). Il passo 1 ha fissato le scelte: base Electron, solo Apple Silicon, nessuna notarizzazione, migrazione dei dati con backup.
 
 **Obiettivo:** rendere disponibili su Mac le funzioni attuali di Windows, mantenendo il piano aggiornato quando Windows evolve. La base Mac nativa esiste già in `app/`: personaggio, animazioni, aggancio al Dock e alle finestre, eventi e micro chat Claude/Codex.
 
@@ -199,7 +199,37 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
       7. Conversazioni diverse con Codex e Claude, esci con «Esci» e riapri: ogni motore ha la sua cronologia.
       8. Con una richiesta in corso scegli «Esci» dal menu: nessun processo claude/codex rimasto.
       9. Dal pacchetto `dist/mac-arm64/Mascotte.app` (primo avvio autorizzato a mano) ripeti 1, 4 e 5: è il caso con PATH minimo.
-- [ ] **5. Portare IA locale e gestione modelli.** Integrare Ollama, selezione, download con avanzamento e annullamento, verifica del modello e gestione degli errori. Includere i modelli testuali 1.7B, 4B Instruct e 8B e i visivi Qwen3-VL 2B/4B Instruct attualmente supportati. Adattare installazione, eventuale runtime gestito e chiusura dei processi a macOS; provare prestazioni e indicazioni hardware sul Mac, senza riutilizzare automaticamente le indicazioni GPU Windows.
+- [x] **5. Portare IA locale e gestione modelli.** Integrare Ollama, selezione, download con avanzamento e annullamento, verifica del modello e gestione degli errori. Su Mac il catalogo dei modelli è diverso da Windows (decisione dell'utente, 28 ottobre 2026); adattare installazione e chiusura dei processi a macOS; provare prestazioni e indicazioni hardware sul Mac, senza riutilizzare le indicazioni GPU Windows.
+  - **Prove reali dell'utente (28 ottobre 2026, Mac M3 16 GB, Ollama 0.40.12, con le solite app aperte). Esito positivo, passo completato.**
+    - Download di `gemma4:e4b` da Gestione, verifica e chat locale funzionanti.
+    - Italiano giudicato ottimo. Una domanda tecnica su VLAN e trunk ha avuto una risposta corretta nell'insieme, con un'imprecisione: «solo il router legge il tag VLAN»; manca anche la VLAN nativa. Per dettagli d'esame serve una verifica, come già osservato con Qwen3-VL su Windows.
+    - Memoria: «consuma abbastanza RAM» durante l'uso. Con `keep_alive` di 2 minuti il modello viene scaricato (verificato con `/api/ps`: nessun modello in memoria dopo la pausa). Decisione: `gemma4:e4b` resta il predefinito e `keep_alive` resta a 2 minuti.
+    - Non provati: i modelli 2B e 9B, la ripresa del download dopo l'annullamento in modo misurato, i tempi in secondi.
+  - **Correzione dopo le prove: risposte tagliate.**
+    - Con `num_predict` 512 Gemma 4 si fermava a metà frase. Ora la lunghezza massima dipende dalla piattaforma: Mac 1536 token, Windows 512 invariato.
+    - Se Ollama riporta `done_reason: "length"`, in fondo alla risposta compare «Risposta interrotta… Scrivi «continua» per il resto», con un test in `local-ai.test.cjs`. L'avviso è codice comune, quindi compare anche su Windows: va riprovato lì.
+    - Dopo la correzione la stessa domanda è arrivata completa.
+  - **Decisioni dell'utente (28 ottobre 2026).** Catalogo Mac: predefinito `gemma4:e4b` (multimodale), leggero `qwen3.5:2b`, pesante `qwen3.5:9b` con avviso sulle prestazioni adattato alla memoria condivisa da 16 GB. Windows invariato (qwen3:1.7b, qwen3:4b-instruct predefinito, qwen3:8b, qwen3-vl:2b-instruct, qwen3-vl:4b-instruct). Su Mac Mascotte non avvia Ollama (`managedOllama` false): guida l'installazione (https://ollama.com/download/mac).
+  - **Tag verificati sul registro ufficiale** (`registry.ollama.ai/v2/library/<nome>/manifests/<tag>` e pagine `ollama.com/library`, sola lettura, 28 ottobre 2026). Tutti e tre i tag esistono con quel nome esatto, licenza Apache 2.0, formato `gguf` (nel manifest `model_format`), file `projector` presente, quindi multimodali con testo e immagini; capacità dichiarate dalla pagina: vision, tools, thinking.
+    - `gemma4:e4b`: 6,58 GB (modello Q4_K_M 5,49 GB + proiettore visivo 0,99 GB + bozza 0,10 GB), contesto 128K, richiede Ollama 0.30.9. La pagina riporta anche audio.
+    - `qwen3.5:2b`: 2,68 GB (modello Q8_0 2,01 GB + proiettore 0,67 GB), contesto 256K, richiede Ollama 0.30.0.
+    - `qwen3.5:9b`: 6,55 GB (modello Q4_K_M 5,63 GB + proiettore 0,92 GB), contesto 256K, richiede Ollama 0.30.0.
+    - I tag standard sono GGUF e Ollama li esegue su Metal. Le versioni MLX sono tag separati (`gemma4:e4b-mlx`, 9,5 GB; `qwen3.5:2b-mlx`, 3,1 GB…): nel loro manifest `model_format` è `safetensors`. Il catalogo usa i tag standard, non quelli MLX.
+  - **Controllo del formato.** `/api/show` e `/api/tags` riportano in `details.format` il `model_format` del manifest (codice `server/routes.go` di `ollama/ollama`: `Format: m.Config.ModelFormat`; esempio `"gguf"` in `docs/api.md`). Su Mac `checkModel` accetta `gguf` e `safetensors` (valore dei tag MLX), solo per i tag del catalogo; su Windows resta solo `gguf`. Cloud o formati sconosciuti vengono rifiutati; restano obbligatorie la capacità `completion` e, per i modelli visivi, `vision`. Il valore `safetensors` per MLX viene dal manifest, non da una risposta reale di `/api/show`: da confermare con l'installazione reale.
+  - **Fatto (codice).** Catalogo per piattaforma in `lib/local-ai.cjs` (tag, etichetta, visione, avviso, formati, `keep_alive`, `think`, testo introduttivo e nota visiva); `main.cjs` lo passa all'interfaccia e normalizza il modello salvato (fuori catalogo: ritorno al predefinito della piattaforma, senza errori); `renderer/chat.js` costruisce l'elenco, gli avvisi e i testi con «PC/Mac» dal catalogo (`renderer/chat.html` non ha più opzioni fisse). Visione: `supportsVision` vale per tutti i modelli Mac, quindi il predefinito accetta un fotogramma senza modello «VL» separato; la cattura su Mac resta spenta (passo 7). `keep_alive`: Windows 0, Mac `'2m'` (da misurare). `think` resta false per i modelli Mac. Il download (`/api/pull`, avanzamento, annullamento, ripresa) è codice comune, provato su Mac con server finto. Testi hook e aggiornamenti non toccati (passi 8 e 10).
+  - **Verificato da terminale:** `npm test` (56 superati, 0 falliti, 3 saltati), `viewer/test` 56 su 56; nuovi test su catalogo Mac/Windows, predefinito, ritorno al predefinito, formati, visione, `keep_alive`, download con annullamento e ripresa; `MASCOTTE_PREVIEW=1 npm start` senza errori e chiusura con SIGTERM senza processi residui; `npm run build:mac` riuscito.
+  - **Non verificato:** nessuna prova con Ollama reale (non era installato), nessun download né chat reale; testi e menu a tendina dell'interfaccia non visti a schermo; formato reale di `/api/show` per i tre tag; consumo di memoria e tempi con `keep_alive` 0 e 2 minuti; qualità delle risposte in italiano e su domande tecniche; comportamento di `think:false` con Gemma 4 e Qwen3.5 (previsto dalla documentazione, da provare).
+  - **Prove manuali per l'utente (con Ollama installato e aperto):**
+    1. Gestione > IA locale: l'elenco mostra Qwen3.5 2B, Gemma 4 E4B (selezionato) e Qwen3.5 9B; «Installa Ollama» apre la pagina per Mac; nel terminale `ollama --version` deve essere almeno 0.30.9.
+    2. Scarica `gemma4:e4b` con «Scarica / aggiorna modello» (circa 6,6 GB): l'avanzamento sale in percentuale; premi «Annulla download» a metà, poi di nuovo «Scarica» e controlla che riprenda dalle parti già scaricate e arrivi a «pronto per la chat».
+    3. «Verifica modello»: esito «Modello locale pronto». Se compare «non è compatibile» o «non trovato», annota l'output di `curl -s http://127.0.0.1:11434/api/show -d '{"model":"gemma4:e4b"}'` (campi `details.format` e `capabilities`).
+    4. Chat con motore Locale: tre domande in italiano (es. «Spiegami in tre righe cos'è una VLAN»); la risposta deve essere in italiano, senza testo di ragionamento visibile.
+    5. Una domanda tecnica: «Su uno switch Cisco come configuro una porta in trunk con VLAN 10 e 20?», e giudica correttezza e tempi.
+    6. Memoria e tempi, con le solite app aperte: in Monitoraggio Attività (scheda Memoria) annota memoria usata e pressione prima, durante e dopo la risposta; cronometra la prima risposta dopo una pausa lunga e una seconda subito dopo.
+    7. Confronto `keep_alive`: con il valore attuale (2 minuti) manda due domande a 30 secondi di distanza e annota il tempo della seconda; con `ollama ps` verifica che il modello resti caricato circa 2 minuti e poi sparisca. Per il confronto con 0, cambia temporaneamente `keepAlive` del catalogo `darwin` in `lib/local-ai.cjs` e riavvia. Decidi quale valore tenere in base a tempo di risposta e memoria occupata.
+    8. Se vuoi, scarica `qwen3.5:2b` e `qwen3.5:9b` (circa 2,7 e 6,6 GB), cambia modello dall'elenco e ripeti le domande 4 e 5; con il 9B guarda la pressione della memoria e l'eventuale uso di swap. Controlla che l'avviso del 9B compaia solo selezionandolo.
+    9. Salva in `settings.json` (cartella `~/Library/Application Support/Mascotte Electron`) un `localModel` che non esiste, per esempio `qwen3:8b`, e riavvia: deve tornare a Gemma 4 E4B senza errori.
+
 - [ ] **6. Portare memoria e azioni locali.** Aggiungere note modificabili/cancellabili e recupero del contesto per la chat locale, mantenendole separate dagli invii remoti. Adattare «apri calcolatrice» e «apri download» alle applicazioni e cartelle Mac, con conferma per ogni azione. Verificare salvataggio, riavvio e cancellazione delle note.
 - [ ] **7. Portare osservazione e fotogrammi.** Aggiungere scelta della finestra, anteprima locale, arresto e allegato di un solo fotogramma dopo conferma. Gestire i permessi macOS per la cattura e il caso di autorizzazione negata o revocata. Provare immagini con Codex/Claude simulati e Ollama visivo, cancellazione dei temporanei e assenza di immagini nella cronologia.
 - [ ] **8. Portare la gestione degli hook.** Adattare launcher e percorsi macOS, mantenendo anteprima, applicazione con backup, conservazione delle altre integrazioni e controllo delle modifiche concorrenti. Verificare eventi Claude/Codex, aggiornamento degli hook senza duplicati, errori e normale flusso di approvazione degli hook.
@@ -218,7 +248,7 @@ Prima di chiudere un intervento Windows, controllare se cambia uno dei passi sop
 
 Quando le proposte delle sezioni 1–4 diventano funzioni Windows, aggiungere anche i passi Mac per il nuovo motore locale, l'automazione delle finestre e il secondo parere con immagine; fino ad allora restano proposte, non funzioni da dichiarare già disponibili.
 
-**Riferimento iniziale:** Windows 0.8.0 e funzioni descritte nel «Punto di partenza» di questo file; app Mac nativa documentata come versione 0.5. Nessuna eccezione di porting registrata al momento della pianificazione.
+**Riferimento iniziale:** Windows 0.8.0 e funzioni descritte nel «Punto di partenza» di questo file; app Mac nativa documentata come versione 0.5. Eccezione di porting registrata il 28 ottobre 2026: il catalogo dei modelli locali è diverso su Mac (vedi passo 5); aggiungere o cambiare un modello locale va deciso per piattaforma, e Windows non richiede porting inverso.
 
 ## Riprendere da un altro PC
 
