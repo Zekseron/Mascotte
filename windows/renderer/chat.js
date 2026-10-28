@@ -151,8 +151,8 @@ function render(value) {
   $('folder-status').textContent = folders.status || ''; $('folder-status').className = folders.failed ? 'error' : '';
   $('update-app').disabled = !management.available || !management.repoPath || locked || Boolean(value.setup);
   $('update-app').textContent = management.running ? 'Aggiornamento in corso…' : 'Compila e aggiorna';
-  $('manage-hooks').disabled = !management.available || locked;
-  $('update-status').textContent = management.available ? management.status || '' : 'Aggiornamenti e hook disponibili nel pacchetto Windows.';
+  $('manage-hooks').disabled = !value.hooksAvailable || locked;
+  $('update-status').textContent = management.available ? management.status || '' : value.deviceName === 'Mac' ? 'Gli aggiornamenti dall’app non sono ancora disponibili su Mac.' : 'Aggiornamenti e hook disponibili nel pacchetto Windows.';
   $('update-status').className = management.failed ? 'error' : '';
   $('hook-status').textContent = value.notice || '';
   $('engine').value = value.engine;

@@ -18,7 +18,7 @@ function capabilities(platform = process.platform, { macHelper } = {}) {
     managedOllama: win,    // avvio di ollama.exe gestito dall'app (su Mac si guida l'installazione: passo 5)
     localActions: win || mac, // azioni locali con conferma: Calcolatrice e cartella Download (Mac: passo 6)
     watch: win || mac,     // osservazione e fotogrammi (Mac: passo 7, con permesso «Registrazione schermo»)
-    hooks: win,            // gestione hook Claude/Codex (passo 8)
+    hooks: win || mac,     // gestione hook Claude/Codex (Mac: passo 8, comando di shell al posto di PowerShell)
     management: win,       // aggiornamenti dal pacchetto (passo 10)
     appMenu: mac,          // menu applicazione minimale (appMenu + editMenu): senza, Cmd+C/V/X/A/Z non arrivano ai campi di testo
     hideDock: mac,         // app da barra dei menu, senza icona nel Dock (come la vecchia app, LSUIElement)
