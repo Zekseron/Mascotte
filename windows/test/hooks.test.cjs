@@ -106,3 +106,47 @@ test('Windows launcher delivers stdin through bundled Electron Node, independent
   assert.ok(closed.elapsed < 5000);
   assert.equal(closed.stdout + closed.stderr, '');
 });
+
+test('Mac: sostituisce gli hook e il notify della vecchia app Swift, conserva gli altri', () => {
+  const exe = '/Applications/Mascotte.app/Contents/MacOS/Mascotte', legacy = mode => `/usr/bin/python3 /Users/x/siti/mascotte/tools/mascotte-notify ${mode}`;
+  const sky = '/Users/x/.codex/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient';
+  const memoria = { type: 'command', command: '$HOME/strumenti/richiama.sh' };
+  const claude = { hooks: { SessionStart: [{ hooks: [memoria] }], Stop: [{ hooks: [{ type: 'command', command: legacy('--claude-hook') }] }], PreToolUse: [{ matcher: '.*', hooks: [{ type: 'command', command: legacy('--claude-hook') }] }] } };
+  const notify = [sky, 'turn-ended', '--previous-notify', JSON.stringify(['/usr/bin/python3', '/Users/x/siti/mascotte/tools/mascotte-notify', '--codex-notify', '--forward-command', JSON.stringify([sky, 'turn-ended'])])];
+  const codex = { notify, hooks: { PreToolUse: [{ matcher: '.*', hooks: [{ type: 'command', command: legacy('--codex-hook'), timeout: 5 }] }] } };
+  const result = prepareHooks(JSON.stringify(claude), toml.stringify(codex), exe, undefined, 'darwin');
+  const c = JSON.parse(result.claude), x = toml.parse(result.codex);
+  assert.deepEqual(c.hooks.SessionStart, [{ hooks: [memoria] }]);
+  for (const event of ['Stop', 'PreToolUse']) { assert.equal(c.hooks[event].length, 1); assert.match(c.hooks[event][0].hooks[0].command, /^ELECTRON_RUN_AS_NODE=1 '\/Applications\/Mascotte\.app\/Contents\/MacOS\/Mascotte' '\/Applications\/Mascotte\.app\/Contents\/Resources\/app\.asar\/lib\/notify-entry\.cjs' --mascotte-notify --claude-hook /); }
+  assert.equal(x.hooks.PreToolUse.length, 1); assert.equal(x.hooks.PreToolUse[0].hooks[0].command_windows, undefined);
+  assert.deepEqual(x.notify, [sky, 'turn-ended']);
+  // Seconda applicazione: nessun doppione.
+  const again = prepareHooks(result.claude, result.codex, exe, undefined, 'darwin');
+  assert.deepEqual(JSON.parse(again.claude), c); assert.deepEqual(toml.parse(again.codex), x);
+});
+
+test('Mac launcher consegna stdin al ponte con il Node di Electron, anche con apostrofi nel percorso', { skip: process.platform !== 'darwin', timeout: 60000 }, async t => {
+  const directory = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "mascotte hook ' è "));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  for (const file of ['notify-entry.cjs', 'notify.cjs', 'storage.cjs', 'platform.cjs']) fs.copyFileSync(path.join(__dirname, '../lib', file), path.join(directory, file));
+  const proposal = prepareHooks('{}', '', require('electron'), path.join(directory, 'notify-entry.cjs'), 'darwin');
+  const codex = toml.parse(proposal.codex), claude = JSON.parse(proposal.claude);
+  const events = [], server = new EventServer(path.join(directory, 'events.json'), ['listening', 'reading', 'done'], event => events.push(event));
+  await server.start(0); t.after(() => server.close());
+  const sh = (command, payload) => new Promise((resolve, reject) => {
+    const child = spawn('/bin/sh', ['-c', command], { env: { ...process.env, MASCOTTE_DATA_DIR: directory }, stdio: ['pipe', 'pipe', 'pipe'] });
+    let out = ''; child.stdout.on('data', d => out += d); child.stderr.on('data', d => out += d);
+    const timer = setTimeout(() => { child.kill(); reject(new Error('Hook timeout')); }, 7000);
+    child.once('close', code => { clearTimeout(timer); resolve({ code, out }); }); child.stdin.end(payload);
+  });
+  for (const [command, payload, expected] of [
+    [codex.hooks.UserPromptSubmit[0].hooks[0].command, { hook_event_name: 'UserPromptSubmit', prompt: "Privato è 🐈 $(exit 99) ' & |" }, { state: 'listening', source: 'codex' }],
+    [claude.hooks.PreToolUse[0].hooks[0].command, { hook_event_name: 'PreToolUse', tool_name: 'Read' }, { state: 'reading', source: 'claude' }],
+    [claude.hooks.Stop[0].hooks[0].command, { hook_event_name: 'Stop' }, { state: 'done', source: 'claude' }]
+  ]) {
+    const before = events.length, result = await sh(command, JSON.stringify(payload));
+    assert.deepEqual(result, { code: 0, out: '' }); assert.deepEqual(events.slice(before), [expected]);
+  }
+  await server.close();
+  assert.deepEqual(await sh(claude.hooks.Stop[0].hooks[0].command, '{"hook_event_name":"Stop"}'), { code: 0, out: '' });
+});

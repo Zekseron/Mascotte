@@ -12,11 +12,13 @@ function isMascotteClaudeHook(value) {
     hook.args.includes('--mascotte-notify') && hook.args.includes('--claude-hook')) ||
     isMascotteCommand(hook.command, '--claude-hook')));
 }
+// Hook della vecchia app Swift per Mac: script Python «…/tools/mascotte-notify --claude-hook» (scelta dell'utente: vanno sostituiti).
+const legacyMacCommand = (command, mode) => new RegExp(`(?:^|[\\s/'"])mascotte-notify['"]?\\s+${mode}(?:\\s|$)`).test(command);
 function isMascotteCommand(command, mode) {
   if (typeof command !== 'string') return false;
   const encoded = command.match(/-EncodedCommand\s+([A-Za-z0-9+/=]+)/i)?.[1];
   const decoded = encoded ? Buffer.from(encoded, 'base64').toString('utf16le') : command;
-  return decoded.includes('--mascotte-notify') && decoded.includes(mode);
+  return (decoded.includes('--mascotte-notify') && decoded.includes(mode)) || legacyMacCommand(decoded, mode);
 }
 function isMascotteCodexHook(value) {
   return value && value.type === 'command' &&
@@ -44,6 +46,15 @@ function previousNotify(command, computerUseSeen = false, depth = 0) {
   if (depth > 16 || !Array.isArray(command) || !command.every(value => typeof value === 'string')) {
     throw new Error('Catena notify non valida: configurazione originale conservata.');
   }
+  // Notify della vecchia app Swift: [python3, …/mascotte-notify, --codex-notify, --forward-command, <JSON del notify precedente>].
+  if (/(?:^|[\\/])mascotte-notify$/.test(command[1] || '') && command.includes('--codex-notify')) {
+    const forwarded = command.indexOf('--forward-command');
+    if (forwarded < 0) return [];
+    let previous;
+    try { previous = JSON.parse(command[forwarded + 1]); }
+    catch { throw new Error('Notify Mascotte precedente illeggibile: configurazione originale conservata.'); }
+    return previousNotify(previous, computerUseSeen, depth + 1);
+  }
   if (command.includes('--mascotte-notify') && command.includes('--codex-notify')) {
     const forwarded = command.indexOf('--forward-base64');
     if (forwarded < 0) return [];
@@ -54,7 +65,8 @@ function previousNotify(command, computerUseSeen = false, depth = 0) {
   }
   // The desktop host can wrap notify again after installation. Keep the outer
   // (current) helper and any unrelated notifier, removing duplicate old helpers.
-  if (path.win32.basename(command[0] || '').toLowerCase() === 'codex-computer-use.exe' && command[1] === 'turn-ended') {
+  // Helper di Codex Computer Use: codex-computer-use.exe su Windows, SkyComputerUseClient su Mac.
+  if (['codex-computer-use.exe', 'skycomputeruseclient'].includes(String(command[0] || '').split(/[\\/]/).pop().toLowerCase()) && command[1] === 'turn-ended') {
     const forwarded = command.indexOf('--previous-notify');
     let previous = [];
     if (forwarded >= 0) {
@@ -94,12 +106,25 @@ function hookCommand(executable, bridge, mode) {
     "} catch {} finally { if ($null -ne $child) { $child.Dispose() } }; exit 0";
   return 'powershell.exe -NoProfile -NonInteractive -WindowStyle Hidden -EncodedCommand ' + Buffer.from(script, 'utf16le').toString('base64');
 }
-function prepareHooks(claudeText, codexText, executable, bridge = path.win32.join(path.win32.dirname(executable), 'resources', 'app.asar', 'lib', 'notify-entry.cjs')) {
-  if ([executable, bridge].some(value => /["\r\n%]/.test(value))) throw new Error('Percorso app non supportato per gli hook: configura manualmente.');
+// Mac: comando di shell (Claude e Codex lo eseguono con sh). L'evento arriva su stdin direttamente al ponte,
+// eseguito dal Node incluso nell'app; errori e uscita restano silenziosi per non disturbare il lavoro.
+function macHookCommand(executable, bridge, mode) {
+  const quote = value => "'" + value.replace(/'/g, "'\\''") + "'";
+  return `ELECTRON_RUN_AS_NODE=1 ${quote(executable)} ${quote(bridge)} --mascotte-notify ${mode} >/dev/null 2>&1; exit 0`;
+}
+const defaultBridge = (executable, platform) => platform === 'win32'
+  ? path.win32.join(path.win32.dirname(executable), 'resources', 'app.asar', 'lib', 'notify-entry.cjs')
+  : path.posix.join(path.posix.dirname(executable), '..', 'Resources', 'app.asar', 'lib', 'notify-entry.cjs');
+// La piattaforma si ricava dal percorso dell'app: un percorso con lettera di unità è Windows.
+function prepareHooks(claudeText, codexText, executable, bridge, platform = /^[A-Za-z]:[\\/]/.test(executable) ? 'win32' : process.platform) {
+  const win = platform === 'win32';
+  bridge ||= defaultBridge(executable, platform);
+  if ([executable, bridge].some(value => win ? /["\r\n%]/.test(value) : /[\r\n\0]/.test(value))) throw new Error('Percorso app non supportato per gli hook: configura manualmente.');
   const claude = JSON.parse(claudeText), codex = toml.parse(codexText);
   if (!claude || Array.isArray(claude) || typeof claude !== 'object') throw new Error('Configurazione Claude non valida.');
-  const codexCommand = hookCommand(executable, bridge, '--codex-hook');
-  const claudeCommand = hookCommand(executable, bridge, '--claude-hook');
+  const command = win ? hookCommand : macHookCommand;
+  const codexCommand = command(executable, bridge, '--codex-hook');
+  const claudeCommand = command(executable, bridge, '--claude-hook');
   const hooks = claude.hooks || {};
   if (!hooks || Array.isArray(hooks) || typeof hooks !== 'object') throw new Error('Hook Claude non validi.');
   removeMascotteClaudeHooks(hooks);
@@ -124,7 +149,7 @@ function prepareHooks(claudeText, codexText, executable, bridge = path.win32.joi
   removeMascotteCodexHooks(codex.hooks);
   for (const event of ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PermissionRequest', 'Interrupt', 'Stop']) {
     if (codex.hooks[event] !== undefined && !Array.isArray(codex.hooks[event])) throw new Error('Hook Codex non validi.');
-    const value = { hooks: [{ type: 'command', command: codexCommand, command_windows: codexCommand, timeout: event === 'Interrupt' ? 3 : 5 }] };
+    const value = { hooks: [{ type: 'command', command: codexCommand, ...(win ? { command_windows: codexCommand } : {}), timeout: event === 'Interrupt' ? 3 : 5 }] };
     if (['PreToolUse', 'PostToolUse', 'PermissionRequest'].includes(event)) value.matcher = '.*';
     codex.hooks[event] = [...(codex.hooks[event] || []), value];
   }
