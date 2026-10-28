@@ -28,7 +28,7 @@ function startApplication() {
   const Updater = require('./lib/updater.cjs');
   const Releases = require('./lib/releases.cjs');
   const Attachment = require('./lib/attachment.cjs');
-  const LocalCommands = require('./lib/local-commands.cjs'), FolderView = require('./lib/folder-view.cjs');
+  const LocalCommands = require('./lib/local-commands.cjs'), FolderView = require('./lib/folder-view.cjs'), ExtraFolders = require('./lib/extra-folders.cjs');
   const { mascotSize, maskHit, dragPosition, barEdge, barHit } = require('./lib/geometry.cjs');
   const P = require('./resources/pack.js');
   let mascot, chat, tray, controller, server, store, memory, pack, imageData, currentRun, hitMask, mouseTimer;
@@ -36,12 +36,12 @@ function startApplication() {
   let characters = [];
   let attachment = 'free', singing = false, follower, captureFollower, captureTimer, anchorTimer, anchorDisplay, anchorFraction = .8, targetBounds, concealed = false, userVisible = true;
   let watchSource = null, activeShareDirectory = null, pendingAction = null;
-  let localDownload = null, localDownloadStatus = '';
+  let localDownload = null, localDownloadStatus = '', folderStatus = '', folderStatusFailed = false;
   let updateRunning = false, updateStatus = '', updateFailed = false, updateAbort = null;
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
-  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localVision: LocalAI.supportsVision(settings?.localModel), localCatalog: LocalAI.uiCatalog(), deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: can.management && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed } });
+  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localVision: LocalAI.supportsVision(settings?.localModel), localCatalog: LocalAI.uiCatalog(), deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: can.management && app.isPackaged, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed, folders: { defaults: FolderView.viewableFolders().map(folder => ({ name: folder.display, path: folder.target })), extra: (settings?.extraFolders || []).map(folder => ({ name: folder.name, path: folder.path })), max: ExtraFolders.MAX_EXTRA, status: folderStatus, failed: folderStatusFailed } } });
   const saveSettings = () => atomicJSON(stateFile, settings);
   async function prepareLocal() {
     try { await LocalAI.checkModel({ model: settings.localModel }); }
@@ -292,7 +292,7 @@ function startApplication() {
     store = new ChatStore(chatDirectory);
     memory = new LocalAI.LocalMemory(chatDirectory);
     const raw = readJSON(stateFile, {});
-    settings = {scale:[1,2,3,4,5,6].includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localModel:LocalAI.normalizeModel(raw.localModel)};
+    settings = {scale:[1,2,3,4,5,6].includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localModel:LocalAI.normalizeModel(raw.localModel),extraFolders:ExtraFolders.normalizeExtraFolders(raw.extraFolders,ExtraFolders.realOpts({platform:process.platform,home:os.homedir(),dataDir:dataDirectory}))};
     prepareLocal().then(() => { localAvailable = true; if (!currentRun && !engineTouched) engine = 'locale'; broadcast(); }).catch(() => { localAvailable = false; broadcast(); });
     const resultFile = path.join(dataDirectory, 'update-result.json'), updateResult = readJSON(resultFile, null);
     if (updateResult && typeof updateResult.message === 'string') {
@@ -372,7 +372,7 @@ function startApplication() {
         try {
           if (selectedAction.kind === 'remember') { memory.add(selectedAction.text, 'manuale'); notice = `Nota salvata sul ${can.deviceName}.`; }
           else {
-            if (!LocalCommands.validateTarget(selectedAction.target)) throw new Error('l’app o la cartella non è più disponibile o non è in una posizione ammessa.');
+            if (!LocalCommands.validateTarget(selectedAction.target, { extraFolders: settings.extraFolders, dataDir: dataDirectory })) throw new Error(selectedAction.extraName ? ExtraFolders.goneMessage(selectedAction.extraName) : 'l’app o la cartella non è più disponibile o non è in una posizione ammessa.');
             const error = await shell.openPath(selectedAction.target);
             if (error) throw new Error(error);
             notice = 'Azione completata.';
@@ -406,6 +406,28 @@ function startApplication() {
             updateRunning = false; updateFailed = true; updateStatus = `Aggiornamento non riuscito: ${error.message}`; broadcast();
           }).finally(() => { updateAbort = null; });
         } catch (error) { updateRunning = false; updateAbort = null; updateFailed = true; updateStatus = error.message; broadcast(); }
+        return chatSnapshot();
+      }
+      if (action === 'folders-add' && !currentRun && !localDownload && !updateRunning && !setupPreview) {
+        // Cartelle visibili alla chat locale: scelte solo dal selettore di sistema, risolte con realpath e validate. Il percorso non finisce nei log.
+        try {
+          const selected = await dialog.showOpenDialog(chat, { title: 'Scegli una cartella che la mascotte può vedere', properties: ['openDirectory'], defaultPath: os.homedir() });
+          if (!selected.canceled && selected.filePaths[0]) {
+            const result = ExtraFolders.addExtraFolder(settings.extraFolders, selected.filePaths[0], { platform: process.platform, home: os.homedir(), dataDir: dataDirectory });
+            if (result.ok) { settings.extraFolders = result.list; saveSettings(); folderStatus = `Cartella «${result.name}» aggiunta. Ora puoi chiedere, per esempio, «che file ho in ${result.name}?».`; folderStatusFailed = false; }
+            else { folderStatus = result.reason; folderStatusFailed = true; }
+          }
+        } catch { folderStatus = 'Non riesco ad aggiungere la cartella.'; folderStatusFailed = true; }
+        return chatSnapshot();
+      }
+      if (action === 'folders-remove' && !currentRun && !localDownload && !updateRunning && !setupPreview) {
+        // Accetta solo un indice o un percorso già presenti nell'elenco.
+        const index = Number.isInteger(data) ? data : typeof data === 'string' ? settings.extraFolders.findIndex(folder => folder.path === data) : -1;
+        if (index >= 0 && index < settings.extraFolders.length) {
+          const [removed] = settings.extraFolders.splice(index, 1); saveSettings();
+          if (pendingAction?.extraName === removed.name) pendingAction = null;
+          folderStatus = `Cartella «${removed.name}» rimossa.`; folderStatusFailed = false;
+        }
         return chatSnapshot();
       }
       if (action === 'repo-select' && !updateRunning) {
@@ -470,18 +492,22 @@ function startApplication() {
         let folderRead = null;
         if (engine === 'locale' && !imageData) {
           // Comandi gestiti da Mascotte, non dal modello: azioni predefinite e note, sempre con conferma.
-          const command = LocalCommands.parseLocalCommand(text, { actions: can.localActions });
+          const command = LocalCommands.parseLocalCommand(text, { actions: can.localActions, extraFolders: settings.extraFolders });
           const reply = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer }]); notice = ''; };
           if (command?.type === 'list-notes') { reply(LocalCommands.describeNotes(memory.list())); broadcast(); return chatSnapshot(); }
           if (command?.type === 'reply') { reply(command.text); broadcast(); return chatSnapshot(); }
           if (command?.type === 'folder') {
             // Lettura di sola consultazione di una cartella conosciuta, solo con il motore locale e senza conferma: l'avviso apre la risposta.
             // L'elenco non entra nella cronologia (restano domanda e risposta) e non viene scritto nel log.
-            let view; try { view = FolderView.readFolder(command.folder); } catch { reply(`Non riesco a leggere la cartella ${command.folder.display}.`); broadcast(); return chatSnapshot(); }
+            let view; try { view = FolderView.readFolder(command.folder, { extraFolders: settings.extraFolders, dataDir: dataDirectory }); } catch (error) { reply(error.code === 'GONE' ? error.message : `Non riesco a leggere la cartella ${command.folder.display}.`); broadcast(); return chatSnapshot(); }
             if (command.question.kind !== 'model') { reply(FolderView.notice(view) + '\n\n' + FolderView.answer(view, command.question)); broadcast(); return chatSnapshot(); }
             folderRead = { notice: FolderView.notice(view), context: FolderView.modelContext(view) };
           }
-          if (command?.type === 'open') { reply('Posso farlo: controlla e conferma l’azione.'); pendingAction = { id: randomUUID(), kind: 'open', description: command.description, target: command.target }; broadcast(); return chatSnapshot(); }
+          if (command?.type === 'open') {
+            // Una cartella aggiunta da Gestione viene ricontrollata subito (e ancora alla conferma): se è sparita non si propone l'azione.
+            if (command.extraName && !LocalCommands.validateTarget(command.target, { extraFolders: settings.extraFolders, dataDir: dataDirectory })) { reply(ExtraFolders.goneMessage(command.extraName)); broadcast(); return chatSnapshot(); }
+            reply('Posso farlo: controlla e conferma l’azione.'); pendingAction = { id: randomUUID(), kind: 'open', description: command.description, target: command.target, extraName: command.extraName }; broadcast(); return chatSnapshot();
+          }
           if (command?.type === 'remember') { reply('Posso salvarla tra le note: controlla e conferma.'); pendingAction = { id: randomUUID(), kind: 'remember', description: `Salvare questa nota sul ${can.deviceName}: «${command.text}»`, text: command.text }; broadcast(); return chatSnapshot(); }
         }
         let image = null, imagePath = null, imageDirectory = null;

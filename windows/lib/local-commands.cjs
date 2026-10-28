@@ -2,6 +2,7 @@
 const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
+const Extra = require('./extra-folders.cjs');
 
 // Comandi della chat locale gestiti da Mascotte senza il modello: azioni predefinite e note.
 // Ogni azione e ogni nota passano da una conferma dell'utente (pendingAction in main.cjs).
@@ -21,10 +22,15 @@ const LIST = /^(?:che note ho|quali note ho(?: salvato)?|ho (?:delle )?note(?: s
 const fold = text => String(text).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 // Cartelle conosciute (chiave: nome in italiano). Su Windows solo le cartelle utente, su Mac anche Applicazioni.
-function folderEntries(platform = process.platform, home = os.homedir()) {
+// Le cartelle aggiunte dall'utente da Gestione (`extra`: [{ name, path }]) si accodano a quelle fisse, con il nome come chiave.
+function folderEntries(platform = process.platform, home = os.homedir(), extra = []) {
   const list = [['Download', ['download', 'downloads'], 'Downloads'], ['Documenti', ['documenti', 'documents'], 'Documents'], ['Scrivania', ['scrivania', 'desktop'], 'Desktop'], ['Immagini', ['immagini', 'pictures'], 'Pictures']]
     .map(([display, keys, dir]) => ({ display, keys, target: path.join(home, dir), description: `Aprire la cartella ${display} del tuo utente.` }));
   if (platform === 'darwin') list.push({ display: 'Applicazioni', keys: ['applicazioni'], target: '/Applications', description: 'Aprire la cartella Applicazioni (/Applications).' });
+  for (const item of Array.isArray(extra) ? extra : []) {
+    const key = Extra.nameKey(item.name);
+    if (key) list.push({ display: item.name, keys: [key], target: item.path, extra: true, description: `Aprire la cartella ${item.name} (${item.path}).` });
+  }
   return list;
 }
 
@@ -71,9 +77,9 @@ const MAC_ALIASES = [['Calcolatrice', ['Calculator']], ['Impostazioni', ['System
   ['Posta', ['Mail']], ['Mail', ['Mail']], ['Libri', ['Books']], ['Comandi Rapidi', ['Shortcuts']], ['Utility Disco', ['Disk Utility']], ['Cattura Schermo', ['Screenshot']],
   ['Screenshot', ['Screenshot']], ['Dizionario', ['Dictionary']], ['Registratore Vocale', ['VoiceMemos', 'Voice Memos']], ['Memo Vocali', ['VoiceMemos', 'Voice Memos']]];
 
-function buildEntries(platform, home, env, apps) {
+function buildEntries(platform, home, env, apps, extra = []) {
   const entries = [];
-  for (const folder of folderEntries(platform, home)) for (const key of folder.keys) entries.push({ key, display: folder.display, path: folder.target, description: folder.description });
+  for (const folder of folderEntries(platform, home, extra)) for (const key of new Set(folder.extra ? [...folder.keys, fold(folder.display)] : folder.keys)) entries.push({ key, display: folder.display, path: folder.target, description: folder.description, extra: folder.extra ? folder.display : undefined });
   const calc = openTargets(platform, home, env)['apri calcolatrice'];
   if (platform === 'darwin') {
     const byName = new Map(apps.map(app => [fold(app.name), app]));
@@ -139,15 +145,15 @@ function parseOpenPhrase(text) {
   return { raw: original, name: words.join(' ') };
 }
 
-function resolveOpen(text, { platform, home, env, appDirs, appExtras }) {
+function resolveOpen(text, { platform, home, env, appDirs, appExtras, extraFolders }) {
   const phrase = parseOpenPhrase(text);
   if (!phrase) return null;
   const apps = platform === 'darwin' ? getApps(appDirs || macAppDirs(home), appExtras || (appDirs ? [] : MAC_APP_EXTRAS)) : [];
-  const entries = buildEntries(platform, home, env, apps);
+  const entries = buildEntries(platform, home, env, apps, extraFolders);
   let ambiguous = null;
   for (const candidate of new Set([fold(phrase.name), fold(phrase.raw)])) {
     const found = lookup(entries, candidate);
-    if (found.status === 'found') return { type: 'open', description: found.entry.description, target: found.entry.path };
+    if (found.status === 'found') return { type: 'open', description: found.entry.description, target: found.entry.path, ...(found.entry.extra ? { extraName: found.entry.extra } : {}) };
     if (found.status === 'ambiguous' && !ambiguous) ambiguous = found.matches;
   }
   if (platform !== 'darwin') return null;
@@ -159,12 +165,14 @@ function resolveOpen(text, { platform, home, env, appDirs, appExtras }) {
 }
 
 // Ricontrollo al momento della conferma: il percorso deve esistere ancora ed essere una cartella o app ammessa.
-function validateTarget(target, { platform = process.platform, home = os.homedir(), env = process.env, appDirs, appExtras } = {}) {
+function validateTarget(target, { platform = process.platform, home = os.homedir(), env = process.env, appDirs, appExtras, extraFolders = [], dataDir = '' } = {}) {
   if (typeof target !== 'string' || !target) return false;
   const resolved = real(target);
   if (!resolved) return false;
   const fixed = [...folderEntries(platform, home).map(folder => folder.target), openTargets(platform, home, env)['apri calcolatrice'].target];
   if (fixed.some(item => real(item) === resolved)) return true;
+  // Cartelle aggiunte da Gestione: solo quelle ancora nell'elenco, con lo stesso percorso reale e ancora valide.
+  if (Array.isArray(extraFolders) && extraFolders.some(item => item && Extra.samePath(item.path, resolved, platform) && Extra.recheckExtraFolder(item, { platform, home, dataDir }))) return true;
   if (platform !== 'darwin' || !/\.app$/i.test(resolved)) return false;
   if ((appExtras || (appDirs ? [] : MAC_APP_EXTRAS)).some(item => real(item) === resolved)) return true;
   return (appDirs || macAppDirs(home)).some(dir => { const root = real(dir); return systemApp(resolved) || (root && path.dirname(resolved) === root); });
@@ -181,37 +189,61 @@ const CATEGORY_WORDS = [['immagini', /\b(?:immagin\w*|foto|fotografi\w*|img)\b/]
   ['cartelle', /\b(?:cartelle|sottocartelle)\b/], ['installer', /\b(?:installer|dmg|pkg|programmi)\b/], ['codice', /\b(?:codice|script)\b/]];
 const MODEL_WORDS = /\b(?:recent\w*|ultim\w*|vecchi\w*|grand\w*|pesant\w*|piccol\w*|occup\w*|spazio|quanto|cancell\w*|elimin\w*|buttar\w*|riassum\w*|riepilog\w*|organizz\w*|ordin\w*|pulir\w*|pulisc\w*|inutil\w*|qual|quale|quali file)\b/;
 const NOUNS = /\b(?:file|documenti|immagin\w*|foto|pdf|elementi|cartelle|roba|cose|contenuto)\b/;
-function parseFolderQuestion(text, { platform = process.platform, home = os.homedir() } = {}) {
-  if (typeof text !== 'string' || text.length > 400 || parseOpenPhrase(text)) return null;
-  const plain = PLAIN(text);
-  const keys = folderEntries(platform, home).filter(folder => folder.display !== 'Applicazioni').flatMap(folder => folder.keys.map(key => [key, folder]));
-  const pattern = new RegExp(`(?:\\b(?:in|nel|nella|nei|nelle|nell|dentro|sul|sulla|sui|sulle|sull|su)|\\b(?:del|della|dal|dalla)(?=\\s+(?:mia\\s+|tua\\s+)?cartella))\\s+(?:(?:il|lo|la|i|gli|le|l|mio|mia|miei|mie|cartella)\\s+)*(${keys.map(([key]) => key).join('|')})\\b(?=\\s*$|\\s+${FOLDER_AFTER}\\b)`, 'g');
-  let hit = null; for (let match; (match = pattern.exec(plain));) hit = match;
-  if (!hit) return null;
-  const folder = keys.find(([key]) => key === hit[1])[1], rest = (plain.slice(0, hit.index) + ' ' + plain.slice(hit.index + hit[0].length)).replace(/\s+/g, ' ');
+// Parole che dopo «in» non sono quasi mai una cartella («quanti file ho in totale?»): non vengono trattate come cartella mancante.
+const NOT_A_FOLDER = new Set(['totale', 'tutto', 'tutti', 'tutta', 'generale', 'giro', 'mente', 'comune', 'rete', 'internet', 'cloud', 'pratica', 'sistema', 'computer', 'mac', 'pc', 'memoria', 'disco', 'questa', 'questo', 'quella', 'quello', 'qui', 'qua', 'ordine', 'sostanza', 'breve', 'corso', 'uso', 'modo', 'vista', 'cartella', 'cartelle', 'chat', 'app', 'applicazioni', 'applications', 'locale', 'italiano', 'inglese', 'effetti', 'sintesi', 'realta', 'media', 'qualche', 'ogni', 'ancora', 'poi', 'altro', 'altri', 'altre']);
+const folderPattern = keys => new RegExp(`(?:\\b(?:in|nel|nella|nei|nelle|nell|dentro|sul|sulla|sui|sulle|sull|su)|\\b(?:del|della|dal|dalla)(?=\\s+(?:mia\\s+|tua\\s+)?cartella))\\s+(?:(?:il|lo|la|i|gli|le|l|mio|mia|miei|mie|cartella)\\s+)*(${keys})\\b(?=\\s*$|\\s+${FOLDER_AFTER}\\b)`, 'g');
+// Tipo di domanda e categorie dal resto della frase (senza la cartella): 'duplicates' | 'model' | 'count' | 'list' | null.
+function classifyQuestion(rest) {
   const categories = CATEGORY_WORDS.filter(([, regex]) => regex.test(rest)).map(([category]) => category);
-  const duplicates = /\b(?:doppi\w*|doppion\w*|duplicat\w*|copie)\b/.test(rest), isCount = /\bquant[ie]\b/.test(rest), list = /\b(?:che|quali|quale)\s+(?:file|document\w*|immagin\w*|foto|pdf|cose|elementi|roba)\b|\bcosa c e\b|\bcosa ho\b|\bcosa ce\b/.test(rest) || (/\b(?:elenc\w*|mostr\w*|lista|dimmi|fammi vedere)\b/.test(rest) && NOUNS.test(rest));
+  const duplicates = /\b(?:doppi\w*|doppion\w*|duplicat\w*|copie)\b/.test(rest), isCount = /\bquant[ie]\b/.test(rest), list = /\b(?:che|quali|quale)\s+(?:file|cartell\w*|sottocartell\w*|document\w*|immagin\w*|foto|pdf|video|archivi\w*|fogli|presentazion\w*|progett\w*|cose|elementi|roba)\b|\bcosa c e\b|\bcosa ho\b|\bcosa ce\b/.test(rest) || (/\b(?:elenc\w*|mostr\w*|lista|dimmi|fammi vedere)\b/.test(rest) && NOUNS.test(rest));
   const present = /\bci sono\b/.test(rest) && (categories.length > 0 || NOUNS.test(rest));
   let kind = null;
   if (duplicates) kind = 'duplicates';
   else if (MODEL_WORDS.test(rest)) kind = 'model';
-  else if (isCount || (present && categories.length)) kind = 'count';
+  // «che/quali cartelle ci sono» è un elenco: «ci sono» da solo (es. «ci sono pdf in download?») resta un conteggio.
+  else if (isCount) kind = 'count';
   else if (list) kind = 'list';
+  else if (present && categories.length) kind = 'count';
   else if (present) kind = 'model';
+  return { kind, categories };
+}
+// `extraFolders`: cartelle aggiunte da Gestione ([{ name, path }]), passate dal chiamante (nessuna lettura globale).
+function parseFolderQuestion(text, { platform = process.platform, home = os.homedir(), extraFolders = [] } = {}) {
+  if (typeof text !== 'string' || text.length > 400 || parseOpenPhrase(text)) return null;
+  const plain = PLAIN(text);
+  const folders = folderEntries(platform, home, extraFolders).filter(folder => folder.display !== 'Applicazioni');
+  const keys = folders.flatMap(folder => folder.keys.map(key => [key, folder])).sort((a, b) => b[0].length - a[0].length);
+  const escape = key => key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+');
+  let hit = null; for (let match, pattern = folderPattern(keys.map(([key]) => escape(key)).join('|')); (match = pattern.exec(plain));) hit = match;
+  if (!hit) return /[\\/~:]/.test(text) ? null : unknownFolder(plain); // con percorsi nel testo («/etc», «C:\\») la frase resta al modello
+  const folder = keys.find(([key]) => key === hit[1].replace(/\s+/g, ' '))[1], rest = (plain.slice(0, hit.index) + ' ' + plain.slice(hit.index + hit[0].length)).replace(/\s+/g, ' ');
+  const { kind, categories } = classifyQuestion(rest);
   if (!kind) return null;
-  return { type: 'folder', folder: { display: folder.display, target: folder.target }, question: { kind, categories, text: text.trim().slice(0, 400) } };
+  return { type: 'folder', folder: { display: folder.display, target: folder.target, ...(folder.extra ? { extra: true } : {}) }, question: { kind, categories, text: text.trim().slice(0, 400) } };
+}
+// Cartella non presente («che file ho in progetti?»): risposta senza modello solo se il riconoscimento è affidabile, cioè
+// preposizione di luogo, UNA sola parola come cartella in fondo alla frase, parola chiave sul contenuto (file, pdf…) e domanda
+// di conteggio, elenco o doppi. Con «più recenti», «più grandi» e simili, o in altri casi dubbi, la frase resta al modello.
+function unknownFolder(plain) {
+  const pattern = folderPattern('[a-z0-9]{3,}');
+  let hit = null; for (let match; (match = pattern.exec(plain));) hit = match;
+  if (!hit || /^\d+$/.test(hit[1]) || NOT_A_FOLDER.has(hit[1])) return null;
+  const rest = (plain.slice(0, hit.index) + ' ' + plain.slice(hit.index + hit[0].length)).replace(/\s+/g, ' ');
+  const { kind, categories } = classifyQuestion(rest);
+  if (!['count', 'list', 'duplicates'].includes(kind) || !(categories.length || NOUNS.test(rest))) return null;
+  return { type: 'reply', text: `Non vedo una cartella chiamata «${hit[1]}». Puoi aggiungerla da Gestione → Cartelle visibili.` };
 }
 
-function parseLocalCommand(text, { platform = process.platform, home = os.homedir(), env = process.env, actions = true, appDirs, appExtras } = {}) {
+function parseLocalCommand(text, { platform = process.platform, home = os.homedir(), env = process.env, actions = true, appDirs, appExtras, extraFolders = [] } = {}) {
   if (typeof text !== 'string' || !text.trim()) return null;
   const normalized = normalize(text), targets = openTargets(platform, home, env);
   if (actions && Object.hasOwn(targets, normalized)) return { type: 'open', ...targets[normalized] };
   if (LIST.test(normalized)) return { type: 'list-notes' };
   const remember = text.trim().match(REMEMBER);
   if (remember && remember[1].trim()) return { type: 'remember', text: remember[1].trim().slice(0, 2000) };
-  const folder = parseFolderQuestion(text, { platform, home });
+  const folder = parseFolderQuestion(text, { platform, home, extraFolders });
   if (folder) return folder;
-  if (actions) return resolveOpen(text, { platform, home, env, appDirs, appExtras });
+  if (actions) return resolveOpen(text, { platform, home, env, appDirs, appExtras, extraFolders });
   return null;
 }
 function describeNotes(notes) {

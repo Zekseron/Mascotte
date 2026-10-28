@@ -15,3 +15,4 @@ body{overflow:hidden}header,.tabs,#status,#composer,footer{flex-shrink:0}#messag
 #composer{padding:8px 10px}
 #input{min-height:24px;height:28px;max-height:96px;overflow-y:auto;resize:vertical}
 .send-row{margin-top:4px}
+.folder-row{border-top:1px solid #3e424e;margin-top:8px;padding-top:6px}.folder-row strong{font-size:12px;color:#e4a964}.folder-row p{margin:2px 0}.folder-row .local-path{margin:2px 0 0}.folder-row button{margin-top:4px;font-size:11px}#folder-status.error{color:#e48a8a}
