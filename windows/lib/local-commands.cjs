@@ -170,6 +170,38 @@ function validateTarget(target, { platform = process.platform, home = os.homedir
   return (appDirs || macAppDirs(home)).some(dir => { const root = real(dir); return systemApp(resolved) || (root && path.dirname(resolved) === root); });
 }
 
+// Domande sul contenuto di una cartella conosciuta («quanti pdf ho in download?»). Riconosciute senza modello; la lettura
+// vera e propria è in folder-view.cjs. Serve una cartella citata con una preposizione di luogo (in, nella, nei, dentro, sul…)
+// o con «della cartella …», in fondo alla frase o seguita da poche parole ammesse, più una parola chiave sul contenuto.
+// Applicazioni è esclusa (per le app c'è già l'elenco). «apri …» non scatta mai: resta l'apertura con conferma.
+const PLAIN = text => fold(text).replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+const FOLDER_AFTER = '(?:ci|c|ce|ho|che|quali|quale|qual|quanti|quante|cosa|sono|adesso|ora|oggi|grazie|ordinati|ordinate|recenti|per favore|per piacere|per cortesia)';
+const CATEGORY_WORDS = [['immagini', /\b(?:immagin\w*|foto|fotografi\w*|img)\b/], ['pdf', /\bpdf\b/], ['documenti', /\bdocument[oi]\b/], ['fogli', /\b(?:fogli\w*|excel|spreadsheet|csv)\b/],
+  ['presentazioni', /\b(?:presentazion\w*|slide|powerpoint|keynote)\b/], ['archivi', /\b(?:archiv\w*|zip)\b/], ['audio', /\b(?:audio|musica|canzon\w*|mp3)\b/], ['video', /\b(?:video|film|filmati)\b/],
+  ['cartelle', /\b(?:cartelle|sottocartelle)\b/], ['installer', /\b(?:installer|dmg|pkg|programmi)\b/], ['codice', /\b(?:codice|script)\b/]];
+const MODEL_WORDS = /\b(?:recent\w*|ultim\w*|vecchi\w*|grand\w*|pesant\w*|piccol\w*|occup\w*|spazio|quanto|cancell\w*|elimin\w*|buttar\w*|riassum\w*|riepilog\w*|organizz\w*|ordin\w*|pulir\w*|pulisc\w*|inutil\w*|qual|quale|quali file)\b/;
+const NOUNS = /\b(?:file|documenti|immagin\w*|foto|pdf|elementi|cartelle|roba|cose|contenuto)\b/;
+function parseFolderQuestion(text, { platform = process.platform, home = os.homedir() } = {}) {
+  if (typeof text !== 'string' || text.length > 400 || parseOpenPhrase(text)) return null;
+  const plain = PLAIN(text);
+  const keys = folderEntries(platform, home).filter(folder => folder.display !== 'Applicazioni').flatMap(folder => folder.keys.map(key => [key, folder]));
+  const pattern = new RegExp(`(?:\\b(?:in|nel|nella|nei|nelle|nell|dentro|sul|sulla|sui|sulle|sull|su)|\\b(?:del|della|dal|dalla)(?=\\s+(?:mia\\s+|tua\\s+)?cartella))\\s+(?:(?:il|lo|la|i|gli|le|l|mio|mia|miei|mie|cartella)\\s+)*(${keys.map(([key]) => key).join('|')})\\b(?=\\s*$|\\s+${FOLDER_AFTER}\\b)`, 'g');
+  let hit = null; for (let match; (match = pattern.exec(plain));) hit = match;
+  if (!hit) return null;
+  const folder = keys.find(([key]) => key === hit[1])[1], rest = (plain.slice(0, hit.index) + ' ' + plain.slice(hit.index + hit[0].length)).replace(/\s+/g, ' ');
+  const categories = CATEGORY_WORDS.filter(([, regex]) => regex.test(rest)).map(([category]) => category);
+  const duplicates = /\b(?:doppi\w*|doppion\w*|duplicat\w*|copie)\b/.test(rest), isCount = /\bquant[ie]\b/.test(rest), list = /\b(?:che|quali|quale)\s+(?:file|document\w*|immagin\w*|foto|pdf|cose|elementi|roba)\b|\bcosa c e\b|\bcosa ho\b|\bcosa ce\b/.test(rest) || (/\b(?:elenc\w*|mostr\w*|lista|dimmi|fammi vedere)\b/.test(rest) && NOUNS.test(rest));
+  const present = /\bci sono\b/.test(rest) && (categories.length > 0 || NOUNS.test(rest));
+  let kind = null;
+  if (duplicates) kind = 'duplicates';
+  else if (MODEL_WORDS.test(rest)) kind = 'model';
+  else if (isCount || (present && categories.length)) kind = 'count';
+  else if (list) kind = 'list';
+  else if (present) kind = 'model';
+  if (!kind) return null;
+  return { type: 'folder', folder: { display: folder.display, target: folder.target }, question: { kind, categories, text: text.trim().slice(0, 400) } };
+}
+
 function parseLocalCommand(text, { platform = process.platform, home = os.homedir(), env = process.env, actions = true, appDirs, appExtras } = {}) {
   if (typeof text !== 'string' || !text.trim()) return null;
   const normalized = normalize(text), targets = openTargets(platform, home, env);
@@ -177,6 +209,8 @@ function parseLocalCommand(text, { platform = process.platform, home = os.homedi
   if (LIST.test(normalized)) return { type: 'list-notes' };
   const remember = text.trim().match(REMEMBER);
   if (remember && remember[1].trim()) return { type: 'remember', text: remember[1].trim().slice(0, 2000) };
+  const folder = parseFolderQuestion(text, { platform, home });
+  if (folder) return folder;
   if (actions) return resolveOpen(text, { platform, home, env, appDirs, appExtras });
   return null;
 }
@@ -184,4 +218,4 @@ function describeNotes(notes) {
   if (!notes.length) return 'Non hai note salvate. Per salvarne una scrivi «ricorda: …» oppure usa «Ricorda…» sotto una risposta.';
   return 'Le tue note salvate (le uso come contesto quando la domanda contiene parole in comune):\n' + notes.map((note, index) => `${index + 1}. ${note.text}`).join('\n');
 }
-module.exports = { openTargets, parseLocalCommand, describeNotes, listApps, getApps, clearAppCache, validateTarget, macAppDirs };
+module.exports = { openTargets, folderEntries, parseFolderQuestion, parseLocalCommand, describeNotes, listApps, getApps, clearAppCache, validateTarget, macAppDirs };

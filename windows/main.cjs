@@ -28,7 +28,7 @@ function startApplication() {
   const Updater = require('./lib/updater.cjs');
   const Releases = require('./lib/releases.cjs');
   const Attachment = require('./lib/attachment.cjs');
-  const LocalCommands = require('./lib/local-commands.cjs');
+  const LocalCommands = require('./lib/local-commands.cjs'), FolderView = require('./lib/folder-view.cjs');
   const { mascotSize, maskHit, dragPosition, barEdge, barHit } = require('./lib/geometry.cjs');
   const P = require('./resources/pack.js');
   let mascot, chat, tray, controller, server, store, memory, pack, imageData, currentRun, hitMask, mouseTimer;
@@ -467,12 +467,20 @@ function startApplication() {
         const imageData = typeof data === 'object' && data ? data.imageData ?? null : null;
         if (localDownload || currentRun || updateRunning || typeof text !== 'string' || !text.trim() || text.length > 8000 || Buffer.byteLength(text) > 32768) return;
         if (pendingAction) { notice = 'Conferma o annulla prima l’azione proposta.'; broadcast(); return; }
+        let folderRead = null;
         if (engine === 'locale' && !imageData) {
           // Comandi gestiti da Mascotte, non dal modello: azioni predefinite e note, sempre con conferma.
           const command = LocalCommands.parseLocalCommand(text, { actions: can.localActions });
           const reply = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer }]); notice = ''; };
           if (command?.type === 'list-notes') { reply(LocalCommands.describeNotes(memory.list())); broadcast(); return chatSnapshot(); }
           if (command?.type === 'reply') { reply(command.text); broadcast(); return chatSnapshot(); }
+          if (command?.type === 'folder') {
+            // Lettura di sola consultazione di una cartella conosciuta, solo con il motore locale e senza conferma: l'avviso apre la risposta.
+            // L'elenco non entra nella cronologia (restano domanda e risposta) e non viene scritto nel log.
+            let view; try { view = FolderView.readFolder(command.folder); } catch { reply(`Non riesco a leggere la cartella ${command.folder.display}.`); broadcast(); return chatSnapshot(); }
+            if (command.question.kind !== 'model') { reply(FolderView.notice(view) + '\n\n' + FolderView.answer(view, command.question)); broadcast(); return chatSnapshot(); }
+            folderRead = { notice: FolderView.notice(view), context: FolderView.modelContext(view) };
+          }
           if (command?.type === 'open') { reply('Posso farlo: controlla e conferma l’azione.'); pendingAction = { id: randomUUID(), kind: 'open', description: command.description, target: command.target }; broadcast(); return chatSnapshot(); }
           if (command?.type === 'remember') { reply('Posso salvarla tra le note: controlla e conferma.'); pendingAction = { id: randomUUID(), kind: 'remember', description: `Salvare questa nota sul ${can.deviceName}: «${command.text}»`, text: command.text }; broadcast(); return chatSnapshot(); }
         }
@@ -505,11 +513,11 @@ function startApplication() {
         store.set(selected, [...history, { role: 'user', text: prompt + imageNote }]); notice = '';
         const args = selected === 'locale' ? null : CLI.argumentsFor(selected, imagePath, Boolean(image && selected === 'claude'));
         const input = image && selected === 'claude' ? CLI.promptWithImage(completePrompt, image.bytes.toString('base64')) : completePrompt;
-        const run = selected === 'locale' ? LocalAI.runLocal(history, prompt, memory.relevant(prompt), { model: settings.localModel, imageBase64: image?.bytes.toString('base64') || null }) : CLI.runCLI(command, args, input, imageDirectory || path.join(dataDirectory, 'chat'));
+        const run = selected === 'locale' ? LocalAI.runLocal(history, prompt, memory.relevant(prompt), { model: settings.localModel, imageBase64: image?.bytes.toString('base64') || null, folderContext: folderRead?.context || null }) : CLI.runCLI(command, args, input, imageDirectory || path.join(dataDirectory, 'chat'));
         currentRun = run; controller.set('thinking', true); broadcast();
         try {
           const output = await run.promise;
-          const text = selected === 'locale' ? output : CLI.decodeOutput(selected, output.stdout, output.code, output.stderr);
+          const text = selected === 'locale' ? (folderRead ? folderRead.notice + '\n\n' + output : output) : CLI.decodeOutput(selected, output.stdout, output.code, output.stderr);
           store.set(selected, [...store.get(selected), { role: 'assistant', text }]); controller.set('talk');
         } catch (e) {
           notice = (e.name === 'AbortError' ? 'Risposta interrotta.' : e.message).slice(0, 1500); controller.set('error');
