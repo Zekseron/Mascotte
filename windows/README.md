@@ -37,7 +37,7 @@ Ogni invio a Codex o Claude chiede conferma e mostra il messaggio e l'eventuale 
 
 Le risposte possono essere salvate con **Ricorda…**, dopo averle controllate o modificate; in **Gestione → Memoria locale** si possono aggiungere e cancellare note. Sono salvate in `%LOCALAPPDATA%\Mascotte\chat\memory.json`, con le stesse protezioni della cartella chat, senza cifratura. Prima di ogni domanda locale vengono cercate fino a cinque note con parole in comune: la ricerca non riconosce sempre sinonimi o concetti equivalenti. Le note sono contesto recuperabile, non addestramento del modello, e non sono condivise automaticamente con Codex o Claude.
 
-Le prime azioni sul PC sono volutamente limitate a **apri calcolatrice** e **apri download** nella chat locale. La mascotte mostra ogni azione e la esegue soltanto dopo conferma; non esegue comandi arbitrari generati dal modello.
+Le azioni sul PC nella chat locale sono volutamente limitate: aprire la Calcolatrice e le cartelle Download, Documenti, Scrivania e Immagini, anche con frasi naturali («puoi aprirmi la calcolatrice?», «mi apri i download per favore»). Su Mac si possono aprire anche le app installate («lancia Terminale»); su Windows l'apertura di app qualsiasi non è ancora disponibile. La mascotte mostra ogni azione e la esegue soltanto dopo conferma; non esegue comandi arbitrari generati dal modello.
 
 ### Accesso alle IA remote
 

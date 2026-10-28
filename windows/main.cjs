@@ -372,6 +372,7 @@ function startApplication() {
         try {
           if (selectedAction.kind === 'remember') { memory.add(selectedAction.text, 'manuale'); notice = `Nota salvata sul ${can.deviceName}.`; }
           else {
+            if (!LocalCommands.validateTarget(selectedAction.target)) throw new Error('l’app o la cartella non è più disponibile o non è in una posizione ammessa.');
             const error = await shell.openPath(selectedAction.target);
             if (error) throw new Error(error);
             notice = 'Azione completata.';
@@ -471,6 +472,7 @@ function startApplication() {
           const command = LocalCommands.parseLocalCommand(text, { actions: can.localActions });
           const reply = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer }]); notice = ''; };
           if (command?.type === 'list-notes') { reply(LocalCommands.describeNotes(memory.list())); broadcast(); return chatSnapshot(); }
+          if (command?.type === 'reply') { reply(command.text); broadcast(); return chatSnapshot(); }
           if (command?.type === 'open') { reply('Posso farlo: controlla e conferma l’azione.'); pendingAction = { id: randomUUID(), kind: 'open', description: command.description, target: command.target }; broadcast(); return chatSnapshot(); }
           if (command?.type === 'remember') { reply('Posso salvarla tra le note: controlla e conferma.'); pendingAction = { id: randomUUID(), kind: 'remember', description: `Salvare questa nota sul ${can.deviceName}: «${command.text}»`, text: command.text }; broadcast(); return chatSnapshot(); }
         }
