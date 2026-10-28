@@ -174,6 +174,14 @@ Comandi rapidi PowerShell, sempre dalla cartella `windows`:
 
 `resources` copia gli asset dalla radice della repo; non modificarli qui. Su Mac l'anteprima usa una cartella separata e `MASCOTTE_PREVIEW=1` sceglie una porta libera, preservando la mascotte nativa attiva. I test principali sono offline; `npm.cmd test` li esegue. `npm.cmd run test:codex-policy` usa opzionalmente la CLI Codex reale contro un mock locale con CODEX_HOME vuoto, senza login.
 
+### Avvio su Mac (in preparazione, solo Apple Silicon)
+
+Il porting Mac è al passo 2 del piano (`WORK-IN-PROGRESS.md`, sezione 5): per ora partono solo mascotte, menu nella barra dei menu, server eventi e chat Claude/Codex. Aggancio alla finestra, Ollama gestito, azioni locali, osservazione, hook e aggiornamenti restano disattivati su Mac (`lib/platform.cjs`).
+
+- `npm ci`, poi `MASCOTTE_PREVIEW=1 npm start` (porta libera, se la vecchia app nativa è attiva) e `npm test`.
+- I dati stanno in `~/Library/Application Support/Mascotte Electron`, mai nella cartella della vecchia app Swift. `MASCOTTE_DATA_DIR` (o `MASCOTTE_WINDOWS_DATA_DIR`) la sostituisce.
+- `npm run build:mac` crea `dist/mac-arm64/Mascotte.app` e lo ZIP con firma ad hoc, senza notarizzazione, senza icona nel Dock (`LSUIElement`) e con bundle id `local.mascotte.desktop`. Su un altro Mac il primo avvio va autorizzato a mano.
+
 Riferimenti: [Electron sicurezza](https://www.electronjs.org/docs/latest/tutorial/security), [BrowserWindow](https://www.electronjs.org/docs/latest/api/browser-window), [Codex config](https://learn.chatgpt.com/docs/config-file/config-reference), [variabili Claude](https://code.claude.com/docs/en/env-vars).
 
 
