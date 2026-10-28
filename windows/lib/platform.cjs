@@ -20,8 +20,10 @@ function capabilities(platform = process.platform, { macHelper } = {}) {
     watch: win,            // osservazione e fotogrammi (passo 7)
     hooks: win,            // gestione hook Claude/Codex (passo 8)
     management: win,       // aggiornamenti dal pacchetto (passo 10)
+    appMenu: mac,          // menu applicazione minimale (appMenu + editMenu): senza, Cmd+C/V/X/A/Z non arrivano ai campi di testo
     hideDock: mac,         // app da barra dei menu, senza icona nel Dock (come la vecchia app, LSUIElement)
     allSpaces: mac,        // mascotte visibile su tutte le scrivanie e sopra le app a tutto schermo (verifica completa: passo 3)
+    deviceName: mac ? 'Mac' : 'PC',
     barLabel: mac ? 'Aggancia al Dock' : 'Aggancia alla barra delle applicazioni',
     barName: mac ? 'al Dock' : 'alla barra',
     gitGuide: mac ? 'https://git-scm.com/install/mac' : 'https://git-scm.com/install/windows',

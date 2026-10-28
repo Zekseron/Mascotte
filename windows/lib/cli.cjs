@@ -39,7 +39,19 @@ function commandFor(file, electronExecutable = process.execPath) {
   }
   if (/\.(bat|ps1)$/i.test(file)) return null;
   if (/\.(js|cjs)$/i.test(file)) return { file: electronExecutable, prefix: [file], env: { ELECTRON_RUN_AS_NODE: '1' } };
+  const script = process.platform === 'win32' ? null : nodeScript(file);
+  // Script npm con shebang «env node» (macOS/Linux): un'app avviata da Finder ha un PATH minimo, senza node.
+  // Si esegue con il runtime di Electron e si aggiunge al PATH la cartella della CLI (con nvm/Homebrew contiene node).
+  if (script) return { file: electronExecutable, prefix: [script], env: { ELECTRON_RUN_AS_NODE: '1' }, pathDirs: [...new Set([path.dirname(file), path.dirname(script)])] };
   return { file, prefix: [], env: {} };
+}
+function nodeScript(file) {
+  let fd;
+  try {
+    fd = fs.openSync(file, 'r'); const head = Buffer.alloc(160), n = fs.readSync(fd, head, 0, 160, 0);
+    const line = head.subarray(0, n).toString('latin1').split('\n')[0];
+    return /^#!.*\bnode\b/.test(line) ? fs.realpathSync(file) : null;
+  } catch { return null; } finally { if (fd !== undefined) fs.closeSync(fd); }
 }
 function findCLI(engine, env = process.env) {
   if (!ENGINES.includes(engine)) return null;
@@ -65,7 +77,12 @@ function findCLI(engine, env = process.env) {
   return null;
 }
 function decodeOutput(engine, stdout, code, stderr) {
-  if (code !== 0) throw new Error(stderr.trim().slice(-1500) || 'La CLI non ha risposto: verifica accesso e limiti.');
+  if (code !== 0) {
+    // Claude con --output-format json scrive l'errore (es. accesso scaduto) su stdout, non su stderr.
+    let detail = '';
+    if (engine === 'claude') { try { const r = JSON.parse(stdout); if (r.is_error && typeof r.result === 'string') detail = r.result.trim(); } catch {} }
+    throw new Error((detail || stderr.trim()).slice(-1500) || 'La CLI non ha risposto: verifica accesso e limiti.');
+  }
   if (engine === 'claude') {
     const result = JSON.parse(stdout);
     if (result.is_error || typeof result.result !== 'string' || !result.result.trim()) throw new Error(result.result || 'Risposta Claude incompleta.');
@@ -82,15 +99,16 @@ function decodeOutput(engine, stdout, code, stderr) {
   return text.slice(0, 100000);
 }
 function runCLI(command, args, prompt, directory, timeout = 180000) {
-  let child, stopped = false, reason = '', timer;
+  let child, stopped = false, reason = '', timer, killTimer;
   const environment = { ...process.env, ...command.env };
   if (args.includes('--print')) {
     environment.CLAUDE_CODE_DISABLE_CLAUDE_MDS = '1';
     environment.CLAUDE_CODE_DISABLE_AUTO_MEMORY = '1';
     environment.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = '1';
   }
+  if (command.pathDirs?.length) environment.PATH = [environment.PATH, ...command.pathDirs].filter(Boolean).join(path.delimiter);
   for (const key of ['OPENAI_API_KEY', 'CODEX_API_KEY', 'ANTHROPIC_API_KEY']) delete environment[key];
-  const stop = (why = 'Risposta interrotta.') => {
+  const stop = (why = 'Risposta interrotta.', force = false) => {
     if (stopped) return;
     stopped = true; reason = why;
     if (!child?.pid) return;
@@ -98,8 +116,9 @@ function runCLI(command, args, prompt, directory, timeout = 180000) {
       const taskkill = path.join(environment.SystemRoot || 'C:\\Windows', 'System32', 'taskkill.exe');
       execFile(taskkill, ['/pid', String(child.pid), '/T', '/F'], { windowsHide: true }, () => {});
     } else {
-      try { process.kill(-child.pid, 'SIGTERM'); } catch {}
-      const t = setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch {} }, 1000); t.unref();
+      try { process.kill(-child.pid, force ? 'SIGKILL' : 'SIGTERM'); } catch {}
+      if (force) return; // chiusura dell'app: niente timer, l'app sta uscendo
+      killTimer = setTimeout(() => { try { process.kill(-child.pid, 'SIGKILL'); } catch {} }, 1000); killTimer.unref();
     }
   };
   const promise = new Promise((resolve, reject) => {
@@ -110,7 +129,8 @@ function runCLI(command, args, prompt, directory, timeout = 180000) {
     child.stderr.on('data', data => { if (diagnostic.length < 32768) diagnostic = Buffer.concat([diagnostic, data.subarray(0, 32768 - diagnostic.length)]); });
     child.stdin.on('error', () => stop('Non riesco a inviare il messaggio.'));
     child.once('error', error => { clearTimeout(timer); reject(new Error('Impossibile avviare la CLI: ' + error.message)); });
-    child.once('close', code => { clearTimeout(timer); if (reason) reject(new Error(reason)); else resolve({ stdout: Buffer.concat(output).toString('utf8'), code, stderr: diagnostic.toString('utf8') }); });
+    child.once('close', code => { clearTimeout(timer); clearTimeout(killTimer); if (process.platform !== 'win32') { try { process.kill(-child.pid, 'SIGKILL'); } catch {} } // nipoti rimasti nel gruppo
+       if (reason) reject(new Error(reason)); else resolve({ stdout: Buffer.concat(output).toString('utf8'), code, stderr: diagnostic.toString('utf8') }); });
     child.stdin.end(prompt);
     timer = setTimeout(() => stop('Tempo di risposta scaduto (3 minuti).'), timeout);
   });
