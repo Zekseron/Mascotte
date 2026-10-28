@@ -47,6 +47,22 @@ func state(of target: (id: Int, pid: Int32)) -> String {
     return "{\"status\":\"visible\",\"x\":\(Int(r.minX.rounded())),\"y\":\(Int(r.minY.rounded())),\"width\":\(Int(r.width.rounded())),\"height\":\(Int(r.height.rounded()))}"
 }
 
+// Opzione --list: elenco delle finestre normali visibili (ID, nome dell'app e dimensioni, senza titoli né immagini),
+// per filtrare l'elenco dell'osservazione: scarta le miniature di Stage Manager e le finestre di servizio.
+if CommandLine.arguments.contains("--list") {
+    let list = CGWindowListCopyWindowInfo([.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] ?? []
+    var rows: [String] = []
+    for info in list {
+        guard number(info, kCGWindowLayer) == 0, let id = number(info, kCGWindowNumber), let r = bounds(info),
+              let pid = number(info, kCGWindowOwnerPID).map({ Int32($0) }), !isOwn(pid) else { continue }
+        let owner = (info[kCGWindowOwnerName as String] as? String) ?? ""
+        let data = try? JSONSerialization.data(withJSONObject: ["id": id, "owner": owner, "width": Int(r.width), "height": Int(r.height)])
+        if let data, let row = String(data: data, encoding: .utf8) { rows.append(row) }
+    }
+    emit("[" + rows.joined(separator: ",") + "]")
+    exit(0)
+}
+
 if once {
     if let t = pickTarget() { emit(state(of: t)) } else { emit("{\"status\":\"unavailable\"}") }
     exit(0)

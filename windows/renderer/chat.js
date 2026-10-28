@@ -32,11 +32,15 @@ function stopWatchLocal() {
 async function stopWatching() { stopWatchLocal(); render(await invoke('watch-disable')); }
 async function refreshWatchSources() {
   const sources = await invoke('watch-sources');
+  $('watch-permission').hidden = !sources?.permission;
+  if (sources?.permission) { $('watch-state').textContent = sources.message; return; }
   if (!Array.isArray(sources)) return;
   const select = $('watch-source'); select.replaceChildren(new Option('Scegli una finestra', ''));
   for (const source of sources) select.add(new Option(source.name, source.id));
   select.disabled = false; $('toggle-watch').disabled = !select.value;
-  $('watch-state').textContent = sources.length ? 'Seleziona una finestra. L’elenco resta su questo PC.' : 'Non trovo finestre da osservare.';
+  $('watch-state').textContent = sources.length ? `Seleziona una finestra. L’elenco resta su questo ${current?.deviceName || 'PC'}.` : 'Non trovo finestre da osservare.';
+  // Su Mac si possono osservare solo le finestre sullo schermo: non quelle ridotte nel Dock o in un altro gruppo di Stage Manager.
+  if (current?.deviceName === 'Mac') $('watch-state').textContent += ' Manca una finestra? Portala in primo piano (non ridotta nel Dock né in un altro gruppo di Stage Manager) e premi di nuovo «Scegli finestra».';
 }
 async function startWatching() {
   const id = $('watch-source').value; if (!id) return;
@@ -187,7 +191,7 @@ function render(value) {
   $('watch-help').textContent = value.engine === 'locale' && !value.localVision
     ? `I modelli locali disponibili leggono solo testo: questa anteprima non viene vista da ${value.localEngineLabel || 'Ollama'}. Per fare una domanda su un fotogramma, scegli Codex o Claude e allegalo: ogni invio richiede conferma.`
     : value.engine === 'locale' ? 'Il modello locale vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Il fotogramma resta sul ' + value.deviceName + ' e non viene salvato nella cronologia. Per fermare la cattura usa Smetti.'
-    : "L'anteprima resta sul PC. Il servizio vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Chiudere questa sezione nasconde l'anteprima ma non ferma la cattura: usa Smetti.";
+    : `L'anteprima resta sul ${value.deviceName}. Il servizio vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Chiudere questa sezione nasconde l'anteprima ma non ferma la cattura: usa Smetti.`;
   $('share-view').disabled = (value.engine === 'locale' && !value.localVision) || !value.watching || locked || !watchStream;
   $('share-view').title = value.engine === 'locale' && !value.localVision ? `Scegli ${localCatalog.visionChoice} in Gestione per analizzare immagini.` : '';
   $('toggle-watch').hidden = value.watching; $('stop-watch').hidden = !value.watching;
@@ -270,6 +274,7 @@ $('apply').addEventListener('click', async () => render(await invoke('setup-appl
 $('dismiss').addEventListener('click', async () => render(await invoke('setup-dismiss')));
 $('setup-dialog').addEventListener('cancel', () => invoke('setup-dismiss'));
 $('refresh-watch').addEventListener('click', refreshWatchSources);
+$('watch-permission').addEventListener('click', () => invoke('watch-permission-settings'));
 $('watch-source').addEventListener('change', () => { $('toggle-watch').disabled = !$('watch-source').value; });
 $('toggle-watch').addEventListener('click', startWatching);
 $('stop-watch').addEventListener('click', stopWatching);

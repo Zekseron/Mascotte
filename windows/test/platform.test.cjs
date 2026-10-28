@@ -34,8 +34,9 @@ test('link di root ignorato fuori da Windows ma sempre rifiutato su Windows', t 
 
 test('capacità e cartella dati per piattaforma', () => {
   const win = capabilities('win32'), mac = capabilities('darwin', { macHelper: false });
-  for (const k of ['windowAttach', 'managedOllama', 'watch', 'hooks', 'management']) { assert.equal(win[k], true, k); assert.equal(mac[k], false, k); }
+  for (const k of ['windowAttach', 'managedOllama', 'hooks', 'management']) { assert.equal(win[k], true, k); assert.equal(mac[k], false, k); }
   assert.equal(win.localActions, true); assert.equal(mac.localActions, true); // passo 6: azioni locali anche su Mac
+  assert.equal(win.watch, true); assert.equal(mac.watch, true); // passo 7: osservazione anche su Mac
   assert.equal(capabilities('darwin', { macHelper: true }).windowAttach, true);
   assert.equal(capabilities('win32', { macHelper: false }).windowAttach, true);
   assert.equal(mac.barLabel, 'Aggancia al Dock'); assert.match(win.barLabel, /barra delle applicazioni/);
@@ -53,4 +54,12 @@ test('percorso dell’helper Mac: pacchetto se presente, altrimenti resources/ma
   assert.equal(macHelperPath({ resourcesPath: '/App/Contents/Resources', exists: p => p === '/App/Contents/Resources/mascotte-window-helper' }), '/App/Contents/Resources/mascotte-window-helper');
   assert.equal(macHelperPath({ resourcesPath: '/App/Contents/Resources', exists: () => false }), path.join(__dirname, '..', 'resources', 'mac', 'mascotte-window-helper'));
   assert.equal(macHelperPath({ resourcesPath: undefined }), path.join(__dirname, '..', 'resources', 'mac', 'mascotte-window-helper'));
+});
+
+test('Mac: elenco finestre senza anteprime di Stage Manager e con il nome dell’app', () => {
+  const { filterMacWindows } = require('../lib/capture.cjs');
+  const sources = [{ id: 'window:331:0', name: 'Claude' }, { id: 'window:949:0', name: 'zsh' }, { id: 'window:754:0', name: 'Nuova scheda' }, { id: 'window:105:0', name: 'Nuova scheda' }, { id: 'window:9:0', name: 'Sconosciuta' }];
+  const windows = [{ id: 331, owner: 'Claude', width: 1200, height: 800 }, { id: 949, owner: 'Terminale', width: 98, height: 112 },
+    { id: 754, owner: 'Google Chrome', width: 1252, height: 870 }, { id: 105, owner: 'WindowManager', width: 1400, height: 900 }];
+  assert.deepEqual(filterMacWindows(sources, windows), [{ id: 'window:331:0', name: 'Claude' }, { id: 'window:754:0', name: 'Google Chrome · Nuova scheda' }]);
 });

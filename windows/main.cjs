@@ -4,8 +4,9 @@ const fs = require('node:fs');
 const os = require('node:os');
 const { randomUUID } = require('node:crypto');
 const { pathToFileURL } = require('node:url');
-const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer, shell } = require('electron');
+const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer, shell, systemPreferences } = require('electron');
 const Platform = require('./lib/platform.cjs');
+const Capture = require('./lib/capture.cjs');
 const can = Platform.capabilities();
 const dataDirectory = Platform.dataDirectory({ appData: app.getPath('appData') });
 const endpoint = path.join(dataDirectory, 'events.json');
@@ -215,11 +216,27 @@ function startApplication() {
       placeAttachment();
     }, () => { detach(); if (!automatic && !quitting) dialog.showErrorBox('Aggancio non disponibile', 'Il lettore locale della posizione finestra non è disponibile su questo PC. Puoi usare l’aggancio ' + can.barName + '.'); });
   }
+  // Su Mac la cattura richiede il permesso «Registrazione schermo» (Privacy e sicurezza). Su Windows non serve.
+  const screenPermission = () => process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('screen') : 'granted';
+  const permissionMessage = status => status === 'restricted'
+    ? 'La registrazione dello schermo è bloccata da un profilo o da Tempo di utilizzo su questo Mac.'
+    : 'Mascotte non ha il permesso «Registrazione schermo». Attivalo in Impostazioni di Sistema > Privacy e sicurezza > Registrazione schermo, poi esci da Mascotte e riaprila.';
+  async function watchSources() {
+    let status = screenPermission();
+    // Prima richiesta: getSources fa comparire la domanda di macOS. Il permesso vale di solito solo dopo il riavvio dell'app.
+    if (status === 'not-determined') { try { await windowSources(); } catch {} status = screenPermission(); }
+    if (status !== 'granted') return { permission: status, message: permissionMessage(status) };
+    return windowSources();
+  }
   async function windowSources() {
     const sources = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 0, height: 0 }, fetchWindowIcons: false });
     const ownHandles = new Set([mascot?.getMediaSourceId(), chat?.getMediaSourceId()].filter(Boolean).map(id => id.split(':')[1]));
-    return sources.filter(source => source.name?.trim() && /^window:/.test(source.id) && !ownHandles.has(source.id.split(':')[1]))
+    const list = sources.filter(source => source.name?.trim() && /^window:/.test(source.id) && !ownHandles.has(source.id.split(':')[1]))
       .map(source => ({ id: source.id, name: source.name.slice(0, 160) }));
+    if (process.platform !== 'darwin') return list;
+    // Mac: via le anteprime di Stage Manager e le finestre di servizio. Senza helper si mostra l'elenco completo.
+    const windows = await Capture.listMacWindows(Platform.macHelperPath(), process.pid);
+    return windows ? Capture.filterMacWindows(list, windows) : list;
   }
   function stopWatching() {
     watchSource = null;
@@ -335,7 +352,7 @@ function startApplication() {
       fs.unlinkSync(resultFile);
     }
     characters=readCharacters();selectCharacter(characters.some(c=>c.id===raw.character)?raw.character:'rosso',true);
-    require('./lib/capture.cjs').configureDisplayCapture(session.defaultSession, {
+    Capture.configureDisplayCapture(session.defaultSession, {
       getChat: () => chat, getSource: () => watchSource, listSources: windowSources
     });
     session.defaultSession.webRequest.onBeforeRequest((details, callback) => callback({ cancel: !details.url.startsWith('file:') && !details.url.startsWith('data:') }));
@@ -527,8 +544,10 @@ function startApplication() {
         } catch (error) { updateRunning = false; updateFailed = true; updateStatus = error.message; broadcast(); }
         return chatSnapshot();
       }
-      if (action === 'watch-sources' && can.watch) return windowSources();
+      if (action === 'watch-sources' && can.watch) return watchSources();
+      if (action === 'watch-permission-settings' && can.watch && process.platform === 'darwin') { await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'); return; }
       if (action === 'watch-enable' && can.watch && typeof data?.id === 'string') {
+        if (screenPermission() !== 'granted') { notice = permissionMessage(screenPermission()); return chatSnapshot(); }
         const sources = await windowSources(), source = sources.find(item => item.id === data.id);
         if (!source) { notice = 'La finestra non è più disponibile. Aggiorna l’elenco e riprova.'; return chatSnapshot(); }
         watchSource = source; notice = ''; broadcast(); return { id: source.id, name: source.name };
