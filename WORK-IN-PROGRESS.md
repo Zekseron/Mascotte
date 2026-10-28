@@ -103,17 +103,17 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
 
 ## 5. Aggiornamento Mac e allineamento con Windows
 
-**Stato:** passo 1 in corso. L'analisi delle differenze è registrata e propone Electron come base. Il porting non è iniziato.
+**Stato:** passo 1 completato (base Electron, solo Apple Silicon, nessuna notarizzazione, migrazione dei dati con backup). Prossimo: passo 2.
 
 **Obiettivo:** rendere disponibili su Mac le funzioni attuali di Windows, mantenendo il piano aggiornato quando Windows evolve. La base Mac nativa esiste già in `app/`: personaggio, animazioni, aggancio al Dock e alle finestre, eventi e micro chat Claude/Codex.
 
-**Scelta tecnica da definire al passo 1:** riutilizzare la base Electron di `windows/` anche su macOS è la proposta per condividere più codice in futuro; aggiornare l'app nativa Swift rimane un'alternativa. La scelta non è ancora stata adottata e questo piano non avvia il porting.
+**Scelta tecnica (decisa al passo 1, 28 ottobre 2026):** la base Electron di `windows/` viene usata anche su macOS, in modo da condividere il codice. L'app nativa Swift non viene più sviluppata e resta come riferimento fino al collaudo.
 
 **Stima iniziale indicativa:** 3–5 giornate con la base Electron condivisa, oppure 6–10 giornate mantenendo Swift, con accesso a un Mac per compilazione e prove. Da rivedere dopo il primo passo e ogni ampliamento del perimetro. Le proposte delle sezioni 1–4 non ancora implementate non sono incluse nella stima.
 
 ### Passi da eseguire in ordine
 
-- [ ] **1. Fotografare le differenze e scegliere la base.** Confrontare il comportamento Windows corrente con `app/`, registrare versione/commit di riferimento e decidere Electron condiviso o Swift. Definire versioni macOS e architetture da supportare (Apple Silicon e, se previsto, Intel), disponibilità del Mac di prova e criteri di parità.
+- [x] **1. Fotografare le differenze e scegliere la base.** Confrontare il comportamento Windows corrente con `app/`, registrare versione/commit di riferimento e decidere Electron condiviso o Swift. Definire versioni macOS e architetture da supportare (Apple Silicon e, se previsto, Intel), disponibilità del Mac di prova e criteri di parità.
   - **Analisi del 28 ottobre 2026 (commit `a976df3`, Windows 0.8.0, Mac Swift 0.5).** Fatta su Mac Apple Silicon con macOS 27.0.1.
     - **Verifiche eseguite:**
       - `swift build` riuscito e `--self-test` con 149 verifiche, nessuna fallita.
@@ -137,7 +137,12 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
       - manca `NSApp.mainMenu`, quindi i comandi Cmd+C/V/A/Z nella chat sono probabilmente assenti (non provato a mano);
       - Interrompi e timeout non chiudono i processi nipoti (controllo `getpgid` in `ChatClient.swift`);
       - il server eventi si ferma sullo stato `.waiting` e non ha una porta di ripiego.
-    - **Ancora da decidere per chiudere il passo:** adozione definitiva di Electron, supporto Intel, firma/notarizzazione (serve un account Apple Developer) e criteri di parità.
+    - **Decisioni del 28 ottobre 2026:**
+      - **Base:** Electron condiviso con `windows/`. L'app Swift in `app/` resta come riferimento fino al collaudo di parità; la sua logica di rilevamento finestre diventa l'helper Mac per l'aggancio.
+      - **Architetture:** solo Apple Silicon (arm64). Intel resta escluso finché non c'è un Mac Intel per le prove.
+      - **Distribuzione:** firma ad hoc, senza notarizzazione. Su altri Mac il primo avvio va autorizzato a mano; documentarlo nelle guide (passo 12).
+      - **Dati della vecchia app:** migrazione con backup da `~/Library/Application Support/Mascotte` (impostazioni da UserDefaults `local.mascotte.app` e `chat/history.json`); dettagli nel passo 9.
+      - **Criteri di parità:** sono comprese tutte le funzioni Windows 0.8.0 del «Punto di partenza». Al posto della barra delle applicazioni c'è il Dock, e l'aggancio alla finestra attiva usa l'helper Mac. Restano escluse, perché esclusive di Windows, l'installer NSIS e l'avvio del runtime Ollama gestito (`ollama.exe`): su Mac si guida l'utente a installare Ollama, a meno di una decisione diversa al passo 5.
 - [ ] **2. Preparare avvio e struttura del codice.** Separare le funzioni comuni dagli adattatori Windows/macOS; adattare percorsi, ricerca delle CLI, risorse e avvio dei processi. Se si sceglie Electron, predisporre build e identificativo Mac senza sovrascrivere la vecchia app o i suoi dati durante le prove. Verificare avvio e chiusura sul Mac.
 - [ ] **3. Verificare mascotte e integrazione desktop.** Riprodurre personaggi, dimensioni, posizione, trasparenza, trascinamento, menu e stati animati. Adattare aggancio al Dock e alla finestra attiva; provare più schermi, riduzione a icona, cambio scrivania e tutto schermo.
 - [ ] **4. Allineare chat Codex e Claude.** Portare interfaccia e comportamento Windows, conferma prima di ogni invio remoto, cronologie separate, nuova conversazione, interruzione, timeout ed errori. Verificare ricerca delle CLI, permessi dei processi, invio tramite stdin e arresto dei processi figli su Mac, prima con CLI simulate e poi con una prova reale autorizzata.
