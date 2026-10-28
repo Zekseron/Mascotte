@@ -176,9 +176,10 @@ Comandi rapidi PowerShell, sempre dalla cartella `windows`:
 
 ### Avvio su Mac (in preparazione, solo Apple Silicon)
 
-Il porting Mac è al passo 2 del piano (`WORK-IN-PROGRESS.md`, sezione 5): per ora partono solo mascotte, menu nella barra dei menu, server eventi e chat Claude/Codex. Aggancio alla finestra, Ollama gestito, azioni locali, osservazione, hook e aggiornamenti restano disattivati su Mac (`lib/platform.cjs`).
+Il porting Mac è al passo 3 del piano (`WORK-IN-PROGRESS.md`, sezione 5): partono mascotte, menu nella barra dei menu, aggancio al Dock e alla finestra attiva, server eventi e chat Claude/Codex. Ollama gestito, azioni locali, osservazione, hook e aggiornamenti restano disattivati su Mac (`lib/platform.cjs`).
 
 - `npm ci`, poi `MASCOTTE_PREVIEW=1 npm start` (porta libera, se la vecchia app nativa è attiva) e `npm test`.
+- L'aggancio alla finestra usa un helper Swift (`lib/mac/window-helper.swift`) compilato da `npm start`/`npm run resources` in `resources/mac/` (serve `swiftc`, anche dai soli Command Line Tools; senza, l'aggancio alla finestra resta disattivato). Non richiede il permesso «Registrazione schermo». Il Dock può stare in basso, a lato o nascosto: la mascotte si posa sul bordo inferiore dell'area utile.
 - I dati stanno in `~/Library/Application Support/Mascotte Electron`, mai nella cartella della vecchia app Swift. `MASCOTTE_DATA_DIR` (o `MASCOTTE_WINDOWS_DATA_DIR`) la sostituisce.
 - `npm run build:mac` crea `dist/mac-arm64/Mascotte.app` e lo ZIP con firma ad hoc, senza notarizzazione, senza icona nel Dock (`LSUIElement`) e con bundle id `local.mascotte.desktop`. Su un altro Mac il primo avvio va autorizzato a mano.
 
