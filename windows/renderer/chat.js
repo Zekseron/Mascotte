@@ -91,6 +91,19 @@ function render(value) {
     remove.addEventListener('click', async () => render(await invoke('memory-remove', note.id)));
     item.append(text, origin, remove); $('memory-list').append(item);
   }
+  const folders = management.folders || { defaults: [], extra: [], max: 20 };
+  const folderRow = (folder, removable, index) => {
+    const row = document.createElement('div'); row.className = 'folder-row';
+    const name = document.createElement('strong'); name.textContent = folder.name;
+    const where = document.createElement('p'); where.className = 'local-path'; where.textContent = folder.path;
+    row.append(name, where);
+    if (removable) { const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Rimuovi'; remove.disabled = locked || Boolean(value.setup); remove.addEventListener('click', async () => render(await invoke('folders-remove', index))); row.append(remove); }
+    return row;
+  };
+  $('folder-defaults').replaceChildren(...folders.defaults.map(folder => folderRow(folder, false)));
+  $('folder-extra').replaceChildren(...folders.extra.map((folder, index) => folderRow(folder, true, index)));
+  $('folders-add').disabled = locked || Boolean(value.setup) || folders.extra.length >= folders.max;
+  $('folder-status').textContent = folders.status || ''; $('folder-status').className = folders.failed ? 'error' : '';
   $('update-app').disabled = !management.available || !management.repoPath || locked || Boolean(value.setup);
   $('update-app').textContent = management.running ? 'Aggiornamento in corso…' : 'Compila e aggiorna';
   $('manage-hooks').disabled = !management.available || locked;
@@ -186,6 +199,7 @@ $('engine').addEventListener('change', async () => { const next = await invoke('
 $('new').addEventListener('click', async () => { $('input').value = ''; drafts[current.engine] = ''; render(await invoke('new')); });
 $('tab-chat').addEventListener('click', () => selectTab('chat'));
 $('tab-management').addEventListener('click', () => selectTab('management'));
+$('folders-add').addEventListener('click', async () => render(await invoke('folders-add')));
 $('choose-repo').addEventListener('click', async () => render(await invoke('repo-select')));
 $('release-update').addEventListener('click', async () => render(await invoke('release-update')));
 $('guide-codex').addEventListener('click', () => invoke('cli-guide', 'codex'));

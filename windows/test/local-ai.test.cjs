@@ -259,7 +259,7 @@ test('contesto cartella: messaggio di sistema con i conteggi; senza il parametro
   const plain = calls.find(item => item.endpoint === '/api/chat').payload;
   assert.equal(plain.options.num_ctx, 4096); assert.equal(plain.messages.length, 1 + 1 + 12 + 1);
   assert.ok(!plain.messages.some(message => /Elenco della cartella/.test(message.content)));
-  assert.match(plain.messages[0].content, /Download, Documenti, Scrivania e Immagini.*altre cartelle.*solo quelle quattro/);
+  assert.match(plain.messages[0].content, /Download, Documenti, Scrivania e Immagini.*altre cartelle.*Gestione/);
   calls.length = 0;
   const context = 'Cartella: Download\nCONTEGGI ESATTI calcolati da Mascotte: totale 3; PDF: 2, immagini: 1.';
   await runLocal(history, 'Qual è il pdf più recente?', [{ text: 'una nota', source: 'manuale' }], { port, platform: 'darwin', folderContext: context }).promise;

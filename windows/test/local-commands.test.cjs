@@ -128,7 +128,10 @@ test('domande sulle cartelle: frasi riconosciute con la cartella e il tipo giust
     ['cosa c\'è in download?', 'Download', 'list', []], ['quanti file ci sono in downloads', 'Download', 'count', []],
     ['dammi i duplicati nelle immagini', 'Immagini', 'duplicates', []], ['quali file posso cancellare in download?', 'Download', 'model', []],
     ['riassumi cosa c\'è nella cartella documenti', 'Documenti', 'model', []], ['ci sono pdf in download?', 'Download', 'count', ['pdf']],
-    ['quante foto ho nella cartella Immagini, grazie', 'Immagini', 'count', ['immagini']], ['qual è il file più grande dentro la scrivania?', 'Scrivania', 'model', []]];
+    ['quante foto ho nella cartella Immagini, grazie', 'Immagini', 'count', ['immagini']], ['qual è il file più grande dentro la scrivania?', 'Scrivania', 'model', []],
+    // Prova dell'utente: elenco delle cartelle con «che/quali», anche con «ci sono».
+    ['che cartelle ci sono in download?', 'Download', 'list', ['cartelle']], ['quali cartelle ho in download?', 'Download', 'list', ['cartelle']],
+    ['quante cartelle ci sono in download?', 'Download', 'count', ['cartelle']], ['che video ci sono nei documenti?', 'Documenti', 'list', ['video']]];
   for (const platformOptions of [mac, win]) for (const [text, display, kind, categories] of cases) {
     const result = parseLocalCommand(text, platformOptions);
     assert.equal(result?.type, 'folder', text); assert.equal(result.folder.display, display, text); assert.equal(result.question.kind, kind, text); assert.deepEqual(result.question.categories, categories, text);
