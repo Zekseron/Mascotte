@@ -1,6 +1,6 @@
 # Mascotte — lavoro in corso e idee
 
-Ultimo aggiornamento: 27 ottobre 2026.
+Ultimo aggiornamento: 28 ottobre 2026.
 
 Questo file è il promemoria condiviso per riprendere il progetto anche da un altro PC. Le idee sotto sono da progettare e implementare: non descrivono funzioni già disponibili. Aggiungere qui le nuove proposte, aggiornando stato, decisioni e prossimo passo.
 
@@ -103,7 +103,7 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
 
 ## 5. Aggiornamento Mac e allineamento con Windows
 
-**Stato:** pianificato, porting degli aggiornamenti Windows non iniziato.
+**Stato:** passo 1 in corso. L'analisi delle differenze è registrata e propone Electron come base. Il porting non è iniziato.
 
 **Obiettivo:** rendere disponibili su Mac le funzioni attuali di Windows, mantenendo il piano aggiornato quando Windows evolve. La base Mac nativa esiste già in `app/`: personaggio, animazioni, aggancio al Dock e alle finestre, eventi e micro chat Claude/Codex.
 
@@ -114,6 +114,30 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
 ### Passi da eseguire in ordine
 
 - [ ] **1. Fotografare le differenze e scegliere la base.** Confrontare il comportamento Windows corrente con `app/`, registrare versione/commit di riferimento e decidere Electron condiviso o Swift. Definire versioni macOS e architetture da supportare (Apple Silicon e, se previsto, Intel), disponibilità del Mac di prova e criteri di parità.
+  - **Analisi del 28 ottobre 2026 (commit `a976df3`, Windows 0.8.0, Mac Swift 0.5).** Fatta su Mac Apple Silicon con macOS 27.0.1.
+    - **Verifiche eseguite:**
+      - `swift build` riuscito e `--self-test` con 149 verifiche, nessuna fallita.
+      - Test in `tools/test` e `viewer/test` superati.
+      - `npm test` in `windows/` su macOS: 35 test su 37 superati.
+      - Ollama e la CLI Codex non sono installati su questo Mac; c'è la CLI Claude.
+    - **Confronto delle funzioni.**
+      - Già presenti su Mac: personaggi, animazioni, menu, aggancio al Dock e alla finestra attiva (con `CGWindowList`), server eventi, chat Claude/Codex.
+      - Il protocollo eventi è identico: porta 8766, `POST /event`, token Bearer, `events.json`.
+      - La chat Mac però invia senza conferma.
+      - Assenti su Mac: IA locale Ollama con modelli testuali e visivi, note di memoria, azioni locali, osservazione con fotogrammi, gestione hook dall'app (oggi solo `configura-eventi.py`), scheda Gestione, aggiornamenti.
+    - **Base proposta: Electron condiviso.** Circa il 75–80% di `windows/` è già indipendente dal sistema.
+      - Parti da adattare: `window-helper.ps1`, `hookCommand` (PowerShell) in `lib/setup.cjs`, updater e installer, percorso della Calcolatrice, link di download Ollama, assenza di un target mac in `package.json`.
+      - Vanno rivisti i 13 controlli `process.platform === 'win32'` in `main.cjs`.
+      - La logica `CGWindowList` di `AttachmentController.swift` può diventare un piccolo helper che emette lo stesso JSON di `window-helper.ps1`.
+    - **Problemi Mac nel codice Windows.**
+      - `assertRegularPath` in `lib/storage.cjs` rifiuta qualsiasi link negli antenati del percorso. Su macOS `/var` è un link a `/private/var`, e per questo fallisce il test della memoria locale.
+      - Il test di `installationDirectory` in `updater.test.cjs` fallisce per lo stesso motivo.
+      - Su macOS i dati finirebbero in `userData/Windows-preview`, separati da quelli della vecchia app: vedi passo 9.
+    - **Difetti dell'app Swift** (non correggerli se si adotta Electron; tenerne conto nel collaudo):
+      - manca `NSApp.mainMenu`, quindi i comandi Cmd+C/V/A/Z nella chat sono probabilmente assenti (non provato a mano);
+      - Interrompi e timeout non chiudono i processi nipoti (controllo `getpgid` in `ChatClient.swift`);
+      - il server eventi si ferma sullo stato `.waiting` e non ha una porta di ripiego.
+    - **Ancora da decidere per chiudere il passo:** adozione definitiva di Electron, supporto Intel, firma/notarizzazione (serve un account Apple Developer) e criteri di parità.
 - [ ] **2. Preparare avvio e struttura del codice.** Separare le funzioni comuni dagli adattatori Windows/macOS; adattare percorsi, ricerca delle CLI, risorse e avvio dei processi. Se si sceglie Electron, predisporre build e identificativo Mac senza sovrascrivere la vecchia app o i suoi dati durante le prove. Verificare avvio e chiusura sul Mac.
 - [ ] **3. Verificare mascotte e integrazione desktop.** Riprodurre personaggi, dimensioni, posizione, trasparenza, trascinamento, menu e stati animati. Adattare aggancio al Dock e alla finestra attiva; provare più schermi, riduzione a icona, cambio scrivania e tutto schermo.
 - [ ] **4. Allineare chat Codex e Claude.** Portare interfaccia e comportamento Windows, conferma prima di ogni invio remoto, cronologie separate, nuova conversazione, interruzione, timeout ed errori. Verificare ricerca delle CLI, permessi dei processi, invio tramite stdin e arresto dei processi figli su Mac, prima con CLI simulate e poi con una prova reale autorizzata.
