@@ -1,5 +1,15 @@
 'use strict';
 const $ = id => document.getElementById(id);
+// Nomi dei servizi remoti; per tutto il resto (motore locale) si usa localTitle.
+const SERVICE_NAMES = { codex: 'Codex', claude: 'Claude' };
+// Pulsante di elenco: tipo, testo, stato disabilitato (solo se indicato) e gestore, nell'ordine in cui si impostano.
+function listButton(label, onClick, disabled) {
+  const button = document.createElement('button'); button.type = 'button'; button.textContent = label;
+  if (disabled !== undefined) button.disabled = disabled;
+  button.addEventListener('click', onClick); return button;
+}
+// Pulsante che invia un'azione senza dati e mostra la risposta.
+const onClickRender = (id, action) => $(id).addEventListener('click', async () => render(await invoke(action)));
 let current = null, drafts = { codex: '', claude: '', locale: '' }, watchStream = null, pendingImage = null, memorySource = 'manuale', remotePending = null;
 // Servizi remoti già confermati in questa esecuzione: dopo il primo invio i messaggi di testo partono senza nuova conferma.
 // La finestra della chat viene solo nascosta, quindi l'elenco dura finché Mascotte resta aperta. Immagini e secondo parere chiedono sempre.
@@ -159,8 +169,7 @@ function render(value) {
     const item = document.createElement('div'); item.className = 'memory-note';
     const text = document.createElement('p'); text.textContent = note.text;
     const origin = document.createElement('small'); origin.textContent = 'Fonte: ' + note.source;
-    const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Elimina'; remove.disabled = locked;
-    remove.addEventListener('click', async () => render(await invoke('memory-remove', note.id)));
+    const remove = listButton('Elimina', async () => render(await invoke('memory-remove', note.id)), locked);
     item.append(text, origin, remove); $('memory-list').append(item);
   }
   const folders = management.folders || { defaults: [], extra: [], max: 20 };
@@ -169,7 +178,7 @@ function render(value) {
     const name = document.createElement('strong'); name.textContent = folder.name;
     const where = document.createElement('p'); where.className = 'local-path'; where.textContent = folder.path;
     row.append(name, where);
-    if (removable) { const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Rimuovi'; remove.disabled = locked || Boolean(value.setup); remove.addEventListener('click', async () => render(await invoke('folders-remove', index))); row.append(remove); }
+    if (removable) row.append(listButton('Rimuovi', async () => render(await invoke('folders-remove', index)), locked || Boolean(value.setup)));
     return row;
   };
   $('folder-defaults').replaceChildren(...folders.defaults.map(folder => folderRow(folder, false)));
@@ -192,7 +201,7 @@ function render(value) {
     const row = document.createElement('div'); row.className = 'folder-row';
     const label = document.createElement('strong'); label.textContent = `${item.alarm ? '⏰' : '🔔'} ${item.when}`;
     const what = document.createElement('p'); what.className = 'local-path'; what.textContent = item.text;
-    const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Elimina'; remove.addEventListener('click', async () => render(await invoke('reminder-remove', item.id)));
+    const remove = listButton('Elimina', async () => render(await invoke('reminder-remove', item.id)));
     row.append(label, what, remove); return row;
   }));
   $('alarm-sound-name').textContent = alarmSettings.sound === 'custom' ? alarmSettings.name || 'audio personalizzato' : 'bip';
@@ -216,10 +225,10 @@ function render(value) {
   }
   for (const [index, message] of value.messages.entries()) {
     const item = document.createElement('section'); item.className = 'message ' + message.role;
-    const name = document.createElement('strong'); name.textContent = message.role === 'user' ? 'Tu' : value.engine === 'codex' ? 'Codex' : value.engine === 'claude' ? 'Claude' : localTitle(value);
+    const name = document.createElement('strong'); name.textContent = message.role === 'user' ? 'Tu' : SERVICE_NAMES[value.engine] || localTitle(value);
     const text = document.createElement('span'); text.textContent = message.text;
     item.append(name, text);
-    if (message.role === 'assistant') { const remember = document.createElement('button'); remember.type = 'button'; remember.textContent = 'Ricorda…'; remember.disabled = locked; remember.addEventListener('click', () => openMemory(message.text, value.engine)); item.append(remember); }
+    if (message.role === 'assistant') item.append(listButton('Ricorda…', () => openMemory(message.text, value.engine), locked));
     if (message.role === 'assistant' && value.engine === 'locale') {
       const question = [...value.messages.slice(0, index)].reverse().find(entry => entry.role === 'user')?.text || '';
       const ask = document.createElement('button'); ask.type = 'button'; ask.textContent = 'Chiedi a Codex o Claude…'; ask.disabled = locked;
@@ -242,7 +251,7 @@ function render(value) {
     $('messages').append(item);
   }
   $('messages').scrollTop = $('messages').scrollHeight;
-  $('status').textContent = value.busy ? 'Sta pensando…' : value.notice || (value.available.includes(value.engine) ? 'Pronto · ' + (value.engine === 'codex' ? 'Codex' : value.engine === 'claude' ? 'Claude' : localTitle(value, true)) : value.engine === 'locale' ? (value.localEngine !== 'ollama' ? `${value.localEngineLabel} o il modello non sono disponibili: controlla nelle Impostazioni (ingranaggio in alto).` : 'Installa Ollama e il modello nelle Impostazioni (ingranaggio in alto).') : 'Installa e accedi alla CLI ' + value.engine);
+  $('status').textContent = value.busy ? 'Sta pensando…' : value.notice || (value.available.includes(value.engine) ? 'Pronto · ' + (SERVICE_NAMES[value.engine] || localTitle(value, true)) : value.engine === 'locale' ? (value.localEngine !== 'ollama' ? `${value.localEngineLabel} o il modello non sono disponibili: controlla nelle Impostazioni (ingranaggio in alto).` : 'Installa Ollama e il modello nelle Impostazioni (ingranaggio in alto).') : 'Installa e accedi alla CLI ' + value.engine);
   $('status').className = value.notice ? 'error' : '';
   $('send').textContent = value.busy ? 'Interrompi' : 'Invia ↗';
   $('send').disabled = management.running || (!value.busy && !$('input').value.trim());
@@ -287,8 +296,7 @@ function renderCharacters(value, locked) {
   $('character-list').replaceChildren(...personal.map(c => {
     const row = document.createElement('div'); row.className = 'folder-row';
     const name = document.createElement('strong'); name.textContent = c.name;
-    const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Rimuovi'; remove.disabled = busy;
-    remove.addEventListener('click', async () => render(await invoke('character-remove', c.id)));
+    const remove = listButton('Rimuovi', async () => render(await invoke('character-remove', c.id)), busy);
     row.append(name, document.createElement('br'), remove); return row;
   }));
   $('character-add').disabled = busy || personal.length >= info.max;
@@ -335,7 +343,7 @@ function openRemote(text, engine, imageData = null, noHistory = false, preview =
   const context = noHistory ? [] : current.messages.filter(message => ['user', 'assistant'].includes(message.role)).slice(-20);
   $('remote-context').textContent = context.length ? JSON.stringify(context, null, 2) : 'Nessun messaggio precedente.';
   $('remote-image-status').textContent = preview && noHistory ? 'Fotogramma da inviare insieme al testo (togli la spunta per mandare solo il testo):' : imageData ? 'È incluso anche il fotogramma che hai appena approvato.' : 'Nessuna immagine allegata.';
-  const name = engine === 'codex' ? 'Codex' : 'Claude';
+  const name = SERVICE_NAMES[engine] || 'Claude';
   $('remote-once').textContent = imageData || noHistory ? '' : `Dopo questa conferma, i prossimi messaggi a ${name} partiranno senza chiedere finché non chiudi Mascotte. Immagini e secondo parere chiedono sempre conferma.`;
   $('remote-dialog').showModal();
 }
@@ -381,29 +389,29 @@ $('settings-back').addEventListener('click', () => selectTab('chat'));
 $('settings-toggle').addEventListener('click', async () => { if (selectedTab === 'settings') { selectTab('chat'); $('input').focus(); return; } selectTab('settings'); render(await invoke('local-scan')); });
 $('character-select').addEventListener('change', async () => render(await invoke('character-select', $('character-select').value)));
 $('character-scale').addEventListener('change', async () => render(await invoke('character-scale', Number($('character-scale').value))));
-$('character-add').addEventListener('click', async () => render(await invoke('character-add')));
+onClickRender('character-add', 'character-add');
 $('guide-characters').addEventListener('click', () => invoke('cli-guide', 'characters'));
-$('local-scan').addEventListener('click', async () => render(await invoke('local-scan')));
-$('folders-add').addEventListener('click', async () => render(await invoke('folders-add')));
-$('choose-repo').addEventListener('click', async () => render(await invoke('repo-select')));
-$('release-update').addEventListener('click', async () => render(await invoke('release-update')));
+onClickRender('local-scan', 'local-scan');
+onClickRender('folders-add', 'folders-add');
+onClickRender('choose-repo', 'repo-select');
+onClickRender('release-update', 'release-update');
 $('guide-codex').addEventListener('click', () => invoke('cli-guide', 'codex'));
 $('guide-claude').addEventListener('click', () => invoke('cli-guide', 'claude'));
-$('local-download').addEventListener('click', async () => render(await invoke('local-download')));
-$('managed-remove').addEventListener('click', async () => render(await invoke('local-managed-remove')));
-$('local-download-cancel').addEventListener('click', async () => render(await invoke('local-download-cancel')));
+onClickRender('local-download', 'local-download');
+onClickRender('managed-remove', 'local-managed-remove');
+onClickRender('local-download-cancel', 'local-download-cancel');
 $('guide-ollama').addEventListener('click', () => invoke('cli-guide', 'ollama'));
 $('local-engine').addEventListener('change', async () => render(await invoke('local-engine', $('local-engine').value)));
-$('local-check').addEventListener('click', async () => render(await invoke('local-check')));
+onClickRender('local-check', 'local-check');
 $('local-model').addEventListener('change', async () => render(await invoke('local-model', $('local-model').value)));
 $('memory-new').addEventListener('click', () => openMemory());
 $('memory-cancel').addEventListener('click', () => $('memory-dialog').close());
 $('memory-save').addEventListener('click', async () => { const text = $('memory-text').value.trim(); if (!text) return; const result = await invoke('memory-add', { text, source: memorySource }); if (result?.notice?.startsWith('Nota salvata')) $('memory-dialog').close(); render(result); });
-$('pc-action-cancel').addEventListener('click', async () => render(await invoke('pc-action-cancel')));
+onClickRender('pc-action-cancel', 'pc-action-cancel');
 $('pc-action-confirm').addEventListener('click', async () => render(await invoke('pc-action-confirm', current?.pendingAction?.id)));
 $('pc-action-dialog').addEventListener('cancel', () => invoke('pc-action-cancel'));
-$('alarm-sound-choose').addEventListener('click', async () => render(await invoke('alarm-sound-choose')));
-$('alarm-sound-remove').addEventListener('click', async () => render(await invoke('alarm-sound-remove')));
+onClickRender('alarm-sound-choose', 'alarm-sound-choose');
+onClickRender('alarm-sound-remove', 'alarm-sound-remove');
 $('alarm-volume').addEventListener('change', async () => render(await invoke('alarm-volume', Number($('alarm-volume').value))));
 $('alarm-sound-test').addEventListener('click', async () => {
   if (alarmTesting) { alarmTesting = false; stopAlarmSound(); }
@@ -418,10 +426,10 @@ $('remote-dialog').addEventListener('cancel', () => { remotePending = null; });
 $('remote-confirm').addEventListener('click', async () => { const text = $('remote-text').value.trim(); if (!text || !remotePending) return; const selected = $('remote-engine').value, pending = remotePending; remotePending = null; if (!pending.imageData && !pending.noHistory) remoteConfirmed.add(selected); const include = $('remote-image-choice').hidden || $('remote-include-image').checked; $('remote-dialog').close(); $('remote-image').removeAttribute('src'); const next = await invoke('engine', selected); $('input').value = text; render(next); await submit(include ? pending.imageData : null, pending.noHistory, true, include && pending.useLastFrame); });
 $('guide-git').addEventListener('click', () => invoke('cli-guide', 'git'));
 $('guide-node').addEventListener('click', () => invoke('cli-guide', 'node'));
-$('update-app').addEventListener('click', async () => render(await invoke('update-run')));
-$('manage-hooks').addEventListener('click', async () => render(await invoke('setup-preview')));
-$('apply').addEventListener('click', async () => render(await invoke('setup-apply')));
-$('dismiss').addEventListener('click', async () => render(await invoke('setup-dismiss')));
+onClickRender('update-app', 'update-run');
+onClickRender('manage-hooks', 'setup-preview');
+onClickRender('apply', 'setup-apply');
+onClickRender('dismiss', 'setup-dismiss');
 $('setup-dialog').addEventListener('cancel', () => invoke('setup-dismiss'));
 $('refresh-watch').addEventListener('click', refreshWatchSources);
 // L'elenco delle finestre si aggiorna da solo quando si apre la sezione (non durante l'osservazione).
