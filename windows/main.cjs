@@ -511,8 +511,8 @@ function startApplication() {
       if (action === 'local-model' && !localDownload && !currentRun && !updateRunning && (otherEngine ? chosenOther : (LocalAI.isModel(data) || chosenInstalled))) { settings.localModel = data; settings.localModelSource = chosenInstalled || chosenOther ? 'installed' : 'catalog'; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
       if (action === 'local-download-cancel') { localDownload?.abort(); return chatSnapshot(); }
       if (action === 'local-managed-remove' && settings.localEngine === LocalEngines.MANAGED && !localDownload && !currentRun && !updateRunning && !setupPreview) {
-        const confirmation = await dialog.showMessageBox(chat, { type: 'question', title: 'Elimina file di llama.cpp', message: 'Eliminare runtime e modello scaricati?', detail: 'Vengono cancellati solo i file che Mascotte ha scaricato per llama.cpp (cartella «llama» nella cartella dati) e il server, se acceso, viene chiuso. Per usarlo di nuovo dovrai riscaricarli.', buttons: ['Annulla', 'Elimina'], defaultId: 0, cancelId: 0 });
-        if (confirmation.response === 1) {
+        const confirmed = await confirmDialog({ title: 'Elimina file di llama.cpp', message: 'Eliminare runtime e modello scaricati?', detail: 'Vengono cancellati solo i file che Mascotte ha scaricato per llama.cpp (cartella «llama» nella cartella dati) e il server, se acceso, viene chiuso. Per usarlo di nuovo dovrai riscaricarli.' }, 'Elimina');
+        if (confirmed) {
           try { await LocalEngines.get(LocalEngines.MANAGED).remove(); localAvailable = false; notice = ''; localDownloadStatus = 'File di llama.cpp eliminati.'; } catch (error) { localDownloadStatus = error.message; }
         }
         return chatSnapshot();
@@ -528,10 +528,9 @@ function startApplication() {
             if (!plan.missingBytes) { localAvailable = true; localDownloadStatus = 'llama.cpp e modello sono già scaricati.'; }
             else if (!plan.enough) localDownloadStatus = `Spazio libero insufficiente: servono circa ${plan.text.required}, ne restano ${plan.text.free}.`;
             else {
-              const confirmation = await dialog.showMessageBox(chat, { type: 'question', title: 'Scarica llama.cpp e modello', message: `Scaricare circa ${plan.text.missing}?`,
-                detail: `Da github.com: llama.cpp build ${plan.build} (${plan.variant}, licenza MIT).\nDa huggingface.co: ${plan.model.label} (testo e immagini, licenza Apache 2.0).\n\nDa scaricare: ${plan.text.missing}. Spazio richiesto: circa ${plan.text.required} (liberi: ${plan.text.free}).\n\nOgni file è controllato con SHA-256 prima dell’uso e salvato nella cartella dati di Mascotte; nulla viene eseguito prima della verifica. Il server parte solo su 127.0.0.1 quando serve e si chiude dopo 2 minuti di inattività. Puoi annullare il download in qualsiasi momento.`,
-                buttons: ['Annulla', 'Scarica'], defaultId: 0, cancelId: 0 });
-              if (confirmation.response !== 1) localDownloadStatus = 'Download non avviato.';
+              const confirmed = await confirmDialog({ title: 'Scarica llama.cpp e modello', message: `Scaricare circa ${plan.text.missing}?`,
+                detail: `Da github.com: llama.cpp build ${plan.build} (${plan.variant}, licenza MIT).\nDa huggingface.co: ${plan.model.label} (testo e immagini, licenza Apache 2.0).\n\nDa scaricare: ${plan.text.missing}. Spazio richiesto: circa ${plan.text.required} (liberi: ${plan.text.free}).\n\nOgni file è controllato con SHA-256 prima dell’uso e salvato nella cartella dati di Mascotte; nulla viene eseguito prima della verifica. Il server parte solo su 127.0.0.1 quando serve e si chiude dopo 2 minuti di inattività. Puoi annullare il download in qualsiasi momento.` }, 'Scarica');
+              if (!confirmed) localDownloadStatus = 'Download non avviato.';
               else {
                 await managed.download({ signal: localDownload.signal, onProgress: progress => { localDownloadStatus = progress.text; broadcast(); } });
                 localAvailable = true; notice = ''; localDownloadStatus = 'llama.cpp e modello scaricati e verificati: pronti per la chat.';
@@ -594,11 +593,10 @@ function startApplication() {
           }
           const repo = Releases.repositoryContaining(process.execPath);
           const installDir = Updater.installationDirectory(process.execPath, repo || dataDirectory, dataDirectory);
-          const confirmation = await dialog.showMessageBox(chat, { type: 'question', title: 'Aggiorna Mascotte',
+          const confirmed = await confirmDialog({ title: 'Aggiorna Mascotte',
             message: `Installare Mascotte ${release.version}?`,
-            detail: `Il pacchetto ${can.packageName} verrà scaricato dalla release ufficiale e verificato prima dell’installazione.\nDestinazione: ${installDir}\n\nMascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${movedNote(installDir, '\n\nDopo il riavvio aggiorna gli hook per collegarli al nuovo percorso.')}${backupNote(installDir)}`,
-            buttons: ['Annulla', 'Aggiorna e riavvia'], defaultId: 1, cancelId: 0 });
-          if (confirmation.response !== 1) { updateRunning = false; updateAbort = null; updateStatus = 'Aggiornamento annullato.'; broadcast(); return chatSnapshot(); }
+            detail: `Il pacchetto ${can.packageName} verrà scaricato dalla release ufficiale e verificato prima dell’installazione.\nDestinazione: ${installDir}\n\nMascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${movedNote(installDir, '\n\nDopo il riavvio aggiorna gli hook per collegarli al nuovo percorso.')}${backupNote(installDir)}` }, 'Aggiorna e riavvia', 1);
+          if (!confirmed) { updateRunning = false; updateAbort = null; updateStatus = 'Aggiornamento annullato.'; broadcast(); return chatSnapshot(); }
           void installPublishedRelease(release).catch(error => {
             updateRunning = false; updateFailed = true; updateStatus = `Aggiornamento non riuscito: ${error.message}`; broadcast();
           }).finally(() => { updateAbort = null; });
@@ -611,7 +609,7 @@ function startApplication() {
       if (action === 'character-add' && !currentRun && !localDownload && !updateRunning && !setupPreview) {
         // Mascotte personali: cartella scelta solo dal selettore di sistema, convalidata per intero prima di copiare solo character.json e sprites.png.
         try {
-          const selected = await dialog.showOpenDialog(chat, { title: 'Scegli la cartella della mascotte (con character.json e sprites.png)', properties: ['openDirectory'], defaultPath: os.homedir() });
+          const selected = await pickFolder('Scegli la cartella della mascotte (con character.json e sprites.png)', os.homedir());
           if (!selected.canceled && selected.filePaths[0]) {
             const result = Characters.importFolder(P, selected.filePaths[0], personalDirectory, { includedIds: includedCharacters.map(c => c.id), personalIds: characters.filter(c => c.personal).map(c => c.id) });
             if (result.ok) { characters = readCharacters(); characterStatus = `Mascotte «${result.name}» aggiunta: la trovi nel selettore Personaggio e nel menu della mascotte.`; characterStatusFailed = false; }
@@ -623,8 +621,8 @@ function startApplication() {
       if (action === 'character-remove' && !currentRun && !localDownload && !updateRunning && !setupPreview && typeof data === 'string') {
         const target = characters.find(c => c.personal && c.id === data);
         if (target) {
-          const confirmation = await dialog.showMessageBox(chat, { type: 'question', title: 'Rimuovi mascotte', message: `Rimuovere la mascotte «${target.name}»?`, detail: 'I suoi file vengono eliminati dalla cartella dati di Mascotte. I file originali che hai scelto non vengono toccati.', buttons: ['Annulla', 'Rimuovi'], defaultId: 0, cancelId: 0 });
-          if (confirmation.response === 1) {
+          const confirmed = await confirmDialog({ title: 'Rimuovi mascotte', message: `Rimuovere la mascotte «${target.name}»?`, detail: 'I suoi file vengono eliminati dalla cartella dati di Mascotte. I file originali che hai scelto non vengono toccati.' }, 'Rimuovi');
+          if (confirmed) {
             const result = Characters.removePersonal(personalDirectory, target.id);
             if (result.ok) {
               const wasCurrent = pack.id === target.id;
@@ -638,7 +636,7 @@ function startApplication() {
       if (action === 'folders-add' && !currentRun && !localDownload && !updateRunning && !setupPreview) {
         // Cartelle visibili alla chat locale: scelte solo dal selettore di sistema, risolte con realpath e validate. Il percorso non finisce nei log.
         try {
-          const selected = await dialog.showOpenDialog(chat, { title: 'Scegli una cartella che la mascotte può vedere', properties: ['openDirectory'], defaultPath: os.homedir() });
+          const selected = await pickFolder('Scegli una cartella che la mascotte può vedere', os.homedir());
           if (!selected.canceled && selected.filePaths[0]) {
             const result = ExtraFolders.addExtraFolder(settings.extraFolders, selected.filePaths[0], { platform: process.platform, home: os.homedir(), dataDir: dataDirectory });
             if (result.ok) { settings.extraFolders = result.list; saveSettings(); folderStatus = `Cartella «${result.name}» aggiunta. Ora puoi chiedere, per esempio, «che file ho in ${result.name}?».`; folderStatusFailed = false; }
@@ -660,7 +658,7 @@ function startApplication() {
       if (action === 'repo-select' && !updateRunning) {
         if (!can.management || !app.isPackaged) return chatSnapshot();
         try {
-          const selected = await dialog.showOpenDialog(chat, { title: 'Scegli la repo Mascotte clonata da GitHub', properties: ['openDirectory'], defaultPath: settings.updateRepoPath || undefined });
+          const selected = await pickFolder('Scegli la repo Mascotte clonata da GitHub', settings.updateRepoPath || undefined);
           if (!selected.canceled && selected.filePaths[0]) {
             const repo = Updater.validateRepository(selected.filePaths[0]);
             settings.updateRepoPath = repo.root; saveSettings(); updateFailed = false;
@@ -676,8 +674,8 @@ function startApplication() {
         try {
           const repo = Updater.validateRepository(settings.updateRepoPath, { requireClean: true });
           const installDir = Updater.installationDirectory(process.execPath, repo.root, dataDirectory);
-          const confirmation = await dialog.showMessageBox(chat, { type: 'question', title: 'Aggiorna Mascotte', message: 'Scaricare, compilare e installare l’aggiornamento?', detail: `Repo: ${repo.root}\nDestinazione: ${installDir}\n\nServono Git e Node.js 22+ con npm. La repo viene aggiornata con git pull --ff-only. A fine build Mascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${movedNote(installDir, '\n\nL’app verrà installata in una cartella stabile: dopo il riavvio premi Crea / aggiorna hook per collegarli al nuovo percorso.')}${backupNote(installDir)}`, buttons: ['Annulla', 'Aggiorna e riavvia'], defaultId: 1, cancelId: 0 });
-          if (confirmation.response !== 1) { updateRunning = false; broadcast(); return chatSnapshot(); }
+          const confirmed = await confirmDialog({ title: 'Aggiorna Mascotte', message: 'Scaricare, compilare e installare l’aggiornamento?', detail: `Repo: ${repo.root}\nDestinazione: ${installDir}\n\nServono Git e Node.js 22+ con npm. La repo viene aggiornata con git pull --ff-only. A fine build Mascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${movedNote(installDir, '\n\nL’app verrà installata in una cartella stabile: dopo il riavvio premi Crea / aggiorna hook per collegarli al nuovo percorso.')}${backupNote(installDir)}` }, 'Aggiorna e riavvia', 1);
+          if (!confirmed) { updateRunning = false; broadcast(); return chatSnapshot(); }
           updateAbort = new AbortController();
           void installRepositoryUpdate(repo).catch(error => {
             updateRunning = false; updateFailed = true; updateStatus = `Aggiornamento non riuscito: ${error.message}`; broadcast();
@@ -746,7 +744,8 @@ function startApplication() {
         if (pendingAction) { notice = 'Conferma o annulla prima l’azione proposta.'; broadcast(); return; }
         let folderRead = null;
         if (engine === 'locale' && !imageData) {
-          const replyNow = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer }]); notice = ''; broadcast(); return chatSnapshot(); };
+          const reply = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer }]); notice = ''; };
+          const replyNow = answer => { reply(answer); broadcast(); return chatSnapshot(); };
           // Promemoria e sveglie: orario calcolato da Mascotte, impostazione con conferma, elenco e cancellazione diretti.
           const reminderCommand = Reminders.parseReminderCommand(text);
           if (reminderCommand?.type === 'reminder-list') return replyNow(Reminders.describeReminders(reminders.list()));
@@ -761,25 +760,24 @@ function startApplication() {
           const reminder = Reminders.parseReminder(text);
           if (reminder?.error) return replyNow(reminder.error);
           if (reminder) {
-            store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: 'Posso impostarlo: controlla e conferma.' }]); notice = '';
+            reply('Posso impostarlo: controlla e conferma.');
             pendingAction = { id: randomUUID(), kind: 'reminder', description: `Impostare ${reminder.alarm ? 'una sveglia' : 'un promemoria'} per ${Reminders.formatWhen(reminder.when)}: «${reminder.text}». Riceverai una notifica di sistema.`, when: reminder.when.getTime(), text: reminder.text, alarm: reminder.alarm };
             broadcast(); return chatSnapshot();
           }
           // Comandi gestiti da Mascotte, non dal modello: azioni predefinite e note, sempre con conferma.
           const command = LocalCommands.parseLocalCommand(text, { actions: can.localActions, extraFolders: settings.extraFolders });
-          const reply = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer }]); notice = ''; };
-          if (command?.type === 'list-notes') { reply(LocalCommands.describeNotes(memory.list())); broadcast(); return chatSnapshot(); }
-          if (command?.type === 'reply') { reply(command.text); broadcast(); return chatSnapshot(); }
+          if (command?.type === 'list-notes') return replyNow(LocalCommands.describeNotes(memory.list()));
+          if (command?.type === 'reply') return replyNow(command.text);
           if (command?.type === 'folder') {
             // Lettura di sola consultazione di una cartella conosciuta, solo con il motore locale e senza conferma: l'avviso apre la risposta.
             // L'elenco non entra nella cronologia (restano domanda e risposta) e non viene scritto nel log.
-            let view; try { view = FolderView.readFolder(command.folder, { extraFolders: settings.extraFolders, dataDir: dataDirectory }); } catch (error) { reply(error.code === 'GONE' ? error.message : `Non riesco a leggere la cartella ${command.folder.display}.`); broadcast(); return chatSnapshot(); }
-            if (command.question.kind !== 'model') { reply(FolderView.notice(view) + '\n\n' + FolderView.answer(view, command.question)); broadcast(); return chatSnapshot(); }
+            let view; try { view = FolderView.readFolder(command.folder, { extraFolders: settings.extraFolders, dataDir: dataDirectory }); } catch (error) { return replyNow(error.code === 'GONE' ? error.message : `Non riesco a leggere la cartella ${command.folder.display}.`); }
+            if (command.question.kind !== 'model') return replyNow(FolderView.notice(view) + '\n\n' + FolderView.answer(view, command.question));
             folderRead = { notice: FolderView.notice(view), context: FolderView.modelContext(view) };
           }
           if (command?.type === 'open') {
             // Una cartella aggiunta dalle Impostazioni viene ricontrollata subito (e ancora alla conferma): se è sparita non si propone l'azione.
-            if (command.extraName && !LocalCommands.validateTarget(command.target, { extraFolders: settings.extraFolders, dataDir: dataDirectory })) { reply(ExtraFolders.goneMessage(command.extraName)); broadcast(); return chatSnapshot(); }
+            if (command.extraName && !LocalCommands.validateTarget(command.target, { extraFolders: settings.extraFolders, dataDir: dataDirectory })) return replyNow(ExtraFolders.goneMessage(command.extraName));
             reply('Posso farlo: controlla e conferma l’azione.'); pendingAction = { id: randomUUID(), kind: 'open', description: command.description, target: command.target, extraName: command.extraName }; broadcast(); return chatSnapshot();
           }
           if (command?.type === 'remember') { reply('Posso salvarla tra le note: controlla e conferma.'); pendingAction = { id: randomUUID(), kind: 'remember', description: `Salvare questa nota sul ${can.deviceName}: «${command.text}»`, text: command.text }; broadcast(); return chatSnapshot(); }
