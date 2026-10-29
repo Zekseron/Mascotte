@@ -226,6 +226,11 @@ async function mainMac(args, options = {}) {
   }
 }
 
+// Windows: cartella dati da proteggere. Prima --data-dir (l'app lo passa sempre: è la sua cartella dati, anche personalizzata), poi %LOCALAPPDATA%\Mascotte.
+function windowsDataDirectory(args, env = process.env) {
+  return args['data-dir'] ? path.resolve(args['data-dir']) : env.LOCALAPPDATA && path.resolve(env.LOCALAPPDATA, 'Mascotte');
+}
+
 async function main(args, options) {
   if (process.platform === 'darwin') return mainMac(args, options);
   if (process.platform !== 'win32') throw new Error('Questo comando funziona solo su Windows e Mac.');
@@ -238,10 +243,10 @@ async function main(args, options) {
   const archive = path.resolve(args.archive);
   const installDir = path.resolve(args['install-dir'] || path.join(process.env.LOCALAPPDATA, 'Programs', 'Mascotte'));
   const workspace = path.resolve(args['workspace-dir'] || path.resolve(__dirname, '..', '..'));
-  const dataDir = process.env.LOCALAPPDATA && path.resolve(process.env.LOCALAPPDATA, 'Mascotte');
+  const dataDir = windowsDataDirectory(args);
   if (!fs.existsSync(archive) || !fs.statSync(archive).isFile()) throw new Error(`ZIP non trovato: ${archive}`);
   if (isWithin(workspace, installDir) || isWithin(installDir, workspace)) throw new Error('La cartella scelta interseca il progetto sorgente; scegli una cartella di installazione separata.');
-  if (dataDir && (isWithin(dataDir, installDir) || isWithin(installDir, dataDir))) throw new Error('La destinazione interseca i dati personali in %LOCALAPPDATA%\\Mascotte. Scegli la cartella dell’app, per esempio %LOCALAPPDATA%\\Programs\\Mascotte.');
+  if (dataDir && (isWithin(dataDir, installDir) || isWithin(installDir, dataDir))) throw new Error(`La destinazione interseca i dati personali in ${dataDir}. Scegli la cartella dell’app, per esempio %LOCALAPPDATA%\\Programs\\Mascotte.`);
   if (isWithin(installDir, archive)) throw new Error('Il ZIP deve trovarsi fuori dalla cartella che verrà sostituita.');
   if (fs.existsSync(installDir) && (!fs.lstatSync(installDir).isDirectory() || fs.lstatSync(installDir).isSymbolicLink())) {
     throw new Error('La destinazione esiste ma non è una cartella normale.');
@@ -326,4 +331,4 @@ async function run(argv = process.argv.slice(2)) {
   }
 }
 if (require.main === module) run().catch(error => fail(error.message));
-module.exports = { parseArgs, isWithin, restartMascotte, renameDirectory, main, mainMac, run };
+module.exports = { parseArgs, isWithin, windowsDataDirectory, restartMascotte, renameDirectory, main, mainMac, run };
