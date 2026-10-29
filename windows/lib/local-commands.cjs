@@ -19,7 +19,7 @@ const REMEMBER = /^(?:ricorda(?:ti)?(?:\s+che)?|salva(?:\s+(?:una|la|questa))?\s
 const LIST = /^(?:che note ho|quali note ho(?: salvato)?|ho (?:delle )?note(?: salvate)?|mostra(?:mi)? (?:le )?(?:mie )?note|elenca (?:le )?note)$/;
 
 // Confronto: minuscole, senza accenti, spazi singoli.
-const fold = text => String(text).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
+const { fold } = Extra;
 
 // Cartelle conosciute (chiave: nome in italiano). Su Windows solo le cartelle utente, su Mac anche Applicazioni.
 // Le cartelle aggiunte dalle Impostazioni (`extra`: [{ name, path }]) si accodano a quelle fisse, con il nome come chiave.
