@@ -700,8 +700,11 @@ function startApplication() {
       }
       if (action === 'alarm-stop') { stopAlarm(); if (!currentRun) controller.set('idle'); return chatSnapshot(); }
       if (action === 'alarm-snooze' && activeAlarm) {
-        const item = reminders.add({ when: Date.now() + SNOOZE, text: activeAlarm.text, alarm: true }); stopAlarm(); scheduleReminders();
-        if (!currentRun) controller.set('idle'); notice = `Sveglia rimandata a ${Reminders.formatWhen(item.when)}.`; return chatSnapshot();
+        // Con l'elenco pieno l'aggiunta fallisce: avviso, e la sveglia resta attiva (Ferma continua a funzionare).
+        const snoozed = Reminders.snoozeAlarm(reminders, activeAlarm, { delay: SNOOZE });
+        if (snoozed.error) { notice = snoozed.error; return chatSnapshot(); }
+        stopAlarm(); scheduleReminders();
+        if (!currentRun) controller.set('idle'); notice = `Sveglia rimandata a ${Reminders.formatWhen(snoozed.item.when)}.`; return chatSnapshot();
       }
       if (action === 'new' && !currentRun) { store.set(engine, []); if (engine === 'locale') clearLastFrame(); notice = ''; return chatSnapshot(); }
       // Anteprima del fotogramma conservato, solo per la finestra di conferma del secondo parere.
