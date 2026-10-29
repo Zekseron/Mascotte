@@ -41,3 +41,6 @@ events.json
 **/local-ai/runtime/
 **/.ollama/
 *.log
+
+# Note private dell'autore (collegamento al Google Drive personale, non pubblicate)
+/WORK-IN-PROGRESS.md
