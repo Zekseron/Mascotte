@@ -28,7 +28,7 @@ function startApplication() {
   const Setup = require('./lib/setup.cjs');
   const Updater = require('./lib/updater.cjs');
   const Releases = require('./lib/releases.cjs');
-  const Attachment = require('./lib/attachment.cjs');
+  const Attachment = require('./lib/attachment.cjs'), { sendRefusal } = require('./lib/send-guard.cjs');
   const LocalCommands = require('./lib/local-commands.cjs'), FolderView = require('./lib/folder-view.cjs'), ExtraFolders = require('./lib/extra-folders.cjs');
   const { mascotSize, maskHit, dragPosition, barEdge, barHit } = require('./lib/geometry.cjs');
   const P = require('./resources/pack.js');
@@ -728,7 +728,9 @@ function startApplication() {
       if (action === 'send') {
         const text = typeof data === 'string' ? data : data?.text;
         const imageData = typeof data === 'object' && data ? data.imageData ?? null : null;
-        if (localDownload || currentRun || updateRunning || typeof text !== 'string' || !text.trim() || text.length > 8000 || Buffer.byteLength(text) > 32768) return;
+        // Un rifiuto lascia un avviso (se c'è qualcosa da dire): la chat, vedendo il notice, rimette il testo nel campo.
+        const refusal = sendRefusal(text, { localDownload, currentRun, updateRunning });
+        if (refusal !== null) { if (refusal) { notice = refusal; broadcast(); } return; }
         if (pendingAction) { notice = 'Conferma o annulla prima l’azione proposta.'; broadcast(); return; }
         let folderRead = null;
         if (engine === 'locale' && !imageData) {
