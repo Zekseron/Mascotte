@@ -186,6 +186,19 @@ function render(value) {
   const folderCount = folders.defaults.length + folders.extra.length, noteCount = (value.memories || []).length;
   $('sum-ia').textContent = `${engineLabel} · ${value.localModel}${managedEngine && managed ? (managed.complete ? ' · ' + ({ ready: 'server pronto', starting: 'in avvio' }[managed.server] || 'pronto') : ' · da scaricare') : ''}`;
   $('sum-cli').textContent = `Codex ${value.available.includes('codex') ? '✓' : '✗'} · Claude ${value.available.includes('claude') ? '✓' : '✗'}`;
+  const alarmSettings = value.alarmSettings || { sound: 'beep', name: '', volume: 0.8 }, reminderItems = value.reminders || [];
+  $('sum-sveglie').textContent = `${reminderItems.length ? `${reminderItems.length} attiv${reminderItems.length === 1 ? 'o' : 'i'}` : 'Nessuno'} · ${alarmSettings.sound === 'custom' ? 'audio' : 'bip'}`;
+  $('reminder-list').replaceChildren(...reminderItems.map(item => {
+    const row = document.createElement('div'); row.className = 'folder-row';
+    const label = document.createElement('strong'); label.textContent = `${item.alarm ? '⏰' : '🔔'} ${item.when}`;
+    const what = document.createElement('p'); what.className = 'local-path'; what.textContent = item.text;
+    const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Elimina'; remove.addEventListener('click', async () => render(await invoke('reminder-remove', item.id)));
+    row.append(label, what, remove); return row;
+  }));
+  $('alarm-sound-name').textContent = alarmSettings.sound === 'custom' ? alarmSettings.name || 'audio personalizzato' : 'bip';
+  $('alarm-sound-remove').disabled = alarmSettings.sound !== 'custom';
+  if (document.activeElement !== $('alarm-volume')) $('alarm-volume').value = alarmSettings.volume;
+  $('alarm-sound-test').textContent = alarmTesting ? 'Ferma prova' : 'Prova suono';
   $('sum-note').textContent = noteCount ? `${noteCount} ${noteCount === 1 ? 'nota' : 'note'}` : 'Nessuna nota';
   $('sum-cartelle').textContent = `${folderCount} ${folderCount === 1 ? 'cartella' : 'cartelle'}`;
   $('sum-hook').textContent = !value.hooksAvailable ? 'Non disponibile' : { active: 'Hook attivi', moved: 'Da ricollegare', none: 'Da collegare' }[management.hooks] || 'Da collegare';
@@ -282,17 +295,35 @@ function renderCharacters(value, locked) {
   $('character-warnings').textContent = info.warnings.join('\n'); $('character-warnings').hidden = !info.warnings.length;
   $('character-status').textContent = info.status || ''; $('character-status').className = info.failed ? 'error' : '';
 }
-// Suono della sveglia generato al momento (due bip ogni 1,2 secondi), senza file audio.
-let alarmAudio = null, alarmBeeps = null;
-function startAlarmSound() {
-  stopAlarmSound();
+// Suono della sveglia: il file scelto nelle Impostazioni in ciclo, oppure due bip generati ogni 1,2 secondi. Il volume viene dalle Impostazioni.
+let alarmAudio = null, alarmBeeps = null, alarmPlayer = null, alarmUrl = null, alarmTesting = false;
+function beepSound(volume) {
   try { alarmAudio = new AudioContext(); } catch { return; }
   const beep = () => { for (const start of [0, 0.25]) { const osc = alarmAudio.createOscillator(), gain = alarmAudio.createGain(), at = alarmAudio.currentTime + start;
-    osc.frequency.value = 880; gain.gain.setValueAtTime(0.0001, at); gain.gain.exponentialRampToValueAtTime(0.25, at + 0.02); gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
+    osc.frequency.value = 880; gain.gain.setValueAtTime(0.0001, at); gain.gain.exponentialRampToValueAtTime(0.3 * volume, at + 0.02); gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
     osc.connect(gain).connect(alarmAudio.destination); osc.start(at); osc.stop(at + 0.2); } };
   beep(); alarmBeeps = setInterval(beep, 1200);
 }
-function stopAlarmSound() { clearInterval(alarmBeeps); alarmBeeps = null; try { alarmAudio?.close(); } catch {} alarmAudio = null; }
+async function startAlarmSound() {
+  stopAlarmSound();
+  const volume = Number(current?.alarmSettings?.volume) || 0.8;
+  if (current?.alarmSettings?.sound === 'custom') {
+    try {
+      const sound = await invoke('alarm-sound-data');
+      if (sound?.base64) {
+        const bytes = Uint8Array.from(atob(sound.base64), char => char.charCodeAt(0));
+        alarmUrl = URL.createObjectURL(new Blob([bytes], { type: sound.mime }));
+        alarmPlayer = new Audio(alarmUrl); alarmPlayer.loop = true; alarmPlayer.volume = volume; await alarmPlayer.play(); return;
+      }
+    } catch { stopAlarmSound(); }
+  }
+  beepSound(volume); // ripiego anche se l'audio scelto non si riesce a riprodurre
+}
+function stopAlarmSound() {
+  clearInterval(alarmBeeps); alarmBeeps = null; try { alarmAudio?.close(); } catch {} alarmAudio = null;
+  if (alarmPlayer) { alarmPlayer.pause(); alarmPlayer.removeAttribute('src'); alarmPlayer = null; }
+  if (alarmUrl) { URL.revokeObjectURL(alarmUrl); alarmUrl = null; }
+}
 function openMemory(text = '', source = 'manuale') { memorySource = source; $('memory-text').value = text.slice(0, 2000); $('memory-dialog').showModal(); }
 // `preview`: immagine mostrata nella conferma. Senza `imageData` è il fotogramma conservato da Mascotte (useLastFrame).
 function openRemote(text, engine, imageData = null, noHistory = false, preview = null) {
@@ -371,6 +402,14 @@ $('memory-save').addEventListener('click', async () => { const text = $('memory-
 $('pc-action-cancel').addEventListener('click', async () => render(await invoke('pc-action-cancel')));
 $('pc-action-confirm').addEventListener('click', async () => render(await invoke('pc-action-confirm', current?.pendingAction?.id)));
 $('pc-action-dialog').addEventListener('cancel', () => invoke('pc-action-cancel'));
+$('alarm-sound-choose').addEventListener('click', async () => render(await invoke('alarm-sound-choose')));
+$('alarm-sound-remove').addEventListener('click', async () => render(await invoke('alarm-sound-remove')));
+$('alarm-volume').addEventListener('change', async () => render(await invoke('alarm-volume', Number($('alarm-volume').value))));
+$('alarm-sound-test').addEventListener('click', async () => {
+  if (alarmTesting) { alarmTesting = false; stopAlarmSound(); }
+  else { alarmTesting = true; await startAlarmSound(); setTimeout(() => { if (alarmTesting) { alarmTesting = false; stopAlarmSound(); $('alarm-sound-test').textContent = 'Prova suono'; } }, 8000); }
+  $('alarm-sound-test').textContent = alarmTesting ? 'Ferma prova' : 'Prova suono';
+});
 $('alarm-stop').addEventListener('click', async () => { stopAlarmSound(); render(await invoke('alarm-stop')); });
 $('alarm-snooze').addEventListener('click', async () => { stopAlarmSound(); render(await invoke('alarm-snooze')); });
 $('alarm-dialog').addEventListener('cancel', event => { event.preventDefault(); stopAlarmSound(); invoke('alarm-stop').then(render); });
