@@ -105,7 +105,7 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
 
 ## 5. Aggiornamento Mac e allineamento con Windows
 
-**Stato:** passi 1–6 completati. In corso: estensione delle azioni locali (frasi naturali e apertura di altre app), poi passo 7 (osservazione e fotogrammi). Il passo 1 ha fissato le scelte: base Electron, solo Apple Silicon, nessuna notarizzazione, migrazione dei dati con backup.
+**Stato:** passi 1–11 completati (collaudo di parità del 29 ottobre 2026, vedi `windows/COLLAUDO-MAC.md`). Passo 12 in corso: guide, privacy e procedura di release aggiornate il 29 ottobre 2026, in attesa di revisione dell'utente; restano le prove da fare al primo rilascio (aggiornamento da release GitHub e installazione su un altro Mac). Il passo 1 ha fissato le scelte: base Electron, solo Apple Silicon, nessuna notarizzazione, migrazione dei dati con backup.
 
 **Obiettivo:** rendere disponibili su Mac le funzioni attuali di Windows, mantenendo il piano aggiornato quando Windows evolve. La base Mac nativa esiste già in `app/`: personaggio, animazioni, aggancio al Dock e alle finestre, eventi e micro chat Claude/Codex.
 
@@ -384,6 +384,36 @@ Punti del codice da cui partire: `windows/lib/capture.cjs`, gestione osservazion
     - **Limiti rimasti:** aggiornamento da release GitHub e installazione su un altro Mac (passo 12). **Windows:** il codice comune cambiato durante il porting (comandi locali, cartelle, motori locali, troncamento, errore di Claude, origine della repo, pulizia delle compilazioni, ordine degli hook) va ricollaudato su Windows prima di un rilascio.
 - [ ] **12. Aggiornare guide e distribuzione.** Aggiornare README principale, istruzioni Mac, privacy, esportazione e procedura di release in base alla soluzione effettiva. Riportare versione Mac, funzioni verificate e differenze residue; ricontrollare questa checklist contro la versione Windows più recente prima di considerare concluso l'allineamento.
   - **Da includere (rimandato dal passo 10):** al primo rilascio con `Mascotte-Mac-<v>-arm64.zip` firmato con «Mascotte Firma Locale», provare «Controlla aggiornamenti» dall'app installata e l'installazione su un altro Mac o profilo pulito («Apri comunque»).
+  - **Aggiornamento dei documenti (29 ottobre 2026), da rivedere.** Il passo resta aperto: lo chiude l'utente dopo la revisione e dopo le prove del primo rilascio.
+    - **Versione Mac:** 0.8.0, Apple Silicon (arm64), pacchetto `Mascotte-Mac-0.8.0-arm64.zip`, app `local.mascotte.desktop` firmata con «Mascotte Firma Locale», non notarizzata. Mac di prova: Apple M3, 16 GB, macOS 27.0.1. Altre versioni di macOS e il Mac Intel non sono provati (Intel escluso dalla decisione del passo 1).
+    - **Funzioni verificate su Mac** (con le prove dell'utente sul Mac reale; le prove da terminale sono nei passi):
+      - passo 2: avvio e chiusura, dati in `~/Library/Application Support/Mascotte Electron`, vecchia cartella intatta, app da barra dei menu senza icona nel Dock;
+      - passo 3: mascotte trasparente e trascinabile, aggancio al Dock (in basso, a lato, nascosto) e alla finestra attiva con l'helper Swift, riduzione, scrivanie e tutto schermo;
+      - passo 4: chat Claude e Codex con richieste reali (CLI trovate anche con PATH minimo), conferma, «Nuova», «Interrompi», chiusura dei processi figli, errore reale di Claude, Cmd+C/V e focus;
+      - passo 5: Ollama con Gemma 4, download e annullamento, modelli già presenti, LM Studio (rilevamento, chat e ritorno a Ollama a server spento); llama.cpp e Jan non sono mai stati provati con server veri;
+      - passo 6: note («ricorda», elenco, modifica, cancellazione, persistenza), azioni locali con frasi naturali, app installate, cartelle predefinite e aggiunte da Gestione, cartella sparita;
+      - passo 7: elenco finestre con Stage Manager, osservazione, fotogramma con Claude e con modello locale, permesso Registrazione schermo negato e riattivato;
+      - passo 8: anteprima e applicazione degli hook con backup, reazioni con Claude Code e Codex, nessun doppione alla riapplicazione;
+      - passo 9: importazione una tantum in sola lettura dalla vecchia app Swift (provata con cartella dati vuota);
+      - passo 10: firma con certificato personale, `install:mac` con backup della vecchia app, aggiornamento da sorgenti;
+      - passo 11: collaudo di parità (22 prove in 8 gruppi superate); `npm test` 138 superati e 3 saltati, `viewer/test` 56 su 56.
+    - **Non ancora verificato su Mac:** aggiornamento da release GitHub e installazione su un altro Mac o profilo pulito (primo rilascio, procedura in `PUBBLICAZIONE.md`); più schermi (un solo schermo disponibile); llama.cpp e Jan con server veri; pose «perch» e «Canta» (Rosso non le ha); `npm run test:codex-policy` con la CLI Codex reale su Mac; `codesign --verify` con certificato non attendibile; versioni di macOS diverse dalla 27.0.1.
+    - **Differenze residue rispetto a Windows** (da `lib/platform.cjs` `capabilities()` e dal codice):
+      - `managedOllama` solo Windows: su Mac Ollama si installa e si apre a parte e l'app guida il collegamento di download;
+      - catalogo dei modelli locali diverso (Mac: `gemma4:e4b`, `qwen3.5:2b`, `qwen3.5:9b`; Windows: Qwen3 e Qwen3-VL) e `keep_alive` di 2 minuti su Mac contro 0 su Windows (valore provvisorio, da misurare);
+      - distribuzione: Mac solo ZIP firmato con certificato personale, non notarizzato, «Apri comunque» al primo avvio e permesso «Registrazione schermo»; Windows ZIP e installer NSIS, non firmati. L'installer NSIS e `update:win` sono esclusivi di Windows; su Mac si usano `build:mac` e `install:mac`;
+      - release: il workflow GitHub costruisce solo Windows; lo ZIP Mac si costruisce a mano su un Mac con il certificato e si carica sulla release. Il certificato si perde se si perde il portachiavi: allora gli aggiornamenti dall'app non passano più e serve reinstallare a mano;
+      - aggancio al Dock (con Dock nascosto non si aggancia trascinando: si usa la voce di menu) al posto della barra delle applicazioni; menu nella barra dei menu e niente icona nel Dock; visibilità su tutte le scrivanie e sopra il tutto schermo; menu applicazione per Cmd+C/V; helper Swift al posto dello script PowerShell;
+      - hook con comando di shell invece di PowerShell; permessi 0700/0600 invece delle ACL;
+      - su Mac si aprono anche le app installate (estensione del passo 6): Windows non le ha, ed è una funzione Mac in più, non un ritardo di Mac;
+      - icona dell'app predefinita di Electron (non visibile nel Dock, che è nascosto); l'icona nella barra dei menu è lo sprite a colori;
+      - il Mac Intel non è supportato, come Windows ARM64.
+    - **Ricontrollo della checklist contro Windows 0.8.0 (29 ottobre 2026).** Ho confrontato i passi 1–11 con `windows/README.md`, le azioni IPC di `main.cjs` (`chat`, `new`, `stop`, `engine`, `local-*`, `memory-*`, `folders-*`, `pc-action-*`, `watch-*`, `setup-*`, `release-update`, `update-run`, `repo-select`, `cli-guide`, `drag-*`, `menu`) e `capabilities()`. **Ogni funzione Windows ha un passo Mac corrispondente.** Voci aperte da non considerare fatte:
+      - [ ] **Provare `npm run test:codex-policy` su Mac** con la CLI Codex reale (0.164 dell'app ChatGPT). Su Windows è uno strumento opzionale che verifica le opzioni di sicurezza passate a Codex e non risulta eseguito su Mac; la chat Codex reale è stata provata (passo 4), la policy non è stata ricontrollata.
+      - [ ] **Ricollaudare su Windows il codice comune cambiato** (comandi locali, cartelle, motori locali, troncamento, errore di Claude, origine della repo, pulizia delle compilazioni, ordine degli hook, testi «PC»/«Mac», passaggio dello schermo al clic su «Aggancia alla barra»). Già annotato al passo 11.
+      - [ ] **Aggiornare le guide a ogni nuova release** (versione nei titoli, nomi dei pacchetti) e tenere identiche le copie in `distribuzione/`: promemoria in `PUBBLICAZIONE.md`.
+    - **Incoerenze trovate tra i documenti** (non cambiate nei passi già chiusi): il passo 1 parla di «firma ad hoc» ma il passo 10 l'ha sostituita con il certificato personale (vale il passo 10); `windows/README.md` diceva che il certificato non va reso attendibile mentre sul Mac di prova lo è stato (ora indicato, verifica con certificato non attendibile non provata); il passo 8 cita gli hook in `windows/dist/mac-arm64/`, ma il passo 10 li ha rigenerati verso `/Applications`.
+    - **Documenti aggiornati:** `README.md`, `PRIVACY.md` e `distribuzione/PRIVACY.md`, `LEGGIMI.md` e `distribuzione/LEGGIMI.md`, `WINDOWS.md` e `distribuzione/WINDOWS.md` (ora guida Windows attuale), `PUBBLICAZIONE.md` (procedura di release), `windows/README.md` (sezione Mac coerente). Strumenti di esportazione: `tools/export_package.py` superato (esporta la vecchia app Swift), `tools/export_windows.py` ancora valido ma facoltativo; non modificati.
 
 **Primo passo:** confronto aggiornato Windows/Mac e decisione sulla base tecnica; nessuna riscrittura prima di aver definito il perimetro.
 
@@ -400,7 +430,7 @@ Quando le proposte delle sezioni 1–4 diventano funzioni Windows, aggiungere an
 ## Riprendere da un altro PC
 
 1. Recuperare il repository aggiornato e leggere `AGENTS.md`, questo file (incluso il richiamo Windows → Mac), `windows/README.md` e `PUBBLICAZIONE.md`. Per il porting leggere anche `app/README.md`.
-2. Per sviluppare su Windows, installare Git e Node.js secondo la guida, poi eseguire `npm.cmd ci` nella cartella `windows`.
+2. Per sviluppare su Windows, installare Git e Node.js secondo la guida, poi eseguire `npm.cmd ci` nella cartella `windows`. Su Mac Apple Silicon: Node.js 22 o più recente, `npm ci` nella stessa cartella, e `npm run build:mac` / `npm run install:mac` (serve il certificato «Mascotte Firma Locale»; vedi `PUBBLICAZIONE.md`).
 3. Eseguire `npm.cmd test` e avviare il sorgente con `npm.cmd start`. Per creare i pacchetti usare `npm.cmd run build:win`.
 4. Per provare l'IA locale, installare e avviare Ollama, quindi scaricare il modello da Gestione. Non aspettarsi di trovare modelli o memoria personale nel clone.
 5. Scegliere una voce sopra, aggiornare lo stato prima di iniziare e annotare decisioni, verifiche e prossimo passo prima del commit.
