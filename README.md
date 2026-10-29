@@ -21,6 +21,7 @@ Le regole per le sessioni di sviluppo sono in [AGENTS.md](AGENTS.md).
 - **Osservazione di una finestra:** scegli una finestra, la vedi in anteprima locale e puoi allegare **un solo fotogramma**, solo dopo conferma, a Codex, Claude o a un modello locale che legge le immagini. Su Mac serve il permesso «Registrazione schermo».
 - **Impostazioni:** l'ingranaggio in alto a destra nella micro chat apre un pannello a sezioni: mascotte (personaggio, grandezza di base, mascotte personali), IA locale, Codex e Claude, note, cartelle visibili, hook, aggiornamenti.
 - **Mascotte personali:** da **Impostazioni → Mascotte → Aggiungi mascotte…** puoi caricare altri personaggi (una cartella con `character.json` e `sprites.png`). Come crearli e collegarli: [PERSONAGGI.md](PERSONAGGI.md).
+- **Secondo parere:** sotto una risposta locale, «Chiedi a Codex o Claude…» manda domanda e risposta per una verifica; «Secondo parere con schermata…» aggiunge il fotogramma che ha visto il modello locale (conservato in memoria 10 minuti) o quello della finestra osservata. Sempre con anteprima e conferma.
 - **Hook:** dalle **Impostazioni** si collegano le sessioni di Claude Code e Codex, così la mascotte reagisce a ciò che fanno. Anteprima prima di applicare, con backup.
 - **Aggiornamenti:** dalle **Impostazioni** si controllano le release pubbliche; per chi sviluppa c'è anche l'aggiornamento da sorgenti con Git e Node.js.
 

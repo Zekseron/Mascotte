@@ -38,12 +38,21 @@ function startApplication() {
   let characters = [], includedCharacters = [], characterWarnings = [], characterStatus = '', characterStatusFailed = false;
   let attachment = 'free', singing = false, follower, captureFollower, captureTimer, anchorTimer, anchorDisplay, anchorFraction = .8, targetBounds, concealed = false, userVisible = true;
   let watchSource = null, activeShareDirectory = null, pendingAction = null;
+  // Secondo parere: l'ultimo fotogramma analizzato dal modello locale resta solo in memoria per 10 minuti
+  // (o fino a «Nuova» nella chat locale o alla chiusura), per poterlo mandare a Codex o Claude dopo conferma.
+  const FRAME_TTL = 10 * 60 * 1000;
+  let lastFrame = null, lastFrameTimer = null;
+  function clearLastFrame() { clearTimeout(lastFrameTimer); lastFrameTimer = null; if (lastFrame) { lastFrame.bytes.fill(0); lastFrame = null; } }
+  function keepLastFrame(bytes, name, message, reply) {
+    clearLastFrame(); lastFrame = { bytes: Buffer.from(bytes), name, message, reply: String(reply).slice(0, 80), expiresAt: Date.now() + FRAME_TTL };
+    lastFrameTimer = setTimeout(() => { clearLastFrame(); broadcast(); }, FRAME_TTL); lastFrameTimer.unref?.();
+  }
   let localDownload = null, localDownloadStatus = '', folderStatus = '', folderStatusFailed = false;
   let updateRunning = false, updateStatus = '', updateFailed = false, updateAbort = null;
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
-  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(), localEngine: settings?.localEngine || 'ollama', localEngineLabel: LocalEngines.label(settings?.localEngine), localEngines: engineStatus ? engineStatus.map(({ id, label, state, count, message }) => ({ id, label, state, count, message: message || '' })) : null, localEngineModels: settings?.localEngine && settings.localEngine !== 'ollama' ? engineStatus?.find(item => item.id === settings.localEngine) || null : null, localCatalog: LocalAI.uiCatalog(), localInstalled: installedCache, localScanning, deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, hooksAvailable: can.hooks && app.isPackaged, watching: Boolean(watchSource), watchName: watchSource?.name || '', characters: pack ? { current: pack.id, scale: settings?.scale, scales: Characters.allowedScales(pack), list: characters.map(c => ({ id: c.id, name: c.name, category: c.category, personal: c.personal })), warnings: characterWarnings, max: Characters.MAX_PERSONAL, status: characterStatus, failed: characterStatusFailed } : null, management: { available: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', hooks: hooksState(), running: updateRunning, status: updateStatus, failed: updateFailed, folders: { defaults: FolderView.viewableFolders().map(folder => ({ name: folder.display, path: folder.target })), extra: (settings?.extraFolders || []).map(folder => ({ name: folder.name, path: folder.path })), max: ExtraFolders.MAX_EXTRA, status: folderStatus, failed: folderStatusFailed } } });
+  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(), localEngine: settings?.localEngine || 'ollama', localEngineLabel: LocalEngines.label(settings?.localEngine), localEngines: engineStatus ? engineStatus.map(({ id, label, state, count, message }) => ({ id, label, state, count, message: message || '' })) : null, localEngineModels: settings?.localEngine && settings.localEngine !== 'ollama' ? engineStatus?.find(item => item.id === settings.localEngine) || null : null, localCatalog: LocalAI.uiCatalog(), localInstalled: installedCache, localScanning, deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, secondOpinionFrame: lastFrame && { name: lastFrame.name, message: lastFrame.message, reply: lastFrame.reply, expiresAt: lastFrame.expiresAt }, watchAvailable: can.watch, hooksAvailable: can.hooks && app.isPackaged, watching: Boolean(watchSource), watchName: watchSource?.name || '', characters: pack ? { current: pack.id, scale: settings?.scale, scales: Characters.allowedScales(pack), list: characters.map(c => ({ id: c.id, name: c.name, category: c.category, personal: c.personal })), warnings: characterWarnings, max: Characters.MAX_PERSONAL, status: characterStatus, failed: characterStatusFailed } : null, management: { available: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', hooks: hooksState(), running: updateRunning, status: updateStatus, failed: updateFailed, folders: { defaults: FolderView.viewableFolders().map(folder => ({ name: folder.display, path: folder.target })), extra: (settings?.extraFolders || []).map(folder => ({ name: folder.name, path: folder.path })), max: ExtraFolders.MAX_EXTRA, status: folderStatus, failed: folderStatusFailed } } });
   // Immagini: Ollama le legge dal modello; gli altri motori solo se il server le dichiara (altrimenti allegati disattivati).
   const localVision = () => settings?.localEngine && settings.localEngine !== 'ollama' ? LocalEngines.supportsVision(settings.localEngine, settings.localModel) : LocalAI.supportsVision(settings?.localModel);
   const saveSettings = () => atomicJSON(stateFile, settings);
@@ -602,7 +611,9 @@ function startApplication() {
       }
       if (action === 'watch-disable') { stopWatching(); return chatSnapshot(); }
       if (action === 'engine' && !currentRun && [...CLI.ENGINES, 'locale'].includes(data)) { engine = data; engineTouched = true; notice = ''; return chatSnapshot(); }
-      if (action === 'new' && !currentRun) { store.set(engine, []); notice = ''; return chatSnapshot(); }
+      if (action === 'new' && !currentRun) { store.set(engine, []); if (engine === 'locale') clearLastFrame(); notice = ''; return chatSnapshot(); }
+      // Anteprima del fotogramma conservato, solo per la finestra di conferma del secondo parere.
+      if (action === 'second-opinion-frame') return lastFrame ? 'data:image/jpeg;base64,' + lastFrame.bytes.toString('base64') : null;
       if (action === 'stop') { currentRun?.stop(); return; }
       if (action === 'setup-preview') {
         if (updateRunning || currentRun) return chatSnapshot();
@@ -647,7 +658,11 @@ function startApplication() {
           if (command?.type === 'remember') { reply('Posso salvarla tra le note: controlla e conferma.'); pendingAction = { id: randomUUID(), kind: 'remember', description: `Salvare questa nota sul ${can.deviceName}: «${command.text}»`, text: command.text }; broadcast(); return chatSnapshot(); }
         }
         let image = null, imagePath = null, imageDirectory = null;
-        if (imageData !== null) {
+        if (data?.useLastFrame === true) {
+          if (engine === 'locale' || imageData !== null) return;
+          if (!lastFrame) { notice = 'Il fotogramma per il secondo parere non è più disponibile (si conserva 10 minuti): allegane uno nuovo.'; broadcast(); return; }
+          image = { bytes: Buffer.from(lastFrame.bytes), name: lastFrame.name };
+        } else if (imageData !== null) {
           if (engine === 'locale' && !localVision()) { notice = settings.localEngine !== 'ollama' ? `${LocalEngines.label(settings.localEngine)} non dichiara il supporto alle immagini per questo modello: allegati disattivati.` : 'Il modello locale scelto è solo testuale.'; broadcast(); return; }
           if (!watchSource || typeof imageData !== 'string' || imageData.length > 12000000) { notice = 'La vista non è più disponibile: attiva l’osservazione e riprova.'; broadcast(); return; }
           const encoded = imageData.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/)?.[1];
@@ -681,6 +696,7 @@ function startApplication() {
           const output = await run.promise;
           const text = selected === 'locale' ? (folderRead ? folderRead.notice + '\n\n' + output : output) : CLI.decodeOutput(selected, output.stdout, output.code, output.stderr);
           store.set(selected, [...store.get(selected), { role: 'assistant', text }]); controller.set('talk');
+          if (selected === 'locale' && image) keepLastFrame(image.bytes, image.name, store.get('locale').length - 1, text);
         } catch (e) {
           notice = (e.name === 'AbortError' ? 'Risposta interrotta.' : selected === 'locale' && settings.localEngine !== 'ollama' && ['MODEL_INVALID', 'ECONNREFUSED', 'AUTH', 'UNRECOGNIZED'].includes(e.code) ? fallbackToDefault(e.message) : e.code === 'MODEL_INVALID' && selected === 'locale' && !LocalAI.isModel(settings.localModel) ? fallbackToDefault(e.message) : e.message).slice(0, 1500); controller.set('error');
         } finally {
