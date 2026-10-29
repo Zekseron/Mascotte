@@ -94,4 +94,4 @@ function recheckExtraFolder(entry, options = {}) {
 }
 const goneMessage = name => `La cartella ${name} non è più disponibile: rimuovila o aggiungila di nuovo dalle Impostazioni.`;
 
-module.exports = { samePath, MAX_EXTRA, RESERVED, nameKey, validateExtraFolder, nameConflict, realOpts, normalizeExtraFolders, addExtraFolder, recheckExtraFolder, goneMessage };
+module.exports = { fold, samePath, MAX_EXTRA, RESERVED, nameKey, validateExtraFolder, nameConflict, realOpts, normalizeExtraFolders, addExtraFolder, recheckExtraFolder, goneMessage };
