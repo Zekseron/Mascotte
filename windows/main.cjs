@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const { randomUUID } = require('node:crypto');
 const { pathToFileURL } = require('node:url');
-const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer, shell, systemPreferences } = require('electron');
+const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer, shell, systemPreferences, Notification, powerMonitor } = require('electron');
 const Platform = require('./lib/platform.cjs');
 const Capture = require('./lib/capture.cjs');
 const can = Platform.capabilities();
@@ -42,6 +42,31 @@ function startApplication() {
   // (o fino a «Nuova» nella chat locale o alla chiusura), per poterlo mandare a Codex o Claude dopo conferma.
   const FRAME_TTL = 10 * 60 * 1000;
   let lastFrame = null, lastFrameTimer = null;
+  // Promemoria e sveglie impostati dalla chat locale: notifica di sistema alla scadenza, anche per quelli scaduti ad app chiusa.
+  const Reminders = require('./lib/reminders.cjs');
+  let reminders = null, reminderTimer = null, activeAlarm = null, alarmTimer = null;
+  const ALARM_RING = 3 * 60 * 1000, SNOOZE = 5 * 60 * 1000;
+  function stopAlarm() { clearTimeout(alarmTimer); alarmTimer = null; activeAlarm = null; }
+  function fireReminder(item) {
+    const late = Date.now() - item.when > 60000;
+    const body = item.text + (late ? ` (era per ${Reminders.formatWhen(item.when)})` : '');
+    if (Notification.isSupported()) new Notification({ title: item.alarm ? 'Mascotte · sveglia' : 'Mascotte · promemoria', body, silent: false }).show();
+    else if (!item.alarm) { notice = `⏰ ${body}`; showChat(); broadcast(); }
+    // Sveglia (non troppo in ritardo): finestra con «Ferma» e «Rimanda», suono a ripetizione nella chat per al massimo 3 minuti, gattino in attesa.
+    if (item.alarm && Date.now() - item.when < 10 * 60000) {
+      stopAlarm(); activeAlarm = { id: item.id, text: item.text, when: item.when };
+      alarmTimer = setTimeout(() => { if (activeAlarm) notice = `La sveglia «${activeAlarm.text}» si è spenta da sola dopo 3 minuti.`; stopAlarm(); broadcast(); }, ALARM_RING);
+      if (!currentRun) controller.set('waiting'); showChat(); broadcast();
+    }
+  }
+  function scheduleReminders() {
+    clearTimeout(reminderTimer); reminderTimer = null;
+    if (!reminders) return;
+    for (const item of reminders.takeDue()) fireReminder(item);
+    const next = reminders.next();
+    // Al massimo un'ora per volta: i timer molto lunghi non sono affidabili e dopo lo stop del computer si ricontrolla subito.
+    if (next) reminderTimer = setTimeout(scheduleReminders, Math.max(1000, Math.min(next.when - Date.now(), 3600000)));
+  }
   function clearLastFrame() { clearTimeout(lastFrameTimer); lastFrameTimer = null; if (lastFrame) { lastFrame.bytes.fill(0); lastFrame = null; } }
   function keepLastFrame(bytes, name, message, reply) {
     clearLastFrame(); lastFrame = { bytes: Buffer.from(bytes), name, message, reply: String(reply).slice(0, 80), expiresAt: Date.now() + FRAME_TTL };
@@ -52,7 +77,7 @@ function startApplication() {
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
-  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(), localEngine: settings?.localEngine || 'ollama', localEngineLabel: LocalEngines.label(settings?.localEngine), localManaged: LocalEngines.get(LocalEngines.MANAGED).status(), localEngines: engineStatus ? engineStatus.map(({ id, label, state, count, message }) => ({ id, label, state, count, message: message || '' })) : null, localEngineModels: settings?.localEngine && settings.localEngine !== 'ollama' ? engineStatus?.find(item => item.id === settings.localEngine) || null : null, localCatalog: LocalAI.uiCatalog(), localInstalled: installedCache, localScanning, deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, secondOpinionFrame: lastFrame && { name: lastFrame.name, message: lastFrame.message, reply: lastFrame.reply, expiresAt: lastFrame.expiresAt }, watchAvailable: can.watch, hooksAvailable: can.hooks && app.isPackaged, watching: Boolean(watchSource), watchName: watchSource?.name || '', characters: pack ? { current: pack.id, scale: settings?.scale, scales: Characters.allowedScales(pack), list: characters.map(c => ({ id: c.id, name: c.name, category: c.category, personal: c.personal })), warnings: characterWarnings, max: Characters.MAX_PERSONAL, status: characterStatus, failed: characterStatusFailed } : null, management: { available: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', hooks: hooksState(), running: updateRunning, status: updateStatus, failed: updateFailed, folders: { defaults: FolderView.viewableFolders().map(folder => ({ name: folder.display, path: folder.target })), extra: (settings?.extraFolders || []).map(folder => ({ name: folder.name, path: folder.path })), max: ExtraFolders.MAX_EXTRA, status: folderStatus, failed: folderStatusFailed } } });
+  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(), localEngine: settings?.localEngine || 'ollama', localEngineLabel: LocalEngines.label(settings?.localEngine), localManaged: LocalEngines.get(LocalEngines.MANAGED).status(), localEngines: engineStatus ? engineStatus.map(({ id, label, state, count, message }) => ({ id, label, state, count, message: message || '' })) : null, localEngineModels: settings?.localEngine && settings.localEngine !== 'ollama' ? engineStatus?.find(item => item.id === settings.localEngine) || null : null, localCatalog: LocalAI.uiCatalog(), localInstalled: installedCache, localScanning, deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, alarm: activeAlarm && { text: activeAlarm.text, time: new Date(activeAlarm.when).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) }, secondOpinionFrame: lastFrame && { name: lastFrame.name, message: lastFrame.message, reply: lastFrame.reply, expiresAt: lastFrame.expiresAt }, watchAvailable: can.watch, hooksAvailable: can.hooks && app.isPackaged, watching: Boolean(watchSource), watchName: watchSource?.name || '', characters: pack ? { current: pack.id, scale: settings?.scale, scales: Characters.allowedScales(pack), list: characters.map(c => ({ id: c.id, name: c.name, category: c.category, personal: c.personal })), warnings: characterWarnings, max: Characters.MAX_PERSONAL, status: characterStatus, failed: characterStatusFailed } : null, management: { available: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', hooks: hooksState(), running: updateRunning, status: updateStatus, failed: updateFailed, folders: { defaults: FolderView.viewableFolders().map(folder => ({ name: folder.display, path: folder.target })), extra: (settings?.extraFolders || []).map(folder => ({ name: folder.name, path: folder.path })), max: ExtraFolders.MAX_EXTRA, status: folderStatus, failed: folderStatusFailed } } });
   // Immagini: Ollama le legge dal modello; gli altri motori solo se il server le dichiara (altrimenti allegati disattivati).
   const localVision = () => settings?.localEngine && settings.localEngine !== 'ollama' ? LocalEngines.supportsVision(settings.localEngine, settings.localModel) : LocalAI.supportsVision(settings?.localModel);
   const saveSettings = () => atomicJSON(stateFile, settings);
@@ -339,7 +364,7 @@ function startApplication() {
   if (process.platform !== 'win32') for (const signal of ['SIGTERM', 'SIGHUP', 'SIGINT']) process.on(signal, () => app.quit());
   app.on('before-quit', () => {
     updateAbort?.abort();
-    quitting = true; localDownload?.abort(); LocalEngines.shutdown(); currentRun?.stop('Risposta interrotta.', true); controller?.close(); clearInterval(mouseTimer);
+    quitting = true; clearTimeout(reminderTimer); stopAlarm(); localDownload?.abort(); LocalEngines.shutdown(); currentRun?.stop('Risposta interrotta.', true); controller?.close(); clearInterval(mouseTimer);
     stopWatching();
     if (activeShareDirectory && fs.existsSync(activeShareDirectory)) { try { fs.rmSync(activeShareDirectory, { recursive: true, force: true }); } catch {} }
     activeShareDirectory = null;
@@ -361,6 +386,8 @@ function startApplication() {
     const chatDirectory = path.join(dataDirectory, 'chat'); prepareDirectory(chatDirectory);
     store = new ChatStore(chatDirectory);
     memory = new LocalAI.LocalMemory(chatDirectory);
+    reminders = new Reminders.ReminderStore(path.join(dataDirectory, 'reminders.json')); scheduleReminders();
+    powerMonitor.on('resume', scheduleReminders);
     const raw = readJSON(stateFile, {});
     // Motore: un valore sconosciuto, o un modello di un altro motore senza nome valido, torna a Ollama e al predefinito.
     let startEngine = LocalEngines.normalizeEngine(raw.localEngine);
@@ -519,6 +546,12 @@ function startApplication() {
         const selectedAction = pendingAction; pendingAction = null;
         try {
           if (selectedAction.kind === 'remember') { memory.add(selectedAction.text, 'manuale'); notice = `Nota salvata sul ${can.deviceName}.`; }
+          else if (selectedAction.kind === 'reminder') {
+            if (selectedAction.when <= Date.now()) throw new Error('l’orario è già passato.');
+            reminders.add(selectedAction); scheduleReminders(); notice = `${selectedAction.alarm ? 'Sveglia impostata' : 'Promemoria impostato'} per ${Reminders.formatWhen(selectedAction.when)}.`;
+            // Notifica di conferma subito: la prima volta il sistema chiede qui il permesso, così quella alla scadenza non va persa.
+            if (Notification.isSupported()) new Notification({ title: 'Mascotte', body: notice, silent: true }).show();
+          }
           else {
             if (!LocalCommands.validateTarget(selectedAction.target, { extraFolders: settings.extraFolders, dataDir: dataDirectory })) throw new Error(selectedAction.extraName ? ExtraFolders.goneMessage(selectedAction.extraName) : 'l’app o la cartella non è più disponibile o non è in una posizione ammessa.');
             const error = await shell.openPath(selectedAction.target);
@@ -646,6 +679,11 @@ function startApplication() {
       }
       if (action === 'watch-disable') { stopWatching(); return chatSnapshot(); }
       if (action === 'engine' && !currentRun && [...CLI.ENGINES, 'locale'].includes(data)) { engine = data; engineTouched = true; notice = ''; return chatSnapshot(); }
+      if (action === 'alarm-stop') { stopAlarm(); if (!currentRun) controller.set('idle'); return chatSnapshot(); }
+      if (action === 'alarm-snooze' && activeAlarm) {
+        const item = reminders.add({ when: Date.now() + SNOOZE, text: activeAlarm.text, alarm: true }); stopAlarm(); scheduleReminders();
+        if (!currentRun) controller.set('idle'); notice = `Sveglia rimandata a ${Reminders.formatWhen(item.when)}.`; return chatSnapshot();
+      }
       if (action === 'new' && !currentRun) { store.set(engine, []); if (engine === 'locale') clearLastFrame(); notice = ''; return chatSnapshot(); }
       // Anteprima del fotogramma conservato, solo per la finestra di conferma del secondo parere.
       if (action === 'second-opinion-frame') return lastFrame ? 'data:image/jpeg;base64,' + lastFrame.bytes.toString('base64') : null;
@@ -673,6 +711,25 @@ function startApplication() {
         if (pendingAction) { notice = 'Conferma o annulla prima l’azione proposta.'; broadcast(); return; }
         let folderRead = null;
         if (engine === 'locale' && !imageData) {
+          const replyNow = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer }]); notice = ''; broadcast(); return chatSnapshot(); };
+          // Promemoria e sveglie: orario calcolato da Mascotte, impostazione con conferma, elenco e cancellazione diretti.
+          const reminderCommand = Reminders.parseReminderCommand(text);
+          if (reminderCommand?.type === 'reminder-list') return replyNow(Reminders.describeReminders(reminders.list()));
+          if (reminderCommand?.type === 'reminder-cancel') {
+            const items = reminders.list();
+            if (reminderCommand.all) { const count = reminders.clear(); scheduleReminders(); return replyNow(count ? `Ho cancellato ${count === 1 ? 'il promemoria' : `tutti i ${count} promemoria`}.` : 'Non avevi promemoria.'); }
+            const index = reminderCommand.index ?? (items.length === 1 ? 1 : null);
+            if (!index || !items[index - 1]) return replyNow(items.length ? 'Quale? Scrivi il numero, per esempio «cancella promemoria 1».\n\n' + Reminders.describeReminders(items) : 'Non hai promemoria da cancellare.');
+            reminders.remove(items[index - 1].id); scheduleReminders();
+            return replyNow(`Ho cancellato il promemoria ${index}: «${items[index - 1].text}» (${Reminders.formatWhen(items[index - 1].when)}).`);
+          }
+          const reminder = Reminders.parseReminder(text);
+          if (reminder?.error) return replyNow(reminder.error);
+          if (reminder) {
+            store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: 'Posso impostarlo: controlla e conferma.' }]); notice = '';
+            pendingAction = { id: randomUUID(), kind: 'reminder', description: `Impostare ${reminder.alarm ? 'una sveglia' : 'un promemoria'} per ${Reminders.formatWhen(reminder.when)}: «${reminder.text}». Riceverai una notifica di sistema.`, when: reminder.when.getTime(), text: reminder.text, alarm: reminder.alarm };
+            broadcast(); return chatSnapshot();
+          }
           // Comandi gestiti da Mascotte, non dal modello: azioni predefinite e note, sempre con conferma.
           const command = LocalCommands.parseLocalCommand(text, { actions: can.localActions, extraFolders: settings.extraFolders });
           const reply = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer }]); notice = ''; };

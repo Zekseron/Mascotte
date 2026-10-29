@@ -249,6 +249,9 @@ function render(value) {
     $('claude-preview').textContent = value.setup.claude; $('codex-preview').textContent = value.setup.codex;
     if (!$('setup-dialog').open) $('setup-dialog').showModal();
   } else if ($('setup-dialog').open) $('setup-dialog').close();
+  // Sveglia attiva: finestra con Ferma/Rimanda e suono a ripetizione finché non la fermi (main la spegne dopo 3 minuti).
+  if (value.alarm) { $('alarm-text').textContent = value.alarm.text; $('alarm-time').textContent = value.alarm.time; if (!$('alarm-dialog').open) { $('alarm-dialog').showModal(); startAlarmSound(); } }
+  else if ($('alarm-dialog').open) { stopAlarmSound(); $('alarm-dialog').close(); }
   if (value.pendingAction) { $('pc-action-description').textContent = value.pendingAction.description; if (!$('pc-action-dialog').open) $('pc-action-dialog').showModal(); }
   else if ($('pc-action-dialog').open) $('pc-action-dialog').close();
 }
@@ -279,6 +282,17 @@ function renderCharacters(value, locked) {
   $('character-warnings').textContent = info.warnings.join('\n'); $('character-warnings').hidden = !info.warnings.length;
   $('character-status').textContent = info.status || ''; $('character-status').className = info.failed ? 'error' : '';
 }
+// Suono della sveglia generato al momento (due bip ogni 1,2 secondi), senza file audio.
+let alarmAudio = null, alarmBeeps = null;
+function startAlarmSound() {
+  stopAlarmSound();
+  try { alarmAudio = new AudioContext(); } catch { return; }
+  const beep = () => { for (const start of [0, 0.25]) { const osc = alarmAudio.createOscillator(), gain = alarmAudio.createGain(), at = alarmAudio.currentTime + start;
+    osc.frequency.value = 880; gain.gain.setValueAtTime(0.0001, at); gain.gain.exponentialRampToValueAtTime(0.25, at + 0.02); gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
+    osc.connect(gain).connect(alarmAudio.destination); osc.start(at); osc.stop(at + 0.2); } };
+  beep(); alarmBeeps = setInterval(beep, 1200);
+}
+function stopAlarmSound() { clearInterval(alarmBeeps); alarmBeeps = null; try { alarmAudio?.close(); } catch {} alarmAudio = null; }
 function openMemory(text = '', source = 'manuale') { memorySource = source; $('memory-text').value = text.slice(0, 2000); $('memory-dialog').showModal(); }
 // `preview`: immagine mostrata nella conferma. Senza `imageData` è il fotogramma conservato da Mascotte (useLastFrame).
 function openRemote(text, engine, imageData = null, noHistory = false, preview = null) {
@@ -357,6 +371,9 @@ $('memory-save').addEventListener('click', async () => { const text = $('memory-
 $('pc-action-cancel').addEventListener('click', async () => render(await invoke('pc-action-cancel')));
 $('pc-action-confirm').addEventListener('click', async () => render(await invoke('pc-action-confirm', current?.pendingAction?.id)));
 $('pc-action-dialog').addEventListener('cancel', () => invoke('pc-action-cancel'));
+$('alarm-stop').addEventListener('click', async () => { stopAlarmSound(); render(await invoke('alarm-stop')); });
+$('alarm-snooze').addEventListener('click', async () => { stopAlarmSound(); render(await invoke('alarm-snooze')); });
+$('alarm-dialog').addEventListener('cancel', event => { event.preventDefault(); stopAlarmSound(); invoke('alarm-stop').then(render); });
 $('remote-cancel').addEventListener('click', () => { remotePending = null; $('remote-image').removeAttribute('src'); $('remote-dialog').close(); });
 $('remote-dialog').addEventListener('cancel', () => { remotePending = null; });
 $('remote-confirm').addEventListener('click', async () => { const text = $('remote-text').value.trim(); if (!text || !remotePending) return; const selected = $('remote-engine').value, pending = remotePending; remotePending = null; if (!pending.imageData && !pending.noHistory) remoteConfirmed.add(selected); const include = $('remote-image-choice').hidden || $('remote-include-image').checked; $('remote-dialog').close(); $('remote-image').removeAttribute('src'); const next = await invoke('engine', selected); $('input').value = text; render(next); await submit(include ? pending.imageData : null, pending.noHistory, true, include && pending.useLastFrame); });
