@@ -209,4 +209,13 @@ async function launchInstaller({ root, archive, runtime, installDir, resultFile,
     }, 150000);
   });
 }
-module.exports = { removeOldOutputs, normalizedOrigin, validateRepository, updateFromRepository, updateFromRepositoryMac, installationDirectory, currentLocation, launchInstaller, findTool, toolEnvironment, OFFICIAL_ORIGIN, MAC_APP };
+// Esito dell'ultimo aggiornamento, lasciato dall'installatore in update-result.json: si legge e si toglie.
+// Se il file non si può togliere (permessi, antivirus) l'esito vale comunque e l'avvio non deve fallire.
+function takeUpdateResult(file, { unlink = fs.unlinkSync } = {}) {
+  const value = require('./storage.cjs').readJSON(file, null);
+  if (!value || typeof value.message !== 'string') return null;
+  try { unlink(file); } catch {}
+  return value;
+}
+
+module.exports = { takeUpdateResult, removeOldOutputs, normalizedOrigin, validateRepository, updateFromRepository, updateFromRepositoryMac, installationDirectory, currentLocation, launchInstaller, findTool, toolEnvironment, OFFICIAL_ORIGIN, MAC_APP };
