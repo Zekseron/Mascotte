@@ -1,6 +1,9 @@
 'use strict';
 const $ = id => document.getElementById(id);
 let current = null, drafts = { codex: '', claude: '', locale: '' }, watchStream = null, pendingImage = null, memorySource = 'manuale', remotePending = null;
+// Servizi remoti già confermati in questa esecuzione: dopo il primo invio i messaggi di testo partono senza nuova conferma.
+// La finestra della chat viene solo nascosta, quindi l'elenco dura finché Mascotte resta aperta. Immagini e secondo parere chiedono sempre.
+const remoteConfirmed = new Set();
 let selectedTab = 'chat';
 function selectTab(tab) {
   selectedTab = tab;
@@ -40,7 +43,7 @@ async function refreshWatchSources() {
   select.disabled = false; $('toggle-watch').disabled = !select.value;
   $('watch-state').textContent = sources.length ? `Seleziona una finestra. L’elenco resta su questo ${current?.deviceName || 'PC'}.` : 'Non trovo finestre da osservare.';
   // Su Mac si possono osservare solo le finestre sullo schermo: non quelle ridotte nel Dock o in un altro gruppo di Stage Manager.
-  if (current?.deviceName === 'Mac') $('watch-state').textContent += ' Manca una finestra? Portala in primo piano (non ridotta nel Dock né in un altro gruppo di Stage Manager) e premi di nuovo «Scegli finestra».';
+  if (current?.deviceName === 'Mac') $('watch-state').textContent += ' Manca una finestra? Portala in primo piano (non ridotta nel Dock né in un altro gruppo di Stage Manager) e premi «Aggiorna elenco».';
 }
 async function startWatching() {
   const id = $('watch-source').value; if (!id) return;
@@ -215,6 +218,8 @@ function openRemote(text, engine, imageData = null, noHistory = false) {
   const context = noHistory ? [] : current.messages.filter(message => ['user', 'assistant'].includes(message.role)).slice(-20);
   $('remote-context').textContent = context.length ? JSON.stringify(context, null, 2) : 'Nessun messaggio precedente.';
   $('remote-image-status').textContent = imageData ? 'È incluso anche il fotogramma che hai appena approvato.' : 'Nessuna immagine allegata.';
+  const name = engine === 'codex' ? 'Codex' : 'Claude';
+  $('remote-once').textContent = imageData || noHistory ? '' : `Dopo questa conferma, i prossimi messaggi a ${name} partiranno senza chiedere finché non chiudi Mascotte. Immagini e secondo parere chiedono sempre conferma.`;
   $('remote-dialog').showModal();
 }
 async function submit(imageData = null, noHistory = false, confirmed = false) {
@@ -222,7 +227,7 @@ async function submit(imageData = null, noHistory = false, confirmed = false) {
   if (current?.busy) { await invoke('stop'); return; }
   const text = $('input').value.trim(); if (!text) return;
   const engine = current.engine;
-  if (engine !== 'locale' && !confirmed) { openRemote(text, engine, imageData, noHistory); return; }
+  if (engine !== 'locale' && !confirmed && (imageData || noHistory || !remoteConfirmed.has(engine))) { openRemote(text, engine, imageData, noHistory); return; }
   $('input').value = ''; drafts[engine] = ''; $('send').disabled = true;
   await invoke('send', imageData ? { text, imageData } : noHistory ? { text, noHistory: true } : text);
   const next = await invoke('snapshot');
@@ -269,7 +274,7 @@ $('pc-action-confirm').addEventListener('click', async () => render(await invoke
 $('pc-action-dialog').addEventListener('cancel', () => invoke('pc-action-cancel'));
 $('remote-cancel').addEventListener('click', () => { remotePending = null; $('remote-dialog').close(); });
 $('remote-dialog').addEventListener('cancel', () => { remotePending = null; });
-$('remote-confirm').addEventListener('click', async () => { const text = $('remote-text').value.trim(); if (!text || !remotePending) return; const selected = $('remote-engine').value, pending = remotePending; remotePending = null; $('remote-dialog').close(); const next = await invoke('engine', selected); $('input').value = text; render(next); await submit(pending.imageData, pending.noHistory, true); });
+$('remote-confirm').addEventListener('click', async () => { const text = $('remote-text').value.trim(); if (!text || !remotePending) return; const selected = $('remote-engine').value, pending = remotePending; remotePending = null; if (!pending.imageData && !pending.noHistory) remoteConfirmed.add(selected); $('remote-dialog').close(); const next = await invoke('engine', selected); $('input').value = text; render(next); await submit(pending.imageData, pending.noHistory, true); });
 $('guide-git').addEventListener('click', () => invoke('cli-guide', 'git'));
 $('guide-node').addEventListener('click', () => invoke('cli-guide', 'node'));
 $('update-app').addEventListener('click', async () => render(await invoke('update-run')));
@@ -278,6 +283,8 @@ $('apply').addEventListener('click', async () => render(await invoke('setup-appl
 $('dismiss').addEventListener('click', async () => render(await invoke('setup-dismiss')));
 $('setup-dialog').addEventListener('cancel', () => invoke('setup-dismiss'));
 $('refresh-watch').addEventListener('click', refreshWatchSources);
+// L'elenco delle finestre si aggiorna da solo quando si apre la sezione (non durante l'osservazione).
+$('watch-panel').addEventListener('toggle', () => { if ($('watch-panel').open && !current?.watching) refreshWatchSources(); });
 $('watch-permission').addEventListener('click', () => invoke('watch-permission-settings'));
 $('watch-source').addEventListener('change', () => { $('toggle-watch').disabled = !$('watch-source').value; });
 $('toggle-watch').addEventListener('click', startWatching);

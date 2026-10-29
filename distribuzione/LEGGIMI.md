@@ -19,7 +19,7 @@ I pacchetti si scaricano dalla pagina **Releases** di `github.com/Zekseron/Masco
 2. Trascina `Mascotte.app` nella cartella **Applicazioni**. Se vuoi che l'aggiornamento dall'app funzioni, tienila proprio in `/Applications/Mascotte.app`.
 3. **Primo avvio.** L'app non è notarizzata da Apple, quindi macOS la blocca. Aprila una volta (si chiude con un avviso), poi vai in **Impostazioni di Sistema → Privacy e sicurezza**, scorri in fondo e premi **Apri comunque** accanto a Mascotte, poi conferma. Fallo solo se ti fidi di chi ti ha mandato il pacchetto e hai scaricato lo ZIP dalla release ufficiale. Non disattivare Gatekeeper.
 4. Compare il gattino e un'icona nella barra dei menu in alto; l'app non ha icona nel Dock. Clic sul gattino (o sull'icona nella barra dei menu) apre la chat; clic destro apre il menu. **Esci** dal menu.
-5. **Permesso «Registrazione schermo»: serve solo se usi l'osservazione di una finestra.** Alla prima richiesta («Scegli finestra») macOS lo chiede; se lo concedi, esci da Mascotte e riaprila perché valga. Se lo neghi tutto il resto continua a funzionare. Si cambia da **Impostazioni di Sistema → Privacy e sicurezza → Registrazione schermo**.
+5. **Permesso «Registrazione schermo»: serve solo se usi l'osservazione di una finestra.** La prima volta che apri la sezione «Finestra da condividere» macOS lo chiede; se lo concedi, esci da Mascotte e riaprila perché valga. Se lo neghi tutto il resto continua a funzionare. Si cambia da **Impostazioni di Sistema → Privacy e sicurezza → Registrazione schermo**.
 
 Gli ZIP creati dal creatore sono firmati con un certificato personale, non da Apple. Gli aggiornamenti scaricati dall'app (**Gestione → Controlla aggiornamenti**) non hanno la quarantena di macOS, quindi di norma non richiedono un altro «Apri comunque». Se un giorno il creatore cambiasse certificato, gli aggiornamenti dall'app verrebbero rifiutati e andrebbe reinstallata l'app a mano.
 
@@ -38,7 +38,7 @@ Installa le CLI ufficiali che vuoi usare; una sola è sufficiente per la micro c
 
 La mascotte riusa le credenziali locali delle CLI. Non richiede password nella propria finestra e non copia le credenziali. Serve un account abilitato all'uso della CLI scelta. Gli invii usano i suoi limiti; questa versione non aggiunge API key. Modelli e politiche dati seguono la CLI/account configurati. Se l'accesso scade, Mascotte mostra l'errore della CLI: rifai il login dal terminale.
 
-Clicca il gattino, scegli l'IA e scrivi. Invio invia; Maiusc+Invio va a capo. **Ogni invio a Codex o Claude chiede conferma** e mostra cosa partirebbe. Nuova e Interrompi gestiscono la conversazione.
+Clicca il gattino, scegli l'IA e scrivi. Invio invia; Maiusc+Invio va a capo. Il **primo invio** a Codex o a Claude dopo l'avvio di Mascotte chiede conferma e mostra cosa partirebbe; i messaggi successivi allo stesso servizio partono senza chiedere finché non chiudi Mascotte (immagini e secondo parere chiedono sempre). Nuova e Interrompi gestiscono la conversazione.
 
 ## IA locale (facoltativa)
 
@@ -49,7 +49,7 @@ Puoi anche usare modelli già presenti in Ollama o altri motori locali già avvi
 ## Altre funzioni
 
 - **Note e azioni:** «ricorda: …» salva una nota; «apri la calcolatrice» o «apri download» chiedono conferma e poi aprono. Su Mac si possono aprire anche altre app («apri Safari»).
-- **Osservazione di una finestra:** «Scegli finestra» → «Osserva» mostra un'anteprima locale; «Allega fotogramma…» invia **un solo fotogramma, dopo la tua conferma**.
+- **Osservazione di una finestra:** apri la sezione «Finestra da condividere», scegli la finestra → «Osserva» mostra un'anteprima locale; «Allega fotogramma…» invia **un solo fotogramma, dopo la tua conferma**.
 - **Aggiornamenti:** **Gestione → Controlla aggiornamenti** cerca una release più recente su GitHub e, dopo la tua conferma, la scarica e riavvia l'app.
 
 ## Attivare le reazioni alle sessioni esterne (facoltativo)

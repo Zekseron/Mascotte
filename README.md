@@ -13,7 +13,7 @@ Le regole per le sessioni di sviluppo sono in [AGENTS.md](AGENTS.md).
 ## Cosa fa
 
 - **Mascotte:** gattino trasparente e trascinabile, sempre in primo piano, con stati animati. Si può agganciare alla barra delle applicazioni (Windows) o al Dock (Mac) oppure al bordo di una finestra. Su Mac vive nella barra dei menu, senza icona nel Dock.
-- **Micro chat con Codex e Claude:** un clic sul gattino apre una finestrella. Usa le CLI ufficiali già autenticate sul tuo computer, con il tuo account. **Ogni invio chiede conferma** e mostra messaggio e cronologia che partirebbero.
+- **Micro chat con Codex e Claude:** un clic sul gattino apre una finestrella. Usa le CLI ufficiali già autenticate sul tuo computer, con il tuo account. Il **primo invio** a ciascun servizio dopo l'avvio chiede conferma e mostra messaggio e cronologia che partirebbero.
 - **Chat locale:** risponde con modelli che girano sul computer, tramite Ollama (anche modelli già installati) o altri motori locali già avviati da te (LM Studio, server di llama.cpp, Jan). Nessun modello cloud viene usato.
 - **Note:** si salvano a mano o con «ricorda: …» e vengono ritrovate per le domande locali. Restano sul computer.
 - **Azioni locali con conferma:** aprire la Calcolatrice e le cartelle Download, Documenti, Scrivania e Immagini, anche con frasi naturali; su Mac anche le app installate. Ogni azione parte solo dopo la tua conferma.
