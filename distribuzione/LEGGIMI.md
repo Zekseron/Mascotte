@@ -49,7 +49,7 @@ Puoi anche usare modelli già presenti in Ollama o altri motori locali già avvi
 ## Altre funzioni
 
 - **Note e azioni:** «ricorda: …» salva una nota; «apri la calcolatrice» o «apri download» chiedono conferma e poi aprono. Su Mac si possono aprire anche altre app («apri Safari»).
-- **Osservazione di una finestra:** apri la sezione «Finestra da condividere», scegli la finestra → «Osserva» mostra un'anteprima locale; «Allega fotogramma…» invia **un solo fotogramma, dopo la tua conferma**.
+- **Osservazione di una finestra:** apri la sezione «Finestra da condividere», scegli la finestra → «Osserva» mostra un'anteprima locale; «Allega fotogramma…» invia **un solo fotogramma, dopo la tua conferma**. Con la chat locale e un modello che legge le immagini, mentre osservi ogni messaggio include da solo il fotogramma attuale (resta sul computer).
 - **Aggiornamenti:** **Impostazioni → Controlla aggiornamenti** cerca una release più recente su GitHub e, dopo la tua conferma, la scarica e riavvia l'app.
 
 ## Attivare le reazioni alle sessioni esterne (facoltativo)

@@ -37,7 +37,8 @@ function classify(item, label, native) {
   return { ok: true, vision, size: size > 0 ? size : 0 };
 }
 
-function create({ id, label, baseUrls, nativeModels, platform = process.platform, totalMemory }) {
+// `assumeVision` (solo per il motore gestito da Mascotte, che carica lui stesso il proiettore delle immagini): nomi di modelli con visione garantita.
+function create({ id, label, baseUrls, nativeModels, platform = process.platform, totalMemory, assumeVision = [] }) {
   const bases = baseUrls.map(localBase);
   const vision = new Map();
   let active = null;
@@ -92,8 +93,9 @@ function create({ id, label, baseUrls, nativeModels, platform = process.platform
     for (const item of data.slice(0, MAX_MODELS)) {
       const verdict = classify(item, label, native?.get(item?.id)), name = typeof item?.id === 'string' ? item.id.slice(0, 80) : '?';
       if (!verdict.ok) { vision.delete(item?.id); excluded.push({ name, reason: verdict.reason, cloud: Boolean(verdict.cloud) }); continue; }
-      vision.set(item.id, verdict.vision);
-      models.push({ name: item.id, size: verdict.size, vision: verdict.vision, warning: verdict.size ? LocalAI.memoryWarning(verdict.size, platform, totalMemory) : '' });
+      const seesImages = Boolean(verdict.vision || assumeVision.includes(item.id));
+      vision.set(item.id, seesImages);
+      models.push({ name: item.id, size: verdict.size, vision: seesImages, warning: verdict.size ? LocalAI.memoryWarning(verdict.size, platform, totalMemory) : '' });
     }
     return { models, excluded };
   }

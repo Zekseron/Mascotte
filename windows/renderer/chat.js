@@ -99,19 +99,20 @@ function render(value) {
   // Motore locale: Ollama (come prima) oppure un server già avviato dall'utente (LM Studio, llama.cpp, Jan), rilevato su richiesta.
   const otherEngine = value.localEngine !== 'ollama', engineLabel = value.localEngineLabel || 'Ollama';
   const statuses = value.localEngines || [];
-  const stateText = item => item.state === 'ready' ? `rilevato · ${item.count} ${item.count === 1 ? 'modello' : 'modelli'}` : item.state === 'absent' ? 'non avviato' : item.state === 'auth' ? 'richiede una chiave: non gestita da Mascotte' : item.state === 'unrecognized' ? 'non riconosciuto' : 'non disponibile';
-  const engineOptions = [['ollama', 'Ollama', true], ...['lmstudio', 'llamacpp', 'jan'].map(id => { const item = statuses.find(entry => entry.id === id); return [id, item?.label || { lmstudio: 'LM Studio', llamacpp: 'llama.cpp', jan: 'Jan' }[id], Boolean(item && item.state === 'ready' && item.count > 0)]; })];
-  const engineSignature = JSON.stringify([engineOptions, statuses.map(item => [item.id, item.state, item.count])]);
+  const stateText = item => item.state === 'ready' ? `rilevato · ${item.count} ${item.count === 1 ? 'modello' : 'modelli'}` : item.state === 'absent' ? 'non avviato' : item.state === 'auth' ? 'richiede una chiave: non gestita da Mascotte' : item.state === 'unrecognized' ? 'non riconosciuto' : item.state === 'missing' ? 'da scaricare' : item.state === 'unsupported' ? 'non disponibile su questo computer' : 'non disponibile';
+  const engineOptions = [['ollama', 'Ollama', true], ...['lmstudio', 'llamacpp', 'jan', 'llamacpp-mascotte'].map(id => { const item = statuses.find(entry => entry.id === id); return [id, item?.label || { lmstudio: 'LM Studio', llamacpp: 'llama.cpp', jan: 'Jan', 'llamacpp-mascotte': 'llama.cpp (Mascotte)' }[id], id === 'llamacpp-mascotte' ? Boolean(value.localManaged?.supported) : Boolean(item && item.state === 'ready' && item.count > 0)]; })];
+  const managedEngine = value.localEngine === 'llamacpp-mascotte', managed = value.localManaged;
+  const engineSignature = JSON.stringify([engineOptions, statuses.map(item => [item.id, item.state, item.count]), managed?.complete]);
   if ($('local-engine').dataset.signature !== engineSignature) {
-    $('local-engine').replaceChildren(...engineOptions.map(([id, label, usable]) => { const option = document.createElement('option'); option.value = id; option.disabled = !usable && id !== value.localEngine; option.textContent = id === 'ollama' ? label : `${label} · ${stateText(statuses.find(item => item.id === id) || { state: 'unknown' }).replace('non disponibile', 'non ancora cercato')}`; return option; }));
+    $('local-engine').replaceChildren(...engineOptions.map(([id, label, usable]) => { const option = document.createElement('option'); option.value = id; option.disabled = !usable && id !== value.localEngine; option.textContent = id === 'ollama' ? label : id === 'llamacpp-mascotte' ? `${label} · ${value.localManaged?.complete ? 'pronto' : 'da scaricare'}` : `${label} · ${stateText(statuses.find(item => item.id === id) || { state: 'unknown' }).replace('non disponibile', 'non ancora cercato')}`; return option; }));
     $('local-engine').dataset.signature = engineSignature;
   }
   $('local-engine').value = value.localEngine; $('local-engine').disabled = locked;
   $('local-engines-list').replaceChildren(...statuses.map(item => { const line = document.createElement('li'); line.textContent = `${item.label}: ${item.id === 'ollama' ? (item.state === 'ready' ? 'in uso come predefinito, rilevato' : 'non avviato') : stateText(item)}${item.state !== 'ready' && item.state !== 'absent' && item.message ? ' (' + item.message + ')' : ''}`; return line; }));
-  $('local-engine-note').textContent = otherEngine ? `Mascotte si collega solo a ${engineLabel} già avviato sul computer (solo 127.0.0.1): non lo avvia, non lo chiude e non scarica modelli. I modelli si gestiscono da ${engineLabel}. Tutto resta sul computer.` : 'Per usare LM Studio, llama.cpp o Jan avvia prima il loro server locale, poi premi «Cerca motori locali». Mascotte non li avvia né scarica modelli per loro.';
+  $('local-engine-note').textContent = managedEngine ? 'Mascotte scarica llama.cpp e il modello (solo dopo la tua conferma), avvia il server solo su 127.0.0.1 quando serve e lo chiude dopo 2 minuti di inattività e alla chiusura dell’app. Tutto resta sul computer.' : otherEngine ? `Mascotte si collega solo a ${engineLabel} già avviato sul computer (solo 127.0.0.1): non lo avvia, non lo chiude e non scarica modelli. I modelli si gestiscono da ${engineLabel}. Tutto resta sul computer.` : 'Per usare LM Studio, llama.cpp o Jan avvia prima il loro server locale, poi premi «Cerca motori locali». Mascotte non li avvia né scarica modelli per loro.';
   $('local-engine-note').hidden = false;
   // Elenco modelli: catalogo + gruppo «Già presenti sul computer» (letto da Ollama) oppure solo i modelli del motore scelto.
-  const found = otherEngine ? (value.localEngineModels?.models || []) : (value.localInstalled?.models || []);
+  const found = managedEngine ? (managed ? [{ name: managed.model.id, size: managed.model.size, vision: managed.model.vision }] : []) : otherEngine ? (value.localEngineModels?.models || []) : (value.localInstalled?.models || []);
   const present = found.slice();
   if (value.localInstalledSource && !present.some(model => model.name === value.localModel)) present.push({ name: value.localModel, size: 0, vision: value.localVision });
   const gb = size => size > 0 ? ' · ' + (size / 1e9).toFixed(1).replace('.', ',') + ' GB' : '';
@@ -130,13 +131,20 @@ function render(value) {
   $('local-model').value = value.localModel;
   $('local-scan').disabled = locked || value.localScanning;
   $('local-scan').textContent = value.localScanning ? 'Cerco…' : 'Cerca motori locali';
-  $('guide-ollama').hidden = otherEngine; $('local-download').hidden = otherEngine;
-  $('local-download').disabled = locked || Boolean(value.setup) || value.localInstalledSource;
-  $('local-download').title = value.localInstalledSource ? 'Mascotte non scarica né aggiorna modelli fuori catalogo.' : '';
-  $('local-intro').textContent = otherEngine ? `Chat locale con ${engineLabel}: usa un modello che hai già in ${engineLabel}.` : localCatalog.intro;
+  $('guide-ollama').hidden = otherEngine; $('local-download').hidden = otherEngine && !(managedEngine && managed && !managed.complete);
+  $('local-download').textContent = managedEngine ? 'Scarica llama.cpp e modello' : 'Scarica / aggiorna modello';
+  $('local-download').disabled = locked || Boolean(value.setup) || (value.localInstalledSource && !managedEngine);
+  $('local-download').title = value.localInstalledSource && !managedEngine ? 'Mascotte non scarica né aggiorna modelli fuori catalogo.' : '';
+  const size = bytes => (bytes / 1e9).toFixed(1).replace('.', ',') + ' GB', yesNo = ok => ok ? 'scaricato e verificato' : 'da scaricare';
+  $('managed-remove').hidden = !managedEngine || !managed || (!managed.runtime.present && !managed.model.present); $('managed-remove').disabled = locked || Boolean(value.setup);
+  $('managed-status').hidden = !managedEngine || !managed;
+  if (managedEngine && managed) $('managed-status').textContent = managed.supported ? `llama.cpp ${managed.build} (${managed.variant}): ${yesNo(managed.runtime.present)}, ${size(managed.runtime.size)} · ${managed.model.label}: ${yesNo(managed.model.present)}, ${size(managed.model.size)} · server: ${{ stopped: 'spento', starting: 'in avvio', ready: 'pronto', stopping: 'in chiusura' }[managed.server] || managed.server}${managed.complete ? '' : ` · da scaricare ${size(managed.missingBytes)}`}` : 'Non disponibile su questo computer: servono un Mac Apple Silicon o un PC Windows x64.';
+  $('managed-license').hidden = !managedEngine;
+  $('managed-license').textContent = 'Licenze: llama.cpp è software libero con licenza MIT; Gemma 4 è distribuito con licenza Apache 2.0. Download solo da github.com e huggingface.co, su richiesta.';
+  $('local-intro').textContent = managedEngine ? 'Chat locale con llama.cpp gestito da Mascotte e il modello Gemma 4 E4B (testo e immagini).' : otherEngine ? `Chat locale con ${engineLabel}: usa un modello che hai già in ${engineLabel}.` : localCatalog.intro;
   const excluded = (otherEngine ? value.localEngineModels?.excluded : value.localInstalled?.excluded) || [];
   $('local-installed-note').textContent = otherEngine ? (found.length ? `Trovati ${found.length} modelli in ${engineLabel}, usabili senza scaricare altro.` : `Nessun modello idoneo in ${engineLabel}.`) : (value.localInstalled?.error || (value.localInstalled ? (found.length ? `Trovati ${found.length} modelli già presenti, usabili senza scaricare altro. Tutto resta sul computer.` : 'Nessun altro modello idoneo già presente in Ollama.') : ''));
-  $('local-installed-note').hidden = otherEngine ? false : !value.localInstalled;
+  $('local-installed-note').hidden = managedEngine || (otherEngine ? false : !value.localInstalled);
   $('local-excluded').hidden = !excluded.length;
   $('local-excluded-summary').textContent = `${excluded.length} ${excluded.length === 1 ? 'modello escluso' : 'modelli esclusi'}`;
   $('local-excluded-list').replaceChildren(...excluded.map(model => { const item = document.createElement('li'); item.textContent = `${model.name} — escluso: ${model.reason}`; return item; }));
@@ -176,7 +184,7 @@ function render(value) {
   $('hook-status').textContent = value.notice || '';
   renderCharacters(value, locked);
   const folderCount = folders.defaults.length + folders.extra.length, noteCount = (value.memories || []).length;
-  $('sum-ia').textContent = `${engineLabel} · ${value.localModel}`;
+  $('sum-ia').textContent = `${engineLabel} · ${value.localModel}${managedEngine && managed ? (managed.complete ? ' · ' + ({ ready: 'server pronto', starting: 'in avvio' }[managed.server] || 'pronto') : ' · da scaricare') : ''}`;
   $('sum-cli').textContent = `Codex ${value.available.includes('codex') ? '✓' : '✗'} · Claude ${value.available.includes('claude') ? '✓' : '✗'}`;
   $('sum-note').textContent = noteCount ? `${noteCount} ${noteCount === 1 ? 'nota' : 'note'}` : 'Nessuna nota';
   $('sum-cartelle').textContent = `${folderCount} ${folderCount === 1 ? 'cartella' : 'cartelle'}`;
@@ -231,7 +239,7 @@ function render(value) {
   $('watch-summary').title = value.watching ? value.watchName : '';
   $('watch-help').textContent = value.engine === 'locale' && !value.localVision
     ? `I modelli locali disponibili leggono solo testo: questa anteprima non viene vista da ${value.localEngineLabel || 'Ollama'}. Per fare una domanda su un fotogramma, scegli Codex o Claude e allegalo: ogni invio richiede conferma.`
-    : value.engine === 'locale' ? 'Il modello locale vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Il fotogramma resta sul ' + value.deviceName + ' e non viene salvato nella cronologia. Per fermare la cattura usa Smetti.'
+    : value.engine === 'locale' ? 'Mentre osservi, ogni messaggio alla chat locale include il fotogramma attuale della finestra (non un video in diretta). Il fotogramma resta sul ' + value.deviceName + ' e non viene salvato nella cronologia. Per fermare la cattura usa Smetti.'
     : `L'anteprima resta sul ${value.deviceName}. Il servizio vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Chiudere questa sezione nasconde l'anteprima ma non ferma la cattura: usa Smetti.`;
   $('share-view').disabled = (value.engine === 'locale' && !value.localVision) || !value.watching || locked || !watchStream;
   $('share-view').title = value.engine === 'locale' && !value.localVision ? `Scegli ${localCatalog.visionChoice} nelle Impostazioni per analizzare immagini.` : '';
@@ -291,6 +299,9 @@ async function submit(imageData = null, noHistory = false, confirmed = false, us
   if (current?.busy) { await invoke('stop'); return; }
   const text = $('input').value.trim(); if (!text) return;
   const engine = current.engine;
+  // Chat locale con un modello che legge le immagini: mentre osservi una finestra, il fotogramma attuale parte con il messaggio.
+  // Resta sul computer (solo il modello locale lo vede), quindi non serve conferma. Codex e Claude solo con «Allega fotogramma…».
+  if (engine === 'locale' && !imageData && current.localVision && current.watching) imageData = captureFrame();
   if (engine !== 'locale' && !confirmed && (imageData || noHistory || !remoteConfirmed.has(engine))) { openRemote(text, engine, imageData, noHistory); return; }
   $('input').value = ''; drafts[engine] = ''; $('send').disabled = true;
   await invoke('send', imageData || noHistory || useLastFrame ? { text, ...(imageData ? { imageData } : {}), ...(noHistory ? { noHistory: true } : {}), ...(useLastFrame ? { useLastFrame: true } : {}) } : text);
@@ -334,6 +345,7 @@ $('release-update').addEventListener('click', async () => render(await invoke('r
 $('guide-codex').addEventListener('click', () => invoke('cli-guide', 'codex'));
 $('guide-claude').addEventListener('click', () => invoke('cli-guide', 'claude'));
 $('local-download').addEventListener('click', async () => render(await invoke('local-download')));
+$('managed-remove').addEventListener('click', async () => render(await invoke('local-managed-remove')));
 $('local-download-cancel').addEventListener('click', async () => render(await invoke('local-download-cancel')));
 $('guide-ollama').addEventListener('click', () => invoke('cli-guide', 'ollama'));
 $('local-engine').addEventListener('change', async () => render(await invoke('local-engine', $('local-engine').value)));

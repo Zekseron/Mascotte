@@ -2,9 +2,11 @@
 // Interfaccia comune dei motori locali. Ogni motore espone: id, label, capabilities, supportsVision(model), detect(), listModels(),
 // checkModel(model) e chat({ messages, model, images, options, signal }). Ollama è il primo; gli altri sono server compatibili OpenAI
 // già avviati dall'utente su questo computer (Mascotte non li avvia, non li chiude, non scarica modelli). Solo preset fissi, niente URL liberi.
+// Fa eccezione `llamacpp-mascotte`, il cui server è scaricato, avviato e chiuso da Mascotte.
 const LocalAI = require('./local-ai.cjs');
 const ollama = require('./engines/ollama.cjs');
 const OpenAICompatible = require('./engines/openai-compatible.cjs');
+const Managed = require('./engines/llamacpp-managed.cjs');
 
 // Porte predefinite (verificate sulla documentazione ufficiale il 28 ottobre 2026):
 // LM Studio 1234 (lmstudio.ai/docs/developer/openai-compat), Jan 1337 (docs.jan.ai/desktop/api-server),
@@ -14,13 +16,19 @@ const PRESETS = Object.freeze([
   { id: 'llamacpp', label: 'llama.cpp', baseUrls: ['http://127.0.0.1:9931/v1', 'http://127.0.0.1:8080/v1'] },
   { id: 'jan', label: 'Jan', baseUrls: ['http://127.0.0.1:1337/v1'] }
 ]);
-const IDS = Object.freeze(['ollama', ...PRESETS.map(preset => preset.id)]);
+// Motore gestito da Mascotte: scarica runtime e modello, avvia e chiude llama-server da sé (vedi engines/llamacpp-managed.cjs).
+const MANAGED = Managed.ID;
+const IDS = Object.freeze(['ollama', ...PRESETS.map(preset => preset.id), MANAGED]);
 const registry = new Map();
+let managedOptions = {};
+// Da chiamare all'avvio con la cartella dati; con un'altra cartella (test) il motore precedente viene chiuso.
+function configureManaged(options = {}) { registry.get(MANAGED)?.shutdown(); registry.delete(MANAGED); managedOptions = options; }
+const shutdown = () => registry.get(MANAGED)?.shutdown();
 const build = (preset = {}) => OpenAICompatible.create(preset);
 function get(id) {
   if (!IDS.includes(id)) throw new Error('Motore locale non supportato.');
   if (id === 'ollama') return ollama;
-  if (!registry.has(id)) registry.set(id, build(PRESETS.find(preset => preset.id === id)));
+  if (!registry.has(id)) registry.set(id, id === MANAGED ? Managed.create(managedOptions) : build(PRESETS.find(preset => preset.id === id)));
   return registry.get(id);
 }
 const isEngine = id => IDS.includes(id);
@@ -50,4 +58,4 @@ function run(engine, history, prompt, memories, { port, platform, model, install
   const promise = selected.chat({ messages: LocalAI.buildMessages(history, prompt, memories, folderContext), model, images: imageBase64 ? [imageBase64] : [], options: { maxTokens: LocalAI.numPredict(platform) }, signal: controller.signal });
   return { promise, stop: () => controller.abort() };
 }
-module.exports = { IDS, PRESETS, get, isEngine, normalizeEngine, label, supportsVision, detectAll, run, create: build, localBase: OpenAICompatible.localBase };
+module.exports = { IDS, PRESETS, MANAGED, configureManaged, shutdown, get, isEngine, normalizeEngine, label, supportsVision, detectAll, run, create: build, localBase: OpenAICompatible.localBase };

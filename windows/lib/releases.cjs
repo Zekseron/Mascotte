@@ -174,4 +174,4 @@ function repositoryContaining(executable) {
     const parent = path.dirname(directory); if (parent === directory) return null; directory = parent;
   }
 }
-module.exports = { latestRelease, parseRelease, assetName, verifyMacBundle, designatedRequirement, runningMacApp, MAC_BUNDLE_ID, compareVersions, downloadRelease, extractRuntime, repositoryContaining };
+module.exports = { DOWNLOAD_HOSTS, latestRelease, parseRelease, assetName, verifyMacBundle, designatedRequirement, runningMacApp, MAC_BUNDLE_ID, compareVersions, downloadRelease, extractRuntime, repositoryContaining };
