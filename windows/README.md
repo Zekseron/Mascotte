@@ -37,7 +37,7 @@ La chat locale usa `127.0.0.1:11434` e richiede un modello GGUF presente sul PC;
 
 Se un runtime autonomo è presente in `%LOCALAPPDATA%\Mascotte\local-ai\runtime` e i modelli sono nella sottocartella `local-ai\models`, Mascotte può avviarlo in locale quando non trova un servizio già in esecuzione. Questo runtime viene avviato con le funzioni cloud disabilitate e viene fermato all'uscita di Mascotte. Un server Ollama esterno già attivo rimane gestito dalla sua installazione.
 
-Ogni invio a Codex o Claude chiede conferma e mostra il messaggio e l'eventuale cronologia. Dopo una risposta locale, **Chiedi a Codex o Claude…** prepara un testo modificabile, senza includere automaticamente le note locali o la cronologia remota. Solo la conferma invia il testo e usa il piano del servizio scelto.
+Il primo invio a Codex o a Claude dopo l'avvio chiede conferma e mostra il messaggio e l'eventuale cronologia; i messaggi successivi allo stesso servizio partono senza chiedere finché Mascotte resta aperta (fotogrammi e secondo parere chiedono sempre). Dopo una risposta locale, **Chiedi a Codex o Claude…** prepara un testo modificabile, senza includere automaticamente le note locali o la cronologia remota. Solo la conferma invia il testo e usa il piano del servizio scelto.
 
 Le risposte possono essere salvate con **Ricorda…**, dopo averle controllate o modificate; in **Gestione → Memoria locale** si possono aggiungere e cancellare note. Sono salvate in `%LOCALAPPDATA%\Mascotte\chat\memory.json`, con le stesse protezioni della cartella chat, senza cifratura. Prima di ogni domanda locale vengono cercate fino a cinque note con parole in comune: la ricerca non riconosce sempre sinonimi o concetti equivalenti. Le note sono contesto recuperabile, non addestramento del modello, e non sono condivise automaticamente con Codex o Claude.
 
@@ -57,7 +57,7 @@ Nella chat scegli l'IA, scrivi e premi Invio (Maiusc+Invio va a capo). Interromp
 
 ### Osservare una finestra e condividere un fotogramma
 
-1. Apri la micro chat, premi **Scegli finestra**, seleziona una finestra e premi **Osserva**. La mascotte acquisisce solo la finestra selezionata e mostra un'anteprima locale. L'osservazione è spenta all'avvio e non viene ricordata al riavvio dell'app.
+1. Apri la micro chat, premi la sezione **Finestra da condividere** (l'elenco si aggiorna da solo; **Aggiorna elenco** lo ricarica), seleziona una finestra e premi **Osserva**. La mascotte acquisisce solo la finestra selezionata e mostra un'anteprima locale. L'osservazione è spenta all'avvio e non viene ricordata al riavvio dell'app.
 2. Finché osservi, la finestra e il flusso video restano sul PC. L'app non li scrive nella cronologia. Premi **Smetti** nella chat oppure **Osservazione → Interrompi osservazione** nel menu della mascotte per fermare e azzerare il flusso.
 3. Per passare un'immagine all'IA, scrivi una domanda, premi **Allega fotogramma…**, controlla l'anteprima e poi **Conferma e invia**. Senza questa conferma, l'immagine non viene inviata. La conferma vale per un solo fotogramma e un solo messaggio. Una volta confermato, l'immagine viene inviata al servizio scelto usando il tuo account Codex o Claude; l'uso e il trattamento successivi dipendono dal servizio. L'immagine non viene aggiunta alla cronologia Mascotte. Il file temporaneo usato per Codex viene eliminato a fine chiamata e ripulito al successivo avvio se l'app era stata interrotta.
 

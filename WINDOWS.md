@@ -26,7 +26,7 @@ Le impostazioni, la chat e le note restano in `%LOCALAPPDATA%\Mascotte` anche do
 
 Mascotte riusa le credenziali locali delle CLI: non le copia e non chiede password. Usa CLI aggiornate: una versione troppo vecchia può rifiutare le opzioni di sicurezza che Mascotte passa. I login non vengono importati da altri computer. Se le CLI sono in percorsi particolari, il creatore o uno sviluppatore può impostare `MASCOTTE_CHAT_CODEX` o `MASCOTTE_CHAT_CLAUDE` (dettagli in `windows/README.md`, nella repo).
 
-**Ogni invio a Codex o Claude chiede conferma.** Invio invia, Maiusc+Invio va a capo.
+**Il primo invio a Codex o a Claude dopo l'avvio chiede conferma**; i successivi allo stesso servizio no, finché Mascotte resta aperta (fotogrammi e secondo parere chiedono sempre). Invio invia, Maiusc+Invio va a capo.
 
 ## IA locale (facoltativa)
 
@@ -36,7 +36,7 @@ Installa [Ollama per Windows](https://ollama.com/download/windows), avvialo e in
 
 - **Aggancio** alla barra delle applicazioni o alla finestra attiva, dal menu **Aggancio** (clic destro).
 - **Note e azioni locali** con conferma: «ricorda: …», «apri la calcolatrice», «apri download» (anche Documenti, Scrivania e Immagini).
-- **Osservazione di una finestra:** «Scegli finestra» → «Osserva» mostra un'anteprima locale; «Allega fotogramma…» invia un solo fotogramma, solo dopo la tua conferma. Su Windows non serve un permesso di sistema.
+- **Osservazione di una finestra:** apri la sezione «Finestra da condividere», scegli la finestra → «Osserva» mostra un'anteprima locale; «Allega fotogramma…» invia un solo fotogramma, solo dopo la tua conferma. Su Windows non serve un permesso di sistema.
 - **Hook** per le reazioni a Claude Code e Codex: **Gestione → Crea / aggiorna hook**, anteprima e **Applica con backup** (usa PowerShell 5.1 incluso in Windows). Facoltativo. Se sposti l'app, ripremi il pulsante.
 - **Aggiornamenti:** **Gestione → Controlla aggiornamenti** scarica la versione più recente dalla release GitHub, ne verifica dimensione e impronta SHA-256 e riavvia l'app. L'esito dell'aggiornamento sta in `%LOCALAPPDATA%\Mascotte\update.log`.
 
