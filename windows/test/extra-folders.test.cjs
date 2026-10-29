@@ -126,7 +126,7 @@ test('validateTarget accetta le cartelle aggiunte presenti nell’elenco e ancor
   } finally { clean(); }
 });
 
-test('lettura di una cartella aggiunta: un livello, e se sparisce o cambia risponde con il messaggio di Gestione', () => {
+test('lettura di una cartella aggiunta: un livello, e se sparisce o cambia risponde con il messaggio delle Impostazioni', () => {
   const { root, opts, clean } = sandbox();
   try {
     const siti = path.join(root, 'siti'); fs.mkdirSync(path.join(siti, 'sotto'), { recursive: true });
@@ -138,7 +138,7 @@ test('lettura di una cartella aggiunta: un livello, e se sparisce o cambia rispo
     assert.equal(view.counts.pdf, 1); assert.equal(view.counts.cartelle, 1); assert.match(FolderView.answer(view, command.question), /1 PDF/);
     assert.throws(() => FolderView.readFolder(command.folder, { ...options, extraFolders: [] }), /non consultabile/); // non in elenco
     fs.rmSync(siti, { recursive: true });
-    assert.throws(() => FolderView.readFolder(command.folder, options), error => error.code === 'GONE' && error.message === 'La cartella siti non è più disponibile: rimuovila o aggiungila di nuovo da Gestione.');
+    assert.throws(() => FolderView.readFolder(command.folder, options), error => error.code === 'GONE' && error.message === 'La cartella siti non è più disponibile: rimuovila o aggiungila di nuovo dalle Impostazioni.');
     const altra = path.join(root, 'altra'); fs.mkdirSync(altra); fs.symlinkSync(altra, siti); // la cartella è stata sostituita da un link: realpath diverso
     assert.throws(() => FolderView.readFolder(command.folder, options), error => error.code === 'GONE');
   } finally { clean(); }
@@ -146,7 +146,7 @@ test('lettura di una cartella aggiunta: un livello, e se sparisce o cambia rispo
 
 test('cartella non presente: risposta senza modello solo con riconoscimento affidabile', () => {
   const reply = parseLocalCommand('che file ho in progetti?', mac);
-  assert.equal(reply.type, 'reply'); assert.equal(reply.text, 'Non vedo una cartella chiamata «progetti». Puoi aggiungerla da Gestione → Cartelle visibili.');
+  assert.equal(reply.type, 'reply'); assert.equal(reply.text, 'Non vedo una cartella chiamata «progetti». Puoi aggiungerla dalle Impostazioni → Cartelle visibili.');
   assert.equal(parseLocalCommand('quanti pdf ci sono nella cartella Lavoro', mac).type, 'reply');
   // casi dubbi: restano al modello (null)
   for (const text of ['quanti file ho in totale?', 'che file ho in /Users/prova/progetti', 'qual è il file più grande in progetti?', 'ci sono errori in progetti?', 'cosa mi consigli in progetti?', 'quanti giorni ci sono in marzo?',

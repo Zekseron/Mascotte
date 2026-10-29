@@ -7,7 +7,7 @@ Pacchetto **anteprima 0.8.0 x64**. Prima verifica offline, poi account, poi hook
 3. Clicca Rosso: la chat deve aprirsi e il campo deve poter ricevere testo. Chiudi/riapri la chat. Esci e riapri l'app: Rosso deve ricordare posizione e grandezza.
 4. Installa/accedi alle CLI native con i tuoi account. Nel terminale verifica `codex login status` e che `claude` apra la sua sessione; poi riapri Mascotte. Una CLI è sufficiente per iniziare.
 5. Invia «Rispondi solo: ciao» a Codex e/o Claude. Questa è la prima chiamata reale e usa il tuo piano. Continua con «Cosa ti ho chiesto prima?» e verifica il contesto; cambia IA e verifica che non abbia la chat dell'altra. Prova Nuova e Interrompi su una risposta sufficientemente lunga.
-6. Apri Gestione e premi Crea / aggiorna hook. Leggi l'anteprima; Applica con backup solo se vuoi attivarli. Riapri una sessione CLI e chiedi di leggere un README di prova: osserva listening/reading/done sul gattino. Non occorre condividere le configurazioni personali.
+6. Apri le Impostazioni (ingranaggio) e premi Crea / aggiorna hook. Leggi l'anteprima; Applica con backup solo se vuoi attivarli. Riapri una sessione CLI e chiedi di leggere un README di prova: osserva listening/reading/done sul gattino. Non occorre condividere le configurazioni personali.
 7. In Gestione attività osserva CPU e memoria dei processi Mascotte in riposo, durante le animazioni e durante una chat. Electron usa più processi: considera la somma. Esci dal menu e controlla che tutti i processi Mascotte e la richiesta CLI siano chiusi.
 
 ### Prova aggancio 0.5.0

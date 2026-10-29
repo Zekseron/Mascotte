@@ -23,14 +23,14 @@ Segna ogni riga con ✅ oppure ❌ e una nota. In caso di ❌ copia il messaggio
 ## D. IA locale
 9. Domanda a Gemma 4: risposta in italiano; «Locale · Ollama» nell'etichetta.
 10. **Servizio spento:** chiudi Ollama dalla barra dei menu, fai una domanda: messaggio chiaro, nessun blocco. Riapri Ollama e riprova.
-11. Download di Qwen3.5 2B da Gestione e **annullamento** a metà: nessun file a metà rimasto in `ollama list`.
+11. Download di Qwen3.5 2B dalle Impostazioni e **annullamento** a metà: nessun file a metà rimasto in `ollama list`.
 12. **Motore spento:** scegli LM Studio con il server spento (`~/.lmstudio/bin/lms server stop`): torna a Ollama con un avviso.
 
 ## E. Memoria e azioni locali
-13. «ricorda: …», poi «che note ho?»; modifica ed elimina una nota in Gestione; restano dopo il riavvio (punto 3).
+13. «ricorda: …», poi «che note ho?»; modifica ed elimina una nota nelle Impostazioni; restano dopo il riavvio (punto 3).
 14. «puoi aprirmi la calcolatrice», «apri chrome», «apri download»: chiede conferma e apre.
 15. «quante immagini ho in download?», «che cartelle ci sono in siti?».
-16. **Cartella sparita:** aggiungi una cartella di prova in Gestione, rinominala dal Finder, chiedine il contenuto: messaggio «non più disponibile».
+16. **Cartella sparita:** aggiungi una cartella di prova nelle Impostazioni, rinominala dal Finder, chiedine il contenuto: messaggio «non più disponibile».
 
 ## F. Osservazione e fotogrammi
 17. «Scegli finestra», Osserva, «Allega fotogramma…» con Claude e con Gemma 4; «Smetti».

@@ -22,7 +22,7 @@ const LIST = /^(?:che note ho|quali note ho(?: salvato)?|ho (?:delle )?note(?: s
 const fold = text => String(text).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 // Cartelle conosciute (chiave: nome in italiano). Su Windows solo le cartelle utente, su Mac anche Applicazioni.
-// Le cartelle aggiunte dall'utente da Gestione (`extra`: [{ name, path }]) si accodano a quelle fisse, con il nome come chiave.
+// Le cartelle aggiunte dalle Impostazioni (`extra`: [{ name, path }]) si accodano a quelle fisse, con il nome come chiave.
 function folderEntries(platform = process.platform, home = os.homedir(), extra = []) {
   const list = [['Download', ['download', 'downloads'], 'Downloads'], ['Documenti', ['documenti', 'documents'], 'Documents'], ['Scrivania', ['scrivania', 'desktop'], 'Desktop'], ['Immagini', ['immagini', 'pictures'], 'Pictures']]
     .map(([display, keys, dir]) => ({ display, keys, target: path.join(home, dir), description: `Aprire la cartella ${display} del tuo utente.` }));
@@ -171,7 +171,7 @@ function validateTarget(target, { platform = process.platform, home = os.homedir
   if (!resolved) return false;
   const fixed = [...folderEntries(platform, home).map(folder => folder.target), openTargets(platform, home, env)['apri calcolatrice'].target];
   if (fixed.some(item => real(item) === resolved)) return true;
-  // Cartelle aggiunte da Gestione: solo quelle ancora nell'elenco, con lo stesso percorso reale e ancora valide.
+  // Cartelle aggiunte dalle Impostazioni: solo quelle ancora nell'elenco, con lo stesso percorso reale e ancora valide.
   if (Array.isArray(extraFolders) && extraFolders.some(item => item && Extra.samePath(item.path, resolved, platform) && Extra.recheckExtraFolder(item, { platform, home, dataDir }))) return true;
   if (platform !== 'darwin' || !/\.app$/i.test(resolved)) return false;
   if ((appExtras || (appDirs ? [] : MAC_APP_EXTRAS)).some(item => real(item) === resolved)) return true;
@@ -207,7 +207,7 @@ function classifyQuestion(rest) {
   else if (present) kind = 'model';
   return { kind, categories };
 }
-// `extraFolders`: cartelle aggiunte da Gestione ([{ name, path }]), passate dal chiamante (nessuna lettura globale).
+// `extraFolders`: cartelle aggiunte dalle Impostazioni ([{ name, path }]), passate dal chiamante (nessuna lettura globale).
 function parseFolderQuestion(text, { platform = process.platform, home = os.homedir(), extraFolders = [] } = {}) {
   if (typeof text !== 'string' || text.length > 400 || parseOpenPhrase(text)) return null;
   const plain = PLAIN(text);
@@ -231,7 +231,7 @@ function unknownFolder(plain) {
   const rest = (plain.slice(0, hit.index) + ' ' + plain.slice(hit.index + hit[0].length)).replace(/\s+/g, ' ');
   const { kind, categories } = classifyQuestion(rest);
   if (!['count', 'list', 'duplicates'].includes(kind) || !(categories.length || NOUNS.test(rest))) return null;
-  return { type: 'reply', text: `Non vedo una cartella chiamata «${hit[1]}». Puoi aggiungerla da Gestione → Cartelle visibili.` };
+  return { type: 'reply', text: `Non vedo una cartella chiamata «${hit[1]}». Puoi aggiungerla dalle Impostazioni → Cartelle visibili.` };
 }
 
 function parseLocalCommand(text, { platform = process.platform, home = os.homedir(), env = process.env, actions = true, appDirs, appExtras, extraFolders = [] } = {}) {

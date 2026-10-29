@@ -21,7 +21,7 @@ I pacchetti si scaricano dalla pagina **Releases** di `github.com/Zekseron/Masco
 4. Compare il gattino e un'icona nella barra dei menu in alto; l'app non ha icona nel Dock. Clic sul gattino (o sull'icona nella barra dei menu) apre la chat; clic destro apre il menu. **Esci** dal menu.
 5. **Permesso «Registrazione schermo»: serve solo se usi l'osservazione di una finestra.** La prima volta che apri la sezione «Finestra da condividere» macOS lo chiede; se lo concedi, esci da Mascotte e riaprila perché valga. Se lo neghi tutto il resto continua a funzionare. Si cambia da **Impostazioni di Sistema → Privacy e sicurezza → Registrazione schermo**.
 
-Gli ZIP creati dal creatore sono firmati con un certificato personale, non da Apple. Gli aggiornamenti scaricati dall'app (**Gestione → Controlla aggiornamenti**) non hanno la quarantena di macOS, quindi di norma non richiedono un altro «Apri comunque». Se un giorno il creatore cambiasse certificato, gli aggiornamenti dall'app verrebbero rifiutati e andrebbe reinstallata l'app a mano.
+Gli ZIP creati dal creatore sono firmati con un certificato personale, non da Apple. Gli aggiornamenti scaricati dall'app (**Impostazioni → Controlla aggiornamenti**) non hanno la quarantena di macOS, quindi di norma non richiedono un altro «Apri comunque». Se un giorno il creatore cambiasse certificato, gli aggiornamenti dall'app verrebbero rifiutati e andrebbe reinstallata l'app a mano.
 
 Senza account IA il gattino si anima, si trascina e consente di provare gli stati dal menu.
 
@@ -42,7 +42,7 @@ Clicca il gattino, scegli l'IA e scrivi. Invio invia; Maiusc+Invio va a capo. Il
 
 ## IA locale (facoltativa)
 
-Per una chat che non esce dal computer, installa [Ollama](https://ollama.com/download) (su Mac: <https://ollama.com/download/mac>; serve una versione recente, almeno 0.30.9 per il modello predefinito), aprilo, poi in **Gestione → IA locale** scegli un modello e premi **Scarica / aggiorna modello**. Il download richiede Internet e spazio libero (qualche GB). Su Mac Mascotte non avvia Ollama: lo apri tu. Su Windows può avviarlo da sola se è stato messo in `%LOCALAPPDATA%\Mascotte\local-ai\runtime`.
+Per una chat che non esce dal computer, installa [Ollama](https://ollama.com/download) (su Mac: <https://ollama.com/download/mac>; serve una versione recente, almeno 0.30.9 per il modello predefinito), aprilo, poi in **Impostazioni → IA locale** scegli un modello e premi **Scarica / aggiorna modello**. Il download richiede Internet e spazio libero (qualche GB). Su Mac Mascotte non avvia Ollama: lo apri tu. Su Windows può avviarlo da sola se è stato messo in `%LOCALAPPDATA%\Mascotte\local-ai\runtime`.
 
 Puoi anche usare modelli già presenti in Ollama o altri motori locali già avviati da te (LM Studio, llama.cpp, Jan). Dei motori diversi da Ollama è stato provato dal vivo solo LM Studio. I modelli piccoli possono sbagliare: verifica le informazioni importanti.
 
@@ -50,11 +50,11 @@ Puoi anche usare modelli già presenti in Ollama o altri motori locali già avvi
 
 - **Note e azioni:** «ricorda: …» salva una nota; «apri la calcolatrice» o «apri download» chiedono conferma e poi aprono. Su Mac si possono aprire anche altre app («apri Safari»).
 - **Osservazione di una finestra:** apri la sezione «Finestra da condividere», scegli la finestra → «Osserva» mostra un'anteprima locale; «Allega fotogramma…» invia **un solo fotogramma, dopo la tua conferma**.
-- **Aggiornamenti:** **Gestione → Controlla aggiornamenti** cerca una release più recente su GitHub e, dopo la tua conferma, la scarica e riavvia l'app.
+- **Aggiornamenti:** **Impostazioni → Controlla aggiornamenti** cerca una release più recente su GitHub e, dopo la tua conferma, la scarica e riavvia l'app.
 
 ## Attivare le reazioni alle sessioni esterne (facoltativo)
 
-Dalla chat apri **Gestione**, premi **Crea / aggiorna hook**, leggi l'anteprima e scegli **Applica con backup**. L'app modifica solo `~/.claude/settings.json` e `~/.codex/config.toml` (su Windows nella tua cartella utente), conserva gli altri hook e salva copie `*.before-mascotte-*`. Poi riapri le sessioni Claude/Codex; Codex chiede di approvare i nuovi hook (nella CLI: `/hooks`). L'anteprima può contenere impostazioni personali: non condividerla.
+Dalla chat apri le **Impostazioni** (ingranaggio in alto a destra), premi **Crea / aggiorna hook**, leggi l'anteprima e scegli **Applica con backup**. L'app modifica solo `~/.claude/settings.json` e `~/.codex/config.toml` (su Windows nella tua cartella utente), conserva gli altri hook e salva copie `*.before-mascotte-*`. Poi riapri le sessioni Claude/Codex; Codex chiede di approvare i nuovi hook (nella CLI: `/hooks`). L'anteprima può contenere impostazioni personali: non condividerla.
 
 Se sposti l'app (per esempio nella cartella Applicazioni dopo aver fatto gli hook), premi di nuovo **Crea / aggiorna hook**: puntano alla posizione dell'app. Questa funzione è disponibile solo nell'app installata dal pacchetto, non quando la avvii dai sorgenti con `npm start`.
 

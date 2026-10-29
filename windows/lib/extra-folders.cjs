@@ -3,7 +3,7 @@ const path = require('node:path');
 const os = require('node:os');
 const fs = require('node:fs');
 
-// Cartelle in più che l'utente aggiunge da Gestione per la chat locale (sola lettura: nomi, tipo, dimensione e data, un livello).
+// Cartelle in più che l'utente aggiunge dalle Impostazioni per la chat locale (sola lettura: nomi, tipo, dimensione e data, un livello).
 // Il percorso viene sempre da questo elenco salvato (mai dal testo della chat) e viene ricontrollato a ogni lettura o apertura.
 const MAX_EXTRA = 20;
 const fold = text => String(text).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
@@ -92,6 +92,6 @@ function recheckExtraFolder(entry, options = {}) {
     return samePath(resolved, entry.path, opts.platform) && fs.statSync(resolved).isDirectory() && validateExtraFolder(resolved, opts).ok;
   } catch { return false; }
 }
-const goneMessage = name => `La cartella ${name} non è più disponibile: rimuovila o aggiungila di nuovo da Gestione.`;
+const goneMessage = name => `La cartella ${name} non è più disponibile: rimuovila o aggiungila di nuovo dalle Impostazioni.`;
 
 module.exports = { samePath, MAX_EXTRA, RESERVED, nameKey, validateExtraFolder, nameConflict, realOpts, normalizeExtraFolders, addExtraFolder, recheckExtraFolder, goneMessage };

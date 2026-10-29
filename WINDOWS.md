@@ -30,15 +30,15 @@ Mascotte riusa le credenziali locali delle CLI: non le copia e non chiede passwo
 
 ## IA locale (facoltativa)
 
-Installa [Ollama per Windows](https://ollama.com/download/windows), avvialo e in **Gestione → IA locale** scegli un modello e premi **Scarica / aggiorna modello** (il predefinito richiede circa 2,5 GB). Sono utilizzabili anche modelli già presenti in Ollama e altri motori locali già avviati (LM Studio, llama.cpp, Jan). Su Windows Mascotte può avviare un runtime Ollama autonomo, se lo hai messo in `%LOCALAPPDATA%\Mascotte\local-ai\runtime`.
+Installa [Ollama per Windows](https://ollama.com/download/windows), avvialo e in **Impostazioni → IA locale** scegli un modello e premi **Scarica / aggiorna modello** (il predefinito richiede circa 2,5 GB). Sono utilizzabili anche modelli già presenti in Ollama e altri motori locali già avviati (LM Studio, llama.cpp, Jan). Su Windows Mascotte può avviare un runtime Ollama autonomo, se lo hai messo in `%LOCALAPPDATA%\Mascotte\local-ai\runtime`.
 
 ## Altre funzioni
 
 - **Aggancio** alla barra delle applicazioni o alla finestra attiva, dal menu **Aggancio** (clic destro).
 - **Note e azioni locali** con conferma: «ricorda: …», «apri la calcolatrice», «apri download» (anche Documenti, Scrivania e Immagini).
 - **Osservazione di una finestra:** apri la sezione «Finestra da condividere», scegli la finestra → «Osserva» mostra un'anteprima locale; «Allega fotogramma…» invia un solo fotogramma, solo dopo la tua conferma. Su Windows non serve un permesso di sistema.
-- **Hook** per le reazioni a Claude Code e Codex: **Gestione → Crea / aggiorna hook**, anteprima e **Applica con backup** (usa PowerShell 5.1 incluso in Windows). Facoltativo. Se sposti l'app, ripremi il pulsante.
-- **Aggiornamenti:** **Gestione → Controlla aggiornamenti** scarica la versione più recente dalla release GitHub, ne verifica dimensione e impronta SHA-256 e riavvia l'app. L'esito dell'aggiornamento sta in `%LOCALAPPDATA%\Mascotte\update.log`.
+- **Hook** per le reazioni a Claude Code e Codex: **Impostazioni → Crea / aggiorna hook**, anteprima e **Applica con backup** (usa PowerShell 5.1 incluso in Windows). Facoltativo. Se sposti l'app, ripremi il pulsante.
+- **Aggiornamenti:** **Impostazioni → Controlla aggiornamenti** scarica la versione più recente dalla release GitHub, ne verifica dimensione e impronta SHA-256 e riavvia l'app. L'esito dell'aggiornamento sta in `%LOCALAPPDATA%\Mascotte\update.log`.
 
 ## Differenze rispetto al Mac
 

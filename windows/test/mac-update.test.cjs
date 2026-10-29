@@ -215,7 +215,7 @@ test('installatore Mac: app già nuova, sostituzione senza ZIP e senza residui',
   const s = scenario(t, { oldId: 'local.mascotte.desktop' });
   await Installer.mainMac(s.args({ 'previous-exe': '/altrove/Mascotte.app/Contents/MacOS/Mascotte' }), s.options());
   assert.equal(read(s.dest), 'nuova'); assert.equal(fs.existsSync(path.join(s.data, 'backup')), false); assert.deepEqual(s.left(), []);
-  assert.match(JSON.parse(fs.readFileSync(path.join(s.base, 'result.json'), 'utf8')).message, /Crea \/ aggiorna hook in Gestione: l’app è stata spostata/);
+  assert.match(JSON.parse(fs.readFileSync(path.join(s.base, 'result.json'), 'utf8')).message, /Crea \/ aggiorna hook in Impostazioni: l’app è stata spostata/);
 });
 
 test('installatore Mac: prima installazione senza app in destinazione', mac, async t => {

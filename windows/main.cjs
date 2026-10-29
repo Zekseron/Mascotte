@@ -32,9 +32,10 @@ function startApplication() {
   const LocalCommands = require('./lib/local-commands.cjs'), FolderView = require('./lib/folder-view.cjs'), ExtraFolders = require('./lib/extra-folders.cjs');
   const { mascotSize, maskHit, dragPosition, barEdge, barHit } = require('./lib/geometry.cjs');
   const P = require('./resources/pack.js');
+  const Characters = require('./lib/characters.cjs');
   let mascot, chat, tray, controller, server, store, memory, pack, imageData, currentRun, hitMask, mouseTimer;
   let settings, engine = 'codex', engineTouched = false, notice = '', setupPreview, drag, quitting = false, mouseIgnored = true, localAvailable = false, managedOllama = null, installedCache = null, localScanning = false, engineStatus = null;
-  let characters = [];
+  let characters = [], includedCharacters = [], characterWarnings = [], characterStatus = '', characterStatusFailed = false;
   let attachment = 'free', singing = false, follower, captureFollower, captureTimer, anchorTimer, anchorDisplay, anchorFraction = .8, targetBounds, concealed = false, userVisible = true;
   let watchSource = null, activeShareDirectory = null, pendingAction = null;
   let localDownload = null, localDownloadStatus = '', folderStatus = '', folderStatusFailed = false;
@@ -42,7 +43,7 @@ function startApplication() {
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
-  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(), localEngine: settings?.localEngine || 'ollama', localEngineLabel: LocalEngines.label(settings?.localEngine), localEngines: engineStatus ? engineStatus.map(({ id, label, state, count, message }) => ({ id, label, state, count, message: message || '' })) : null, localEngineModels: settings?.localEngine && settings.localEngine !== 'ollama' ? engineStatus?.find(item => item.id === settings.localEngine) || null : null, localCatalog: LocalAI.uiCatalog(), localInstalled: installedCache, localScanning, deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, hooksAvailable: can.hooks && app.isPackaged, watching: Boolean(watchSource), watchName: watchSource?.name || '', management: { available: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', running: updateRunning, status: updateStatus, failed: updateFailed, folders: { defaults: FolderView.viewableFolders().map(folder => ({ name: folder.display, path: folder.target })), extra: (settings?.extraFolders || []).map(folder => ({ name: folder.name, path: folder.path })), max: ExtraFolders.MAX_EXTRA, status: folderStatus, failed: folderStatusFailed } } });
+  const chatSnapshot = () => ({ engine, messages: store.get(engine), busy: Boolean(currentRun || localDownload), localDownloading: Boolean(localDownload), localDownloadStatus, notice, available: [...CLI.ENGINES.filter(e => CLI.findCLI(e)), ...(localAvailable ? ['locale'] : [])], localModel: settings?.localModel || LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(), localEngine: settings?.localEngine || 'ollama', localEngineLabel: LocalEngines.label(settings?.localEngine), localEngines: engineStatus ? engineStatus.map(({ id, label, state, count, message }) => ({ id, label, state, count, message: message || '' })) : null, localEngineModels: settings?.localEngine && settings.localEngine !== 'ollama' ? engineStatus?.find(item => item.id === settings.localEngine) || null : null, localCatalog: LocalAI.uiCatalog(), localInstalled: installedCache, localScanning, deviceName: can.deviceName, memories: memory.list(), pendingAction: pendingAction && { id: pendingAction.id, description: pendingAction.description }, setup: setupPreview ? { claude: setupPreview.after.claude, codex: setupPreview.after.codex } : null, watchAvailable: can.watch, hooksAvailable: can.hooks && app.isPackaged, watching: Boolean(watchSource), watchName: watchSource?.name || '', characters: pack ? { current: pack.id, scale: settings?.scale, scales: Characters.allowedScales(pack), list: characters.map(c => ({ id: c.id, name: c.name, category: c.category, personal: c.personal })), warnings: characterWarnings, max: Characters.MAX_PERSONAL, status: characterStatus, failed: characterStatusFailed } : null, management: { available: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), repoPath: settings?.updateRepoPath || '', hooks: hooksState(), running: updateRunning, status: updateStatus, failed: updateFailed, folders: { defaults: FolderView.viewableFolders().map(folder => ({ name: folder.display, path: folder.target })), extra: (settings?.extraFolders || []).map(folder => ({ name: folder.name, path: folder.path })), max: ExtraFolders.MAX_EXTRA, status: folderStatus, failed: folderStatusFailed } } });
   // Immagini: Ollama le legge dal modello; gli altri motori solo se il server le dichiara (altrimenti allegati disattivati).
   const localVision = () => settings?.localEngine && settings.localEngine !== 'ollama' ? LocalEngines.supportsVision(settings.localEngine, settings.localModel) : LocalAI.supportsVision(settings?.localModel);
   const saveSettings = () => atomicJSON(stateFile, settings);
@@ -140,20 +141,24 @@ function startApplication() {
     controller=new StateController(pack,P,value=>mascot.webContents.send('mascotte-state',{...value,animation:effectiveAnimation(value.animation)}));
     if(!initial){
       mascot.webContents.send('mascotte-state',{character:{pack,imageData,animation:effectiveAnimation(pack.animations.idle)}});
-      setScale(settings.scale);controller.set(currentRun?'thinking':'idle',Boolean(currentRun));saveSettings();
+      setScale(settings.scale);controller.set(currentRun?'thinking':'idle',Boolean(currentRun));saveSettings();broadcast();
     }
   }
-  function readCharacters() {
-    const directory=path.join(__dirname,'resources/characters'),index=JSON.parse(fs.readFileSync(path.join(directory,'index.json'),'utf8'));
-    return index.characters.map(entry=>{
-      if(typeof entry.path!=='string'||path.isAbsolute(entry.path)||entry.path.split(/[\\/]/).includes('..'))throw new Error('Percorso personaggio non valido');
-      const folder=path.join(directory,entry.path);assertRegularPath(folder);
-      const bytes=fs.readFileSync(path.join(folder,'sprites.png')),size=P.pngSize(bytes);
-      if(!size||bytes.length>16777216||size.width>8192||size.height>8192||size.width*size.height>33554432)throw new Error('Atlas non valido');
-      const result=P.validatePack(JSON.parse(fs.readFileSync(path.join(folder,'character.json'),'utf8')),size.width,size.height);
-      if(result.errors.length)throw new Error('Personaggio non valido: '+result.errors.join('; '));
-      return {id:result.pack.id,name:result.pack.name,category:entry.category||'Altro',pack:result.pack,imageData:'data:image/png;base64,'+bytes.toString('base64')};
-    });
+  const personalDirectory = path.join(dataDirectory, 'characters');
+  // Inclusi nell'app (una sola volta, un errore blocca l'avvio) + mascotte personali (riletti ogni volta; quelle non valide si saltano con un avviso).
+  function readCharacters(reloadIncluded = false) {
+    if (reloadIncluded || !includedCharacters.length) includedCharacters = Characters.readIncluded(P, path.join(__dirname, 'resources/characters'));
+    const personal = Characters.readPersonal(P, personalDirectory, includedCharacters.map(c => c.id));
+    characterWarnings = personal.warnings; for (const warning of personal.warnings) console.warn(warning);
+    return [...includedCharacters, ...personal.characters];
+  }
+  // Stato dei collegamenti agli hook, ricavato dal file di registrazione: 'active', 'moved' (app spostata) oppure 'none'.
+  function hooksState() {
+    try {
+      const record = path.join(dataDirectory, 'hook-installation.json');
+      if (!fs.existsSync(record)) return 'none';
+      return Setup.hooksPointElsewhere(record, process.execPath) ? 'moved' : 'active';
+    } catch { return 'none'; }
   }
   function detach() {
     follower?.close(); follower = null; clearInterval(anchorTimer); anchorTimer = null;
@@ -297,13 +302,13 @@ function startApplication() {
     const pos = clampPosition(mascot.getBounds(),pack.frame.width * displayScale(),pack.frame.height * displayScale(),displayAreas());
     moveMascot(pos.x, pos.y); settings.position = pos; saveSettings();
     mascot.webContents.send('mascotte-state', { scale }); updateHit();
-    placeAttachment();
+    placeAttachment(); broadcast();
   }
   function menu() {
     return Menu.buildFromTemplate([
       { label: 'Apri micro chat', click: showChat },
       {label:'Personaggio',submenu:[...new Set(characters.map(c=>c.category))].map(category=>({label:category,submenu:characters.filter(c=>c.category===category).map(c=>({label:c.name,type:'radio',checked:c.id===pack.id,click:()=>selectCharacter(c.id)}))}))},
-      { label: 'Grandezza', submenu: [1,2,3,4,5,6].filter(scale=>Math.max(pack.frame.width,pack.frame.height)*scale/(pack.pixelRatio||1)<=2048).map(scale => ({ label: `${scale}×`, type: 'radio', checked: scale === settings.scale, click: () => setScale(scale) })) },
+      { label: 'Grandezza', submenu: Characters.allowedScales(pack).map(scale => ({ label: `${scale}×`, type: 'radio', checked: scale === settings.scale, click: () => setScale(scale) })) },
       { label: 'Aggancio', submenu: [
         { label: 'Libera / sgancia', type: 'radio', checked: attachment === 'free', click: () => { detach(); saveSettings(); } },
         { label: can.barLabel, type: 'radio', checked: attachment === 'bar', click: () => attachBar() },
@@ -362,7 +367,7 @@ function startApplication() {
       updateStatus = updateResult.message.slice(0, 2000); updateFailed = !updateResult.ok;
       fs.unlinkSync(resultFile);
       // Mac: se gli hook installati puntano a un'altra posizione dell'app, solo un avviso (mai applicare senza conferma).
-      try { if (updateResult.ok && process.platform === 'darwin' && Setup.hooksPointElsewhere(path.join(dataDirectory, 'hook-installation.json'), process.execPath) && !/hook/i.test(updateStatus)) updateStatus += ' Premi Crea / aggiorna hook in Gestione: l’app è stata spostata.'; } catch {}
+      try { if (updateResult.ok && process.platform === 'darwin' && Setup.hooksPointElsewhere(path.join(dataDirectory, 'hook-installation.json'), process.execPath) && !/hook/i.test(updateStatus)) updateStatus += ' Premi Crea / aggiorna hook in Impostazioni: l’app è stata spostata.'; } catch {}
     }
     characters=readCharacters();selectCharacter(characters.some(c=>c.id===raw.character)?raw.character:'rosso',true);
     Capture.configureDisplayCapture(session.defaultSession, {
@@ -415,7 +420,7 @@ function startApplication() {
       if (action === 'snapshot') return chatSnapshot();
       if (action === 'local-scan') {
         if (localDownload || currentRun || updateRunning || localScanning) return chatSnapshot();
-        // Solo su richiesta dell'utente (apertura di Gestione o pulsante): legge /api/tags e /api/show su 127.0.0.1 e ricorda il risultato.
+        // Solo su richiesta dell'utente (apertura delle Impostazioni o pulsante): legge /api/tags e /api/show su 127.0.0.1 e ricorda il risultato.
         localScanning = true; broadcast();
         // Rileva Ollama e gli altri motori già avviati (solo 127.0.0.1, GET /v1/models); nessun avvio, chiusura o download.
         try { engineStatus = await LocalEngines.detectAll(); } catch { engineStatus = null; }
@@ -480,7 +485,7 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'cli-guide') {
-        const guides = { codex: 'https://developers.openai.com/codex/cli/', claude: 'https://code.claude.com/docs/en/setup', ollama: can.ollamaGuide,
+        const guides = { characters: 'https://github.com/Zekseron/Mascotte/blob/main/PERSONAGGI.md', codex: 'https://developers.openai.com/codex/cli/', claude: 'https://code.claude.com/docs/en/setup', ollama: can.ollamaGuide,
           git: can.gitGuide, node: can.nodeGuide };
         if (Object.hasOwn(guides, data)) await shell.openExternal(guides[data]);
         return chatSnapshot();
@@ -505,6 +510,36 @@ function startApplication() {
             updateRunning = false; updateFailed = true; updateStatus = `Aggiornamento non riuscito: ${error.message}`; broadcast();
           }).finally(() => { updateAbort = null; });
         } catch (error) { updateRunning = false; updateAbort = null; updateFailed = true; updateStatus = error.message; broadcast(); }
+        return chatSnapshot();
+      }
+      if (action === 'character-select' && typeof data === 'string' && characters.some(c => c.id === data)) { selectCharacter(data); characterStatus = ''; characterStatusFailed = false; return chatSnapshot(); }
+      // Stessi valori e limiti del menu «Grandezza» della mascotte.
+      if (action === 'character-scale' && Characters.allowedScales(pack).includes(data)) { setScale(data); return chatSnapshot(); }
+      if (action === 'character-add' && !currentRun && !localDownload && !updateRunning && !setupPreview) {
+        // Mascotte personali: cartella scelta solo dal selettore di sistema, convalidata per intero prima di copiare solo character.json e sprites.png.
+        try {
+          const selected = await dialog.showOpenDialog(chat, { title: 'Scegli la cartella della mascotte (con character.json e sprites.png)', properties: ['openDirectory'], defaultPath: os.homedir() });
+          if (!selected.canceled && selected.filePaths[0]) {
+            const result = Characters.importFolder(P, selected.filePaths[0], personalDirectory, { includedIds: includedCharacters.map(c => c.id), personalIds: characters.filter(c => c.personal).map(c => c.id) });
+            if (result.ok) { characters = readCharacters(); characterStatus = `Mascotte «${result.name}» aggiunta: la trovi nel selettore Personaggio e nel menu della mascotte.`; characterStatusFailed = false; }
+            else { characterStatus = result.reason; characterStatusFailed = true; }
+          }
+        } catch { characterStatus = 'Non riesco ad aggiungere la mascotte.'; characterStatusFailed = true; }
+        return chatSnapshot();
+      }
+      if (action === 'character-remove' && !currentRun && !localDownload && !updateRunning && !setupPreview && typeof data === 'string') {
+        const target = characters.find(c => c.personal && c.id === data);
+        if (target) {
+          const confirmation = await dialog.showMessageBox(chat, { type: 'question', title: 'Rimuovi mascotte', message: `Rimuovere la mascotte «${target.name}»?`, detail: 'I suoi file vengono eliminati dalla cartella dati di Mascotte. I file originali che hai scelto non vengono toccati.', buttons: ['Annulla', 'Rimuovi'], defaultId: 0, cancelId: 0 });
+          if (confirmation.response === 1) {
+            const result = Characters.removePersonal(personalDirectory, target.id);
+            if (result.ok) {
+              const wasCurrent = pack.id === target.id;
+              characters = readCharacters(); if (wasCurrent) selectCharacter('rosso');
+              characterStatus = `Mascotte «${target.name}» rimossa${wasCurrent ? ': è tornato Rosso' : ''}.`; characterStatusFailed = false;
+            } else { characterStatus = result.reason; characterStatusFailed = true; }
+          }
+        }
         return chatSnapshot();
       }
       if (action === 'folders-add' && !currentRun && !localDownload && !updateRunning && !setupPreview) {
@@ -605,7 +640,7 @@ function startApplication() {
             folderRead = { notice: FolderView.notice(view), context: FolderView.modelContext(view) };
           }
           if (command?.type === 'open') {
-            // Una cartella aggiunta da Gestione viene ricontrollata subito (e ancora alla conferma): se è sparita non si propone l'azione.
+            // Una cartella aggiunta dalle Impostazioni viene ricontrollata subito (e ancora alla conferma): se è sparita non si propone l'azione.
             if (command.extraName && !LocalCommands.validateTarget(command.target, { extraFolders: settings.extraFolders, dataDir: dataDirectory })) { reply(ExtraFolders.goneMessage(command.extraName)); broadcast(); return chatSnapshot(); }
             reply('Posso farlo: controlla e conferma l’azione.'); pendingAction = { id: randomUUID(), kind: 'open', description: command.description, target: command.target, extraName: command.extraName }; broadcast(); return chatSnapshot();
           }

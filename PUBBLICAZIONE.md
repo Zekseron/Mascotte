@@ -15,7 +15,7 @@ Copyright © 2026 Zekseron, tutti i diritti riservati: vedi [LICENSE](LICENSE). 
 - Eventuali file Electron rimasti nella radice da build precedenti sono esclusi da Git; non spostare l'app mentre è in esecuzione.
 - Modelli e runtime IA non vengono inclusi nei sorgenti o nelle release. I file modello (`*.gguf`, `*.safetensors`, `*.onnx`) sono esclusi da Git.
 
-Su un nuovo PC: installare Mascotte, aprire Gestione, installare/avviare Ollama dal collegamento ufficiale, scegliere il modello e premere **Scarica / aggiorna modello**. Non servono Git o Node.js per questi passaggi. Il download richiede Internet e spazio libero; i dati della chat non vengono inviati per scaricare il modello.
+Su un nuovo PC: installare Mascotte, aprire le Impostazioni (ingranaggio in alto a destra), installare/avviare Ollama dal collegamento ufficiale, scegliere il modello e premere **Scarica / aggiorna modello**. Non servono Git o Node.js per questi passaggi. Il download richiede Internet e spazio libero; i dati della chat non vengono inviati per scaricare il modello.
 
 Il catalogo compatibile e esplicito in `windows/lib/local-ai.cjs`: ogni download aggiorna il tag ufficiale scelto, senza adottare automaticamente una nuova famiglia. La verifica controlla presenza locale, formato GGUF e supporto alla generazione testuale; non certifica accuratezza o velocita su ogni PC. Se la revisione non supera la verifica, Mascotte non la dichiara pronta. Per aggiungere un nuovo modello/famiglia occorre aggiornare e verificare il catalogo nell'app.
 
@@ -114,7 +114,7 @@ Devono risultare `isDraft` e `isPrerelease` falsi e, per ogni ZIP, `state` «upl
 
 Sono le prove rimandate dai passi 10 e 11 del piano Mac, ancora **da eseguire al primo rilascio vero** e da riportare in `WORK-IN-PROGRESS.md`:
 
-1. **Aggiornamento dall'app (Mac):** da un'app installata con versione precedente e firmata con lo stesso certificato, **Gestione → Controlla aggiornamenti**: deve proporre la nuova versione, scaricare, verificare SHA-256 e firma, sostituire `/Applications/Mascotte.app` e riavviare, conservando dati e permesso Registrazione schermo.
+1. **Aggiornamento dall'app (Mac):** da un'app installata con versione precedente e firmata con lo stesso certificato, **Impostazioni → Controlla aggiornamenti**: deve proporre la nuova versione, scaricare, verificare SHA-256 e firma, sostituire `/Applications/Mascotte.app` e riavviare, conservando dati e permesso Registrazione schermo.
 2. **Installazione su un altro Mac o profilo pulito:** scarica lo ZIP dalla release, estrai, sposta in Applicazioni, primo avvio con «Apri comunque», poi prova chat e permesso Registrazione schermo. Senza dati precedenti l'importazione dalla vecchia app Swift non deve apparire (o apparire una sola volta, se la vecchia app c'è).
 3. **Rifiuto di un pacchetto con firma diversa:** se possibile, verifica che un pacchetto firmato con un altro certificato sia rifiutato (già coperto dai test, non provato dal vivo).
 4. **Windows:** da un'app con versione precedente, **Controlla aggiornamenti**; installazione pulita con installer e con ZIP portatile; riprova le funzioni del codice comune modificato per il Mac.
@@ -126,7 +126,7 @@ Oggi la distribuzione ufficiale sono gli ZIP di una release GitHub, creati dai c
 
 - **`tools/export_package.py` è superato.** Esporta l'app Swift (`bash app/scripts/bundle.sh`, poi lo script) in `esportabile/Mascotte-<versione>/` con lo ZIP, la versione presa dal bundle Swift (0.5) e un `manifest.json`. Copia anche la cartella `distribuzione/` (guide, `configura-eventi.py`, `verifica-pacchetto.py`). **Non produce l'app Electron** né il pacchetto Mac attuale e riguarda un'app non più sviluppata: non va usato per pubblicare. Resta nel repository solo come riferimento e perché `distribuzione/` e le sue guide fanno ancora parte del suo elenco di file; la sua verifica (`tools/test/test_distribution.py`) non è stata rieseguita per questo aggiornamento.
 - **`tools/export_windows.py` è ancora funzionante ma facoltativo.** Dopo `npm.cmd run build:win` raccoglie in `esportabile/Windows/` lo ZIP e l'installer Windows (controlla che l'exe sia un PE x64), i file `.sha256`, `LEGGIMI-WINDOWS.md` (copia di `windows/README.md`), `PROVA-STASERA.md` e uno ZIP di sorgenti. Serve a chi vuole condividere i file senza GitHub. Non è usato dal workflow e non ha un equivalente per il Mac; le guide `LEGGIMI.md`, `WINDOWS.md` e `PRIVACY.md` non sono incluse nel suo ZIP (si leggono nella repo o si allegano a parte). Non l'ho modificato.
-- `configura-eventi.py` e `verifica-pacchetto.py` (in radice e in `distribuzione/`) appartengono alla vecchia distribuzione: gli hook si applicano ora da Gestione.
+- `configura-eventi.py` e `verifica-pacchetto.py` (in radice e in `distribuzione/`) appartengono alla vecchia distribuzione: gli hook si applicano ora dalle Impostazioni.
 
 Per la condivisione diretta di un pacchetto Mac, senza GitHub, basta consegnare lo ZIP firmato di `windows/dist/` insieme a `LEGGIMI.md` e `PRIVACY.md`: non c'è uno strumento di esportazione dedicato.
 
