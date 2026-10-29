@@ -402,10 +402,9 @@ function startApplication() {
       notice = `Importato dalla vecchia Mascotte per Mac: ${[legacyImport.settings.length ? 'impostazioni' : '', count ? `${count} messaggi` : ''].filter(Boolean).join(' e ') || 'nessun dato da trasferire'}. La vecchia app e i suoi dati restano invariati.`;
     }
     prepareLocal().then(note => { localAvailable = true; if (note) notice = note; if (!currentRun && !engineTouched) engine = 'locale'; broadcast(); }).catch(() => { localAvailable = false; broadcast(); });
-    const resultFile = path.join(dataDirectory, 'update-result.json'), updateResult = readJSON(resultFile, null);
-    if (updateResult && typeof updateResult.message === 'string') {
+    const resultFile = path.join(dataDirectory, 'update-result.json'), updateResult = Updater.takeUpdateResult(resultFile);
+    if (updateResult) {
       updateStatus = updateResult.message.slice(0, 2000); updateFailed = !updateResult.ok;
-      fs.unlinkSync(resultFile);
       // Mac: se gli hook installati puntano a un'altra posizione dell'app, solo un avviso (mai applicare senza conferma).
       try { if (updateResult.ok && process.platform === 'darwin' && Setup.hooksPointElsewhere(path.join(dataDirectory, 'hook-installation.json'), process.execPath) && !/hook/i.test(updateStatus)) updateStatus += ' Premi Crea / aggiorna hook in Impostazioni: l’app è stata spostata.'; } catch {}
     }
