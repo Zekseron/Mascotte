@@ -202,8 +202,21 @@ function render(value) {
     if (message.role === 'assistant' && value.engine === 'locale') {
       const question = [...value.messages.slice(0, index)].reverse().find(entry => entry.role === 'user')?.text || '';
       const ask = document.createElement('button'); ask.type = 'button'; ask.textContent = 'Chiedi a Codex o Claude…'; ask.disabled = locked;
-      ask.addEventListener('click', () => openRemote(`Domanda: ${question}\n\nRisposta locale da approfondire o verificare: ${message.text}`.slice(0, 8000), 'codex', null, true));
+      const askText = `Domanda: ${question}\n\nRisposta locale da approfondire o verificare: ${message.text}`.slice(0, 8000);
+      ask.addEventListener('click', () => openRemote(askText, 'codex', null, true));
       item.append(ask);
+      // Secondo parere con immagine: il fotogramma che ha visto il modello locale (conservato 10 minuti) oppure, se stai osservando, quello attuale.
+      const frame = value.secondOpinionFrame, kept = frame && frame.message === index && message.text.startsWith(frame.reply);
+      if (kept || watchStream) {
+        const second = document.createElement('button'); second.type = 'button'; second.textContent = 'Secondo parere con schermata…'; second.disabled = locked;
+        second.title = kept ? `Usa il fotogramma di «${frame.name}» analizzato dal modello locale` : 'Usa il fotogramma attuale della finestra osservata';
+        second.addEventListener('click', async () => {
+          if (kept) { const preview = await invoke('second-opinion-frame'); if (preview) { openRemote(askText, 'codex', null, true, preview); return; } }
+          const fresh = captureFrame(); if (fresh) openRemote(askText, 'codex', fresh, true, fresh);
+          else $('status').textContent = 'Il fotogramma non è più disponibile: osserva di nuovo la finestra.';
+        });
+        item.append(second);
+      }
     }
     $('messages').append(item);
   }
@@ -259,38 +272,46 @@ function renderCharacters(value, locked) {
   $('character-status').textContent = info.status || ''; $('character-status').className = info.failed ? 'error' : '';
 }
 function openMemory(text = '', source = 'manuale') { memorySource = source; $('memory-text').value = text.slice(0, 2000); $('memory-dialog').showModal(); }
-function openRemote(text, engine, imageData = null, noHistory = false) {
-  remotePending = { imageData, noHistory };
+// `preview`: immagine mostrata nella conferma. Senza `imageData` è il fotogramma conservato da Mascotte (useLastFrame).
+function openRemote(text, engine, imageData = null, noHistory = false, preview = null) {
+  remotePending = { imageData, noHistory, useLastFrame: Boolean(preview && !imageData) };
+  $('remote-image').hidden = !preview; $('remote-image-choice').hidden = !preview || !noHistory; $('remote-include-image').checked = true;
+  if (preview) $('remote-image').src = preview; else $('remote-image').removeAttribute('src');
   $('remote-engine').value = engine; $('remote-engine').disabled = !noHistory;
   $('remote-text').value = text;
   const context = noHistory ? [] : current.messages.filter(message => ['user', 'assistant'].includes(message.role)).slice(-20);
   $('remote-context').textContent = context.length ? JSON.stringify(context, null, 2) : 'Nessun messaggio precedente.';
-  $('remote-image-status').textContent = imageData ? 'È incluso anche il fotogramma che hai appena approvato.' : 'Nessuna immagine allegata.';
+  $('remote-image-status').textContent = preview && noHistory ? 'Fotogramma da inviare insieme al testo (togli la spunta per mandare solo il testo):' : imageData ? 'È incluso anche il fotogramma che hai appena approvato.' : 'Nessuna immagine allegata.';
   const name = engine === 'codex' ? 'Codex' : 'Claude';
   $('remote-once').textContent = imageData || noHistory ? '' : `Dopo questa conferma, i prossimi messaggi a ${name} partiranno senza chiedere finché non chiudi Mascotte. Immagini e secondo parere chiedono sempre conferma.`;
   $('remote-dialog').showModal();
 }
-async function submit(imageData = null, noHistory = false, confirmed = false) {
+async function submit(imageData = null, noHistory = false, confirmed = false, useLastFrame = false) {
   if (current?.management?.running) return;
   if (current?.busy) { await invoke('stop'); return; }
   const text = $('input').value.trim(); if (!text) return;
   const engine = current.engine;
   if (engine !== 'locale' && !confirmed && (imageData || noHistory || !remoteConfirmed.has(engine))) { openRemote(text, engine, imageData, noHistory); return; }
   $('input').value = ''; drafts[engine] = ''; $('send').disabled = true;
-  await invoke('send', imageData ? { text, imageData } : noHistory ? { text, noHistory: true } : text);
+  await invoke('send', imageData || noHistory || useLastFrame ? { text, ...(imageData ? { imageData } : {}), ...(noHistory ? { noHistory: true } : {}), ...(useLastFrame ? { useLastFrame: true } : {}) } : text);
   const next = await invoke('snapshot');
   if (next?.notice) { $('input').value = text; drafts[engine] = text; }
   render(next); $('input').focus();
 }
-function prepareShare() {
+// Fotogramma JPEG dalla finestra osservata (massimo 1600×900), oppure null se l'osservazione non è attiva.
+function captureFrame() {
   const video = $('watch-video');
-  if (!$('input').value.trim()) { $('status').textContent = 'Scrivi una domanda prima di allegare il fotogramma.'; return; }
-  if (!watchStream || !video.videoWidth || !video.videoHeight) return;
+  if (!watchStream || !video.videoWidth || !video.videoHeight) return null;
   const scale = Math.min(1, 1600 / video.videoWidth, 900 / video.videoHeight);
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(video.videoWidth * scale)); canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
   canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-  pendingImage = canvas.toDataURL('image/jpeg', .78);
+  return canvas.toDataURL('image/jpeg', .78);
+}
+function prepareShare() {
+  if (!$('input').value.trim()) { $('status').textContent = 'Scrivi una domanda prima di allegare il fotogramma.'; return; }
+  const frame = captureFrame(); if (!frame) return;
+  pendingImage = frame;
   $('share-preview').src = pendingImage;
   $('share-notice').textContent = current.engine === 'locale' ? 'Confermando, il fotogramma viene analizzato dal modello locale sul ' + current.deviceName + '. Non viene inviato a Codex o Claude e non viene salvato nella cronologia.' : `Il fotogramma resta sul dispositivo finché non confermi. Confermando, viene inviato a ${current.engine === 'codex' ? 'Codex' : 'Claude'} con il tuo account. Non viene salvato nella cronologia Mascotte.`;
   $('share-dialog').showModal();
@@ -324,9 +345,9 @@ $('memory-save').addEventListener('click', async () => { const text = $('memory-
 $('pc-action-cancel').addEventListener('click', async () => render(await invoke('pc-action-cancel')));
 $('pc-action-confirm').addEventListener('click', async () => render(await invoke('pc-action-confirm', current?.pendingAction?.id)));
 $('pc-action-dialog').addEventListener('cancel', () => invoke('pc-action-cancel'));
-$('remote-cancel').addEventListener('click', () => { remotePending = null; $('remote-dialog').close(); });
+$('remote-cancel').addEventListener('click', () => { remotePending = null; $('remote-image').removeAttribute('src'); $('remote-dialog').close(); });
 $('remote-dialog').addEventListener('cancel', () => { remotePending = null; });
-$('remote-confirm').addEventListener('click', async () => { const text = $('remote-text').value.trim(); if (!text || !remotePending) return; const selected = $('remote-engine').value, pending = remotePending; remotePending = null; if (!pending.imageData && !pending.noHistory) remoteConfirmed.add(selected); $('remote-dialog').close(); const next = await invoke('engine', selected); $('input').value = text; render(next); await submit(pending.imageData, pending.noHistory, true); });
+$('remote-confirm').addEventListener('click', async () => { const text = $('remote-text').value.trim(); if (!text || !remotePending) return; const selected = $('remote-engine').value, pending = remotePending; remotePending = null; if (!pending.imageData && !pending.noHistory) remoteConfirmed.add(selected); const include = $('remote-image-choice').hidden || $('remote-include-image').checked; $('remote-dialog').close(); $('remote-image').removeAttribute('src'); const next = await invoke('engine', selected); $('input').value = text; render(next); await submit(include ? pending.imageData : null, pending.noHistory, true, include && pending.useLastFrame); });
 $('guide-git').addEventListener('click', () => invoke('cli-guide', 'git'));
 $('guide-node').addEventListener('click', () => invoke('cli-guide', 'node'));
 $('update-app').addEventListener('click', async () => render(await invoke('update-run')));
