@@ -1,15 +1,67 @@
-# Dati e limiti della versione 0.2
+# Dati e limiti della versione 0.8.0
 
-- Le animazioni e gli eventi funzionano localmente. Il server ascolta solo su 127.0.0.1 e richiede un token generato sul computer del destinatario.
-- Il ponte legge gli eventi degli strumenti per determinare lo stato, ma invia alla mascotte solo stato e origine. Il notify Codex precedente, se presente, continua a ricevere il proprio payload come prima dell'installazione.
-- Non ci sono screenshot automatici, microfono, registrazione generale della tastiera o telemetria aggiunta dalla mascotte.
-- Inviare nella micro chat chiama la CLI scelta e trasmette al suo servizio il messaggio e il contesto della sessione. Le conversazioni delle due IA sono separate.
+Questa pagina vale per l'app Electron attuale, su Windows x64 e su Mac Apple Silicon. Le differenze tra i due sistemi sono indicate dove ci sono. La vecchia app Swift per Mac (cartella `app/`) non è più distribuita e non è descritta qui.
+
+## In generale
+
+- Le animazioni e gli eventi funzionano localmente. Il server ascolta solo su 127.0.0.1 (porta 8766) e richiede un token generato a ogni avvio sul computer del destinatario; rifiuta richieste con `Origin`, campi extra o token sbagliato.
+- Non ci sono microfono, registrazione generale della tastiera, screenshot automatici o telemetria aggiunti dalla mascotte. La cattura di una finestra esiste solo come funzione facoltativa e confermata, descritta più sotto.
+- Le animazioni non consumano utilizzo delle IA.
+- Dove sono i dati: su Windows in `%LOCALAPPDATA%\Mascotte`, su Mac in `~/Library/Application Support/Mascotte Electron`. Contengono impostazioni (`settings.json`), cronologie della chat (`chat/history.json`), note (`chat/memory.json`), `events.json` (porta e token dell'avvio in corso, tolto all'uscita), il record dei backup degli hook (`hook-installation.json`), il registro degli aggiornamenti (`update.log`) e la cache di Electron. Sono file JSON non cifrati. Su Windows le cartelle sono protette con ACL riservate all'utente; su Mac le cartelle hanno permessi 0700 e i file 0600. Su sistemi aziendali o gestiti la protezione effettiva va verificata.
+- Nessun account, conversazione o nota del creatore è inclusa nei pacchetti. I pacchetti contengono solo codice e risorse (personaggio Rosso).
+
+## Chat con Codex e Claude
+
+- Inviare nella micro chat chiama la CLI scelta e trasmette al suo servizio il messaggio e il contesto della conversazione (al massimo gli ultimi 20 messaggi). **Ogni invio chiede conferma** e mostra cosa partirebbe. Le conversazioni delle due IA sono separate.
+- La mascotte usa il login delle CLI del destinatario; non chiede password nella propria finestra, non copia le credenziali e non aggiunge chiavi API (le variabili con chiavi API sono tolte dall'ambiente della CLI). Serve un account abilitato alla CLI scelta e vengono usati i suoi limiti.
 - Le politiche di conservazione, telemetria e trattamento del servizio/CLI sono quelle del fornitore e dell'account utilizzato; la mascotte non le cambia.
-- La cronologia locale è un JSON non cifrato con permessi 0600, limitato a 1 MiB e 60 messaggi per IA. Le CLI conservano separatamente le proprie sessioni. Nuova resetta la conversazione della mascotte per l'IA selezionata, non cancella le cronologie del fornitore.
+- La cronologia locale conserva al massimo 60 messaggi per IA. Le CLI conservano separatamente le proprie sessioni, se lo fanno. **Nuova** azzera la conversazione della mascotte per l'IA selezionata, non cancella le cronologie del fornitore.
+- **Claude** è avviato senza strumenti, senza MCP, senza comandi slash, senza impostazioni utente e senza sessione persistente.
+- **Codex** è avviato in sessione non persistente, ignorando la configurazione utente e le regole, con sandbox read-only, nessuna approvazione, ricerca web e visualizzazione di immagini disattivate e le altre integrazioni (browser, app, plugin, sotto-agenti) disabilitate. Il sandbox read-only non vieta tecnicamente la lettura dei file, e queste opzioni sono state verificate con una versione specifica della CLI e un servizio simulato: **non sono una garanzia di isolamento dai dati locali per ogni versione futura di Codex.** Aggiorna le CLI con cautela e non considerare la chat «solo chat» a prova di errore.
+- Le CLI Codex e Claude sono cercate nei percorsi usuali; su Mac anche in Homebrew, nvm e nella app ChatGPT. Non viene mai eseguito un comando costruito dal testo della chat.
+
+## Chat locale
+
 - La chat locale usa solo modelli che girano sul computer, tramite Ollama su `127.0.0.1`: i modelli cloud di Ollama (che girano sui server di Ollama) sono esclusi e non vengono mai usati. Se scegli un modello già presente in Ollama, Mascotte legge dall'elenco locale di Ollama solo nome, dimensione e capacità, senza inviare nulla a servizi remoti; il nome del modello scelto è salvato in `settings.json`.
 - Altri motori locali (LM Studio, server di llama.cpp, Jan): solo se li scegli tu in Gestione e solo se il loro server è già avviato da te sul computer. Mascotte si collega esclusivamente a `127.0.0.1` sulle porte predefinite (nessun indirizzo remoto o della rete locale, nessun URL libero, nessun redirect), non li avvia, non scarica modelli e non usa chiavi API. Legge dall'elenco locale del server solo i nomi dei modelli (e, se esposte, dimensione e capacità) e invia al server la conversazione; i modelli che sembrano remoti o proxy verso servizi online sono esclusi con un controllo euristico sul nome. Il motore e il modello scelti sono salvati in `settings.json`; cosa fa poi quel programma con i dati dipende da lui.
-- La chat locale (Ollama) può leggere l'elenco delle sole cartelle Download, Documenti, Scrivania e Immagini, più quelle che aggiungi tu da Gestione → Cartelle visibili alla mascotte (scelte con il selettore di sistema, mai digitate in chat; si rimuovono dalla stessa scheda), per rispondere a domande sul loro contenuto, senza conferma ma con un avviso in chat. Legge solo nomi, tipo, dimensione e data (un livello, mai il contenuto dei file) e l'elenco resta sul computer: va solo al modello locale, non entra nella cronologia e non è scritto nel log. L'elenco delle cartelle aggiunte (nome e percorso) è salvato solo in `settings.json` sul computer e non è mai nei log. Con Codex e Claude la funzione è disattivata e nessun elenco viene inviato.
-- Claude nella micro chat ha strumenti e MCP disabilitati. Codex usa un sandbox read-only e istruzioni per non eseguire comandi: la lettura di file non è tecnicamente esclusa e le integrazioni della configurazione Codex possono essere caricate. Questa versione non garantisce una chat Codex isolata dai dati locali. È un requisito da risolvere prima di una distribuzione pubblica presentata come “solo chat”.
-- L'app pronta è un binario di sviluppo: può contenere percorsi di compilazione e simboli diagnostici. Non contiene copie delle credenziali o delle conversazioni del creatore.
+- Il download dei modelli lo fa Ollama, non Mascotte: Mascotte gli chiede il download su `127.0.0.1` e Ollama contatta i suoi server per scaricarli. Per scaricare un modello non viene inviata nessuna conversazione. Su Windows Mascotte può avviare un runtime Ollama già presente in `%LOCALAPPDATA%\Mascotte\local-ai\runtime` con le funzioni cloud disabilitate; su Mac non avvia Ollama, che si installa e si apre a parte.
+- Le risposte dei modelli piccoli possono essere inesatte.
 
-Il pacchetto esclude `.codex`, `.claude`, `.git`, `work/`, backup delle configurazioni, file di endpoint, cronologie e schede di passaggio. Condividi lo ZIP esportato; non aggiungere cartelle personali al pacchetto.
+## Note, cartelle e azioni locali
+
+- Le **note** sono salvate in `chat/memory.json`, non cifrate. Si salvano solo con la tua conferma (pulsante «Ricorda…», scheda Gestione o frasi come «ricorda: …») e si cancellano da Gestione. Prima di una domanda locale le note con parole in comune vengono date al modello locale; non vengono inviate a Codex o Claude, a meno che tu non le scriva in un messaggio che confermi.
+- La chat locale può leggere l'elenco delle sole cartelle Download, Documenti, Scrivania e Immagini, più quelle che aggiungi tu da Gestione → Cartelle visibili alla mascotte (scelte con il selettore di sistema, mai digitate in chat; si rimuovono dalla stessa scheda), per rispondere a domande sul loro contenuto, senza conferma ma con un avviso in chat. Legge solo nomi, tipo, dimensione e data (un livello, mai il contenuto dei file) e l'elenco resta sul computer: va solo al modello locale, non entra nella cronologia e non è scritto nel log. L'elenco delle cartelle aggiunte (nome e percorso) è salvato solo in `settings.json` sul computer e non è mai nei log. Con Codex e Claude la funzione è disattivata e nessun elenco viene inviato.
+- Le **azioni locali** sono limitate ad aprire la Calcolatrice, le cartelle note o aggiunte e, solo su Mac, le app installate nelle cartelle Applicazioni. Ogni azione mostra cosa farà (nome e percorso) e parte solo dopo la tua conferma; Mascotte non esegue comandi arbitrari generati dal modello.
+
+## Osservazione di una finestra
+
+- L'osservazione è facoltativa, spenta a ogni avvio e non viene ricordata al riavvio.
+- **Su Mac serve il permesso «Registrazione schermo»** (Impostazioni di Sistema → Privacy e sicurezza). Mascotte lo chiede solo quando premi «Scegli finestra»; se è negato o revocato mostra un messaggio con il pulsante per aprire le impostazioni e non elenca le finestre. La Registrazione schermo è un permesso ampio di macOS: concedilo solo se vuoi usare questa funzione, e puoi toglierlo quando vuoi. Su Windows non serve un permesso.
+- L'elenco delle finestre (con i loro titoli) viene letto dal sistema, mostrato solo nella chat e non viene inviato né salvato (solo il titolo della finestra che condividi con un fotogramma compare poi nella cronologia, come spiegato sotto). Su Mac l'aggancio alla finestra attiva e il filtro dell'elenco usano un piccolo programma di sistema (helper Swift incluso nell'app) che legge solo identificativo, applicazione, dimensioni e posizione delle finestre: nessun titolo, nessuna immagine, nessun permesso, nessun invio in rete.
+- Finché osservi, la finestra e il flusso video restano sul computer, in un'anteprima locale. L'app non li scrive nella cronologia. «Smetti» (o «Osservazione → Interrompi osservazione» nel menu) ferma e azzera il flusso; l'osservazione termina anche quando esci dall'app.
+- **Solo il fotogramma che confermi viene inviato**: scrivi una domanda, premi «Allega fotogramma…», controlli l'anteprima e premi «Conferma e invia». La conferma vale per un solo fotogramma e un solo messaggio. Il fotogramma va al servizio scelto (Codex o Claude, con il tuo account; l'uso successivo dipende dal fornitore) oppure, con la chat locale, al modello locale se dichiara di leggere le immagini; con Ollama o gli altri motori locali non esce dal computer.
+- **Niente immagini nella cronologia.** La cronologia conserva solo il testo, compresa la riga «[Fotogramma condiviso: titolo della finestra]» con il titolo della finestra. Con Claude l'immagine viaggia sullo standard input della CLI, senza file; con Codex viene scritta in un file temporaneo (cartella `mascotte-share-…` nei dati dell'app, permessi riservati all'utente) che viene cancellato a fine richiesta e ripulito al successivo avvio se l'app si era interrotta.
+
+## Hook delle sessioni esterne
+
+- Sono facoltativi: si applicano da Gestione → «Crea / aggiorna hook», dopo un'anteprima, con backup `*.before-mascotte-*` accanto ai file. Modificano solo la configurazione di Claude (`~/.claude/settings.json`) e di Codex (`~/.codex/config.toml`, o i percorsi `CLAUDE_CONFIG_DIR` / `CODEX_HOME`), conservano gli altri hook e non leggono i file di login. Se la configurazione cambia tra anteprima e applicazione, la scrittura è rifiutata. L'anteprima può contenere impostazioni personali del destinatario: non condividerla.
+- Il ponte legge gli eventi degli strumenti (che arrivano sullo standard input, mai nella riga di comando) per determinare lo stato, ma invia alla mascotte solo stato e origine. Il notify Codex precedente, se presente, continua a ricevere il proprio payload.
+- Su Windows il comando degli hook usa PowerShell; su Mac è un comando di shell che avvia il programma dell'app in modalità solo ponte, senza aprire finestre né chiamare le IA. Gli hook puntano alla posizione dell'app: se la sposti, premi di nuovo «Crea / aggiorna hook».
+- Non vengono mai applicati senza la tua conferma, nemmeno dopo un aggiornamento; Codex chiede inoltre di approvare i nuovi hook.
+
+## Aggiornamenti
+
+- **Controlla aggiornamenti** contatta `api.github.com` (per leggere l'ultima release pubblica di `Zekseron/Mascotte`) e, dopo la tua conferma, `github.com` e i server dei file delle release di GitHub per scaricare lo ZIP. Succede solo quando premi il pulsante: non c'è controllo automatico in background. Non viene inviata nessuna conversazione, nota o elenco di cartelle. Il pacchetto è verificato per dimensione e impronta SHA-256 fornita da GitHub; su Mac è controllata anche la firma, che deve essere dello stesso autore dell'app installata. Questo controllo non sostituisce una firma dell'editore riconosciuta da Apple o Microsoft.
+- **Aggiornamento da sorgenti** (per chi sviluppa) usa Git e npm sul computer: scarica il codice con `git pull` dalla repo scelta (che deve provenire da `github.com/Zekseron/Mascotte`) e le dipendenze con `npm ci`, quindi compila ed esegue codice scaricato. Usalo solo se ti fidi della repo.
+- Il pacchetto non è notarizzato da Apple né firmato digitalmente su Windows: i sistemi mostrano un avviso al primo avvio. La firma Mac è un certificato personale autofirmato, che serve a mantenere i permessi e a verificare gli aggiornamenti, non a certificare l'autore agli occhi di macOS.
+
+## Dati della vecchia app Swift (solo Mac)
+
+- Al primo avvio su Mac, se la nuova app non ha ancora impostazioni, Mascotte importa **una sola volta e in sola lettura** dalla vecchia app: cronologia Codex/Claude (solo ruolo e testo, ultimi 60 messaggi per IA), aggancio al Dock, scala e personaggio se esiste anche nella nuova app. Non modifica né cancella la cartella `~/Library/Application Support/Mascotte` né le preferenze della vecchia app, che restano la copia di recupero. Gli altri dati restano nella cartella della vecchia app, che puoi cancellare quando vuoi.
+- `npm run install:mac` sostituisce la vecchia app in Applicazioni dopo averne salvato un backup ZIP nella cartella dati della nuova (`backup/`): contiene l'app, non le tue chat.
+
+## Altro
+
+- Per sicurezza i dati non entrano mai nei pacchetti: esclusi `.codex`, `.claude`, `.git`, `work/`, backup delle configurazioni, file di endpoint, cronologie, note e schede di passaggio. Condividi gli ZIP delle release; non aggiungere cartelle personali.
+- I pacchetti sono build di sviluppo: possono contenere percorsi di compilazione e simboli diagnostici. Non contengono copie delle credenziali o delle conversazioni del creatore.
+- Per cancellare tutto: esci dall'app, elimina la cartella dei dati indicata sopra e, se vuoi, gli hook (vedi le guide). Le credenziali e le cronologie delle CLI sono gestite da Codex e Claude, non da Mascotte.

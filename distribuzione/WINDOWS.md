@@ -1,48 +1,59 @@
-# Windows — piano e prima anteprima
+# Mascotte su Windows
 
-Aggiornamento 14 ottobre 2026: l’utente ha autorizzato lo sviluppo. La prima
-app Electron è in `windows/`, con build ZIP Windows x64 0.3.0. Istruzioni e
-limiti in `windows/README.md`, procedura di prova in `windows/PROVA-STASERA.md`.
-UI e backend simulati verificati sul Mac; prova su Windows reale ancora da fare.
-Il vecchio pacchetto Mac 0.2 rimane una fotografia precedente senza app Windows.
+Guida per chi riceve l'app Windows. È la stessa app Electron usata anche sul Mac (versione 0.8.0, sorgenti nella cartella `windows/` della repo). Per il Mac vedi [LEGGIMI.md](LEGGIMI.md). Il vecchio piano di porting di questa pagina è stato completato e sostituito da questa guida.
 
-La versione Swift usa AppKit, Network, Darwin e percorsi macOS. Non può diventare un `.exe` copiando o ricompilando soltanto il bundle. Gli asset e il visore sono già utilizzabili su Windows.
+## Requisiti
 
-## Parti riutilizzabili
+- Windows 10 o 11 a 64 bit (x64). **Windows ARM64 non è supportato**: non è stato compilato né provato.
+- Nessun Python, Node.js o Git per eseguire il pacchetto pronto. Node.js e Git servono solo a chi aggiorna dai sorgenti.
+- Per la micro chat con Codex o Claude, le rispettive CLI e un account (vedi sotto). Senza account il gattino si anima e si può trascinare.
 
-| Componente | Azione |
-| --- | --- |
-| `characters/`, `spec/states.json` | Usare gli stessi file e il formato mascotte-pack/1 |
-| `viewer/pack.js` e test | Riutilizzare parser/validazione; sincronizzare fallback con la spec |
-| Sorgenti Rosso/Pillow | Già indipendenti dall'interfaccia desktop |
-| Protocollo eventi | Mantenere POST /event, token, stati, limite richieste, timeout e binding loopback |
-| Logica Swift di stati/timing | Portare e confrontare risultati con i test esistenti |
-| UI, pipe/processi, endpoint privato | Riscrivere per Windows |
-| `mascotte-notify` | Adattare: oggi usa getuid, O_NOFOLLOW e permessi POSIX; non dichiararlo compatibile così com'è |
+## Installare
 
-## Percorso proposto
+Dalla pagina **Releases** di `github.com/Zekseron/Mascotte` (solo dopo che una release è stata pubblicata) scegli una delle due forme:
 
-Per un primo prototipo valutare Electron: permette di riutilizzare JavaScript del visore e offre finestre trasparenti, always-on-top e gestione dei clic. È una proposta, non una dipendenza già introdotta. Rispetto all'app nativa può richiedere più RAM: misurare il prototipo prima di scegliere definitivamente. Per un'app solo Windows più piccola valutare .NET/WPF, con riscrittura dell'interfaccia. [BrowserWindow ufficiale](https://www.electronjs.org/docs/latest/api/browser-window)
+1. **Installer** `Mascotte-Setup-<versione>-x64.exe`: installa Mascotte nel tuo profilo Windows (`%LOCALAPPDATA%\Programs\Mascotte`) e crea il collegamento. Non richiede diritti di amministratore. Per rimuoverla: **Impostazioni → App → Mascotte → Disinstalla**.
+2. **Versione portatile** `Mascotte-Windows-<versione>-x64.zip`: estrai tutta la cartella in una posizione stabile e apri `Mascotte.exe`. Mantieni insieme tutti i suoi file. Per rimuoverla elimina la cartella.
 
-## Fasi e criteri di completamento
+L'app e l'installer **non sono firmati digitalmente**: Windows (SmartScreen) può chiedere una verifica della provenienza. Procedi solo se hai scaricato i file dalla release ufficiale. Lo ZIP è circa 150 MB perché include il runtime Electron.
 
-1. **Mascotte offline:** finestra senza cornice, trasparenza, trascinamento, tray, scala/DPI, monitor multipli, temporizzazione, click sul solo gattino e ripiego degli stati. Usare i pacchetti esportati senza modificarli.
-2. **Micro chat e account:** CLI native del destinatario, login ufficiale, input su stdin, processi asincroni, sessioni separate, stop/timeout e albero dei processi chiuso. Gestire eseguibili, wrapper `.cmd` e percorsi con spazi senza costruire comandi da testo della chat. Prima di collegare Codex risolvere l'isolamento della modalità solo chat; read-only non vieta la lettura.
-3. **Dati locali:** `%LOCALAPPDATA%/Mascotte` per dati/log, ACL dell'utente per chat e token, blocco di reparse point e link nei pacchetti. Non tradurre 0600 in un chmod senza verificare gli accessi Windows.
-4. **Eventi:** bridge nativo/Python adattato, token casuale per avvio, sole connessioni loopback, formato ridotto, rifiuto Origin e campi extra; non allentare i limiti del server macOS. Configuratore che rispetti hook e notify già presenti.
-5. **Distribuzione:** build Windows x64, installer/disinstallazione con backup e ripristino degli hook, aggiornamenti e firma del binario. Gestire ARM64 solo dopo una prova dedicata; non promettere una build universale.
-6. **Verifica su Windows reale:** macchina pulita, account del destinatario, entrambi backend con fixture e poi un invio reale, configurazioni vuote/esistenti, percorsi con spazi/Unicode, rete assente, limiti account, cancellazione, app chiusa, DPI/monitor/trasparenza. Misurare CPU/RAM/energia in riposo e chat. Il Mac attuale non consente di attestare queste prove.
+Le impostazioni, la chat e le note restano in `%LOCALAPPDATA%\Mascotte` anche dopo la disinstallazione: cancellale solo se vuoi eliminare la cronologia. Il gattino appare con un'icona nell'area di notifica; clic destro sul gattino per il menu, **Esci** per chiudere.
 
-## CLI native e WSL
+## Collegare i propri account
 
-Preferire un percorso coerente con CLI e app nello stesso ambiente Windows per la prima versione. Se si aggiunge WSL, trattarlo come un'integrazione separata: credenziali, percorsi, endpoint e localhost non vanno assunti condivisi. I login non devono essere importati dal creatore.
+- **Codex:** segui la [guida Windows](https://learn.chatgpt.com/docs/windows/windows-sandbox) e la [guida CLI](https://learn.chatgpt.com/docs/cli). Nel terminale `codex login` apre il login con ChatGPT; `codex login status` verifica l'accesso.
+- **Claude Code:** segui [installazione e requisiti Windows](https://code.claude.com/docs/en/setup), poi avvia `claude` e completa l'accesso. Se richiede Git Bash, installalo secondo la guida ufficiale.
 
-Documentazione verificata il 14 ottobre 2026:
+Mascotte riusa le credenziali locali delle CLI: non le copia e non chiede password. Usa CLI aggiornate: una versione troppo vecchia può rifiutare le opzioni di sicurezza che Mascotte passa. I login non vengono importati da altri computer. Se le CLI sono in percorsi particolari, il creatore o uno sviluppatore può impostare `MASCOTTE_CHAT_CODEX` o `MASCOTTE_CHAT_CLAUDE` (dettagli in `windows/README.md`, nella repo).
 
-- [Codex Windows sandbox](https://learn.chatgpt.com/docs/windows/windows-sandbox)
-- [Claude Code setup e requisiti Windows](https://code.claude.com/docs/en/setup)
-- [Codex login](https://learn.chatgpt.com/docs/auth)
+**Ogni invio a Codex o Claude chiede conferma.** Invio invia, Maiusc+Invio va a capo.
 
-**Prima azione successiva:** provare l’anteprima Windows sul PC dell’utente,
-inclusi ACL, trasparenza/DPI, processi figli, login/hook reali e consumo risorse.
-Firma, installer, import personaggi, ARM64 e aggiornamenti restano futuri.
+## IA locale (facoltativa)
+
+Installa [Ollama per Windows](https://ollama.com/download/windows), avvialo e in **Gestione → IA locale** scegli un modello e premi **Scarica / aggiorna modello** (il predefinito richiede circa 2,5 GB). Sono utilizzabili anche modelli già presenti in Ollama e altri motori locali già avviati (LM Studio, llama.cpp, Jan). Su Windows Mascotte può avviare un runtime Ollama autonomo, se lo hai messo in `%LOCALAPPDATA%\Mascotte\local-ai\runtime`.
+
+## Altre funzioni
+
+- **Aggancio** alla barra delle applicazioni o alla finestra attiva, dal menu **Aggancio** (clic destro).
+- **Note e azioni locali** con conferma: «ricorda: …», «apri la calcolatrice», «apri download» (anche Documenti, Scrivania e Immagini).
+- **Osservazione di una finestra:** «Scegli finestra» → «Osserva» mostra un'anteprima locale; «Allega fotogramma…» invia un solo fotogramma, solo dopo la tua conferma. Su Windows non serve un permesso di sistema.
+- **Hook** per le reazioni a Claude Code e Codex: **Gestione → Crea / aggiorna hook**, anteprima e **Applica con backup** (usa PowerShell 5.1 incluso in Windows). Facoltativo. Se sposti l'app, ripremi il pulsante.
+- **Aggiornamenti:** **Gestione → Controlla aggiornamenti** scarica la versione più recente dalla release GitHub, ne verifica dimensione e impronta SHA-256 e riavvia l'app. L'esito dell'aggiornamento sta in `%LOCALAPPDATA%\Mascotte\update.log`.
+
+## Differenze rispetto al Mac
+
+- Aggancio alla barra delle applicazioni invece che al Dock.
+- Installer disponibile oltre allo ZIP, non firmato digitalmente.
+- Modelli locali proposti diversi e Ollama avviabile dall'app (vedi sopra).
+- Le azioni locali aprono solo Calcolatrice e cartelle (su Mac anche le app installate).
+- Nessun permesso di sistema per l'osservazione.
+
+## Stato delle prove
+
+Il trascinamento, l'interfaccia, l'aggiornamento con riavvio e la cattura di una finestra sintetica sono stati verificati su Windows. Gli invii remoti di testo e immagini sono stati collaudati con CLI simulate. Il codice comune modificato durante il porting su Mac (comandi locali, cartelle, motori locali, errore di Claude, ordine degli hook) richiede ancora un nuovo collaudo su un PC Windows reale prima del prossimo rilascio. Dettagli in `windows/README.md` e `windows/VERIFICA-GESTIONE.md` nella repo.
+
+## Rimuovere
+
+Esci dal menu della mascotte. Disinstalla (o elimina la cartella portatile). Per togliere gli hook elimina dalle configurazioni di Claude e Codex le voci che richiamano `Mascotte.exe`, ripristinando l'eventuale notify precedente dal backup. Le credenziali delle CLI restano gestite da Codex e Claude.
+
+Dati e limiti: [PRIVACY.md](PRIVACY.md).
