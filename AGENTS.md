@@ -2,7 +2,7 @@
 
 ## Mantenere allineato il piano Mac
 
-Prima di modificare il progetto, leggere `WORK-IN-PROGRESS.md`, in particolare la sezione «5. Aggiornamento Mac e allineamento con Windows».
+Prima di modificare il progetto, leggere `WORK-IN-PROGRESS.md`, in particolare la sezione «5. Aggiornamento Mac e allineamento con Windows». Il file contiene note private dell'autore: non è versionato (è in `.gitignore`) e nella cartella del progetto è un collegamento al Google Drive personale dell'autore (`Il mio Drive/Mascotte/WORK-IN-PROGRESS.md`). Non aggiungerlo mai a Git e non copiarne il contenuto in file pubblicati. Se il collegamento manca, chiedere all'utente dove si trova.
 
 Per ogni aggiunta, modifica o correzione della versione Windows che cambia funzioni, interfaccia, modelli, integrazioni, dati salvati o distribuzione:
 

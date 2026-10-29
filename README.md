@@ -6,9 +6,9 @@ Versione attuale: **0.8.0**. È un'unica app Electron, in `windows/`, usata sia 
 
 Progetto e decisioni: [DESIGN.md](DESIGN.md).
 
-Idee e prossimi lavori, anche per riprendere da un altro PC: [WORK-IN-PROGRESS.md](WORK-IN-PROGRESS.md).
+Idee, piano di lavoro e prossimi passi sono note private dell'autore e non sono pubblicate in questo repository.
 
-Il [piano di aggiornamento Mac](WORK-IN-PROGRESS.md#5-aggiornamento-mac-e-allineamento-con-windows) va rivisto a ogni modifica Windows; la regola per le sessioni di sviluppo è in [AGENTS.md](AGENTS.md).
+Le regole per le sessioni di sviluppo sono in [AGENTS.md](AGENTS.md).
 
 ## Cosa fa
 

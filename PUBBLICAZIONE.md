@@ -36,7 +36,7 @@ Dal codice di `windows/lib/releases.cjs`, l'app accetta una release solo se: è 
 
 1. Decidi la versione `X.Y.Z` e aggiornala in `windows/package.json` e in `windows/package-lock.json`. Il comando `npm version X.Y.Z --no-git-tag-version` dalla cartella `windows` li aggiorna entrambi.
 2. Cerca la versione precedente nei documenti (`grep -rn "0\.8\.0" --include="*.md" .`, escludendo `node_modules`) e aggiorna titoli e nomi dei pacchetti: `README.md`, `windows/README.md`, `LEGGIMI.md` e `distribuzione/LEGGIMI.md`, `WINDOWS.md` e `distribuzione/WINDOWS.md`, `PRIVACY.md` e `distribuzione/PRIVACY.md`. Le copie in `distribuzione/` devono restare **identiche** a quelle in radice (`cmp LEGGIMI.md distribuzione/LEGGIMI.md`, e così per le altre due).
-3. Controlla `WORK-IN-PROGRESS.md` sezione 5: se la release cambia funzioni, il piano Mac deve riflettere il nuovo comportamento (regola in `AGENTS.md`).
+3. Controlla il piano di lavoro privato (`WORK-IN-PROGRESS.md`, non pubblicato) sezione 5: se la release cambia funzioni, il piano Mac deve riflettere il nuovo comportamento (regola in `AGENTS.md`).
 
 ### 2. Provare
 
