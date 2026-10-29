@@ -31,7 +31,7 @@ const label = id => isEngine(id) ? get(id).label : 'Ollama';
 const resolve = engine => typeof engine === 'string' ? get(engine) : engine;
 const supportsVision = (engine, model, platform) => resolve(engine).supportsVision(model, platform);
 
-// Rilevamento di tutti i motori, solo su richiesta (apertura di Gestione o pulsante), mai a ogni messaggio.
+// Rilevamento di tutti i motori, solo su richiesta (apertura delle Impostazioni o pulsante), mai a ogni messaggio.
 // Per i motori compatibili OpenAI restituisce anche l'elenco dei modelli idonei e degli esclusi.
 async function detectAll({ engines = IDS.map(get), signal } = {}) {
   return Promise.all(engines.map(async engine => {

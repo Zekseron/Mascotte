@@ -214,7 +214,7 @@ async function mainMac(args, options = {}) {
     if (backupZip) console.log(`Backup della vecchia app: ${backupZip}`);
     const previous = args['previous-exe'] && path.resolve(args['previous-exe'], '..', '..', '..');
     const moved = previous && previous.endsWith('.app') && previous !== installDir;
-    try { writeResult(args, true, `Mascotte aggiornata in ${installDir}.${backupZip ? ` Backup della vecchia app: ${backupZip}.` : ''}${note}${moved ? ' Premi Crea / aggiorna hook in Gestione: l’app è stata spostata.' : ''}`); }
+    try { writeResult(args, true, `Mascotte aggiornata in ${installDir}.${backupZip ? ` Backup della vecchia app: ${backupZip}.` : ''}${note}${moved ? ' Premi Crea / aggiorna hook in Impostazioni: l’app è stata spostata.' : ''}`); }
     catch (error) { console.error('Impossibile salvare l’esito:', error.message); }
     if (args.restart) await restart(installDir);
   } finally {

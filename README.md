@@ -17,10 +17,12 @@ Le regole per le sessioni di sviluppo sono in [AGENTS.md](AGENTS.md).
 - **Chat locale:** risponde con modelli che girano sul computer, tramite Ollama (anche modelli già installati) o altri motori locali già avviati da te (LM Studio, server di llama.cpp, Jan). Nessun modello cloud viene usato.
 - **Note:** si salvano a mano o con «ricorda: …» e vengono ritrovate per le domande locali. Restano sul computer.
 - **Azioni locali con conferma:** aprire la Calcolatrice e le cartelle Download, Documenti, Scrivania e Immagini, anche con frasi naturali; su Mac anche le app installate. Ogni azione parte solo dopo la tua conferma.
-- **Cartelle visibili:** la chat locale può elencare (solo nomi, tipo, dimensione e data, mai il contenuto) quelle cartelle e le altre che aggiungi tu da Gestione.
+- **Cartelle visibili:** la chat locale può elencare (solo nomi, tipo, dimensione e data, mai il contenuto) quelle cartelle e le altre che aggiungi tu dalle Impostazioni.
 - **Osservazione di una finestra:** scegli una finestra, la vedi in anteprima locale e puoi allegare **un solo fotogramma**, solo dopo conferma, a Codex, Claude o a un modello locale che legge le immagini. Su Mac serve il permesso «Registrazione schermo».
-- **Hook:** da **Gestione** si collegano le sessioni di Claude Code e Codex, così la mascotte reagisce a ciò che fanno. Anteprima prima di applicare, con backup.
-- **Aggiornamenti:** da **Gestione** si controllano le release pubbliche; per chi sviluppa c'è anche l'aggiornamento da sorgenti con Git e Node.js.
+- **Impostazioni:** l'ingranaggio in alto a destra nella micro chat apre un pannello a sezioni: mascotte (personaggio, grandezza di base, mascotte personali), IA locale, Codex e Claude, note, cartelle visibili, hook, aggiornamenti.
+- **Mascotte personali:** da **Impostazioni → Mascotte → Aggiungi mascotte…** puoi caricare altri personaggi (una cartella con `character.json` e `sprites.png`). Come crearli e collegarli: [PERSONAGGI.md](PERSONAGGI.md).
+- **Hook:** dalle **Impostazioni** si collegano le sessioni di Claude Code e Codex, così la mascotte reagisce a ciò che fanno. Anteprima prima di applicare, con backup.
+- **Aggiornamenti:** dalle **Impostazioni** si controllano le release pubbliche; per chi sviluppa c'è anche l'aggiornamento da sorgenti con Git e Node.js.
 
 Il dettaglio di ogni funzione, con limiti e prove, è in [windows/README.md](windows/README.md). Cosa esce dal computer e cosa no: [PRIVACY.md](PRIVACY.md).
 
@@ -46,7 +48,7 @@ Il dettaglio di ogni funzione, con limiti e prove, è in [windows/README.md](win
 | `tools/` | `pixelkit.py`: disegno di pixel art come testo e generazione dei pacchetti; ponte eventi (`mascotte-notify`) della vecchia app; strumenti di esportazione della vecchia distribuzione (vedi [PUBBLICAZIONE.md](PUBBLICAZIONE.md)) |
 | `characters/` | Pacchetti personaggio pronti (`character.json` + `sprites.png`) |
 | `characters-src/` | Sorgenti dei personaggi disegnati con `pixelkit` |
-| `viewer/` | Pagina per provare e validare un pacchetto |
+| `viewer/` | Pagina per provare e validare un pacchetto (vedi [PERSONAGGI.md](PERSONAGGI.md)) |
 | `work/` | Prove e bozze, non versionate |
 | `distribuzione/` | Copie delle guide per chi riceve l'app (identiche a quelle in radice) e script della vecchia distribuzione |
 | `esportabile/` | Esportazioni della vecchia distribuzione, escluse da Git |
@@ -76,11 +78,11 @@ Dalla cartella `windows/` (serve Node.js 22 o più recente):
 
 Su Windows i comandi si scrivono con `npm.cmd`. Dettagli, firma dell'app Mac e aggiornamenti in [windows/README.md](windows/README.md). Per ricevere l'app già pronta basta seguire [LEGGIMI.md](LEGGIMI.md).
 
-Nell'app, apri la finestra del gattino e passa a **Gestione**: **Crea / aggiorna hook** mostra l'anteprima delle configurazioni e salva i backup; **Controlla aggiornamenti** usa i pacchetti precompilati delle release pubbliche; **Aggiornamento da sorgenti** compila la repo scelta con Git e Node.js. Vedi [aggiornamento dalla finestra](windows/README.md#aggiornare-dalla-scheda-gestione) e la [procedura dal repository](windows/README.md#preparare-una-build-dal-repository-e-collegare-gli-hook).
+Nell'app, apri la finestra del gattino e apri le **Impostazioni** (ingranaggio in alto a destra): **Crea / aggiorna hook** mostra l'anteprima delle configurazioni e salva i backup; **Controlla aggiornamenti** usa i pacchetti precompilati delle release pubbliche; **Aggiornamento da sorgenti** compila la repo scelta con Git e Node.js. Vedi [aggiornamento dalla finestra](windows/README.md#aggiornare-dalla-scheda-gestione) e la [procedura dal repository](windows/README.md#preparare-una-build-dal-repository-e-collegare-gli-hook).
 
 ## Collegare Claude Code e Codex
 
-Dall'app: **Gestione → Crea / aggiorna hook** (Windows e Mac). Il passo è facoltativo e non serve per chattare dal gattino. Gli strumenti `tools/` e `configura-eventi.py` appartengono alla vecchia app Swift: vedi [tools/README.md](tools/README.md).
+Dall'app: **Impostazioni → Crea / aggiorna hook** (Windows e Mac). Il passo è facoltativo e non serve per chattare dal gattino. Gli strumenti `tools/` e `configura-eventi.py` appartengono alla vecchia app Swift: vedi [tools/README.md](tools/README.md).
 
 ## Pubblicare e condividere
 
@@ -94,7 +96,7 @@ Il Mac Intel non è supportato dall'app attuale (solo Apple Silicon).
 
 Menu Personaggio con categorie e grandezza ricordata per personaggio. I sorgenti grafici sono nelle stesse categorie sotto characters-src.
 
-La distribuzione pubblica include soltanto Rosso. I pacchetti personali restano fuori dal repository.
+La distribuzione pubblica include soltanto Rosso. Le mascotte personali si aggiungono dall'app (**Impostazioni → Mascotte → Aggiungi mascotte…**) e restano nella cartella dati sul tuo computer, fuori dal repository: formato, creazione e prova nel visore sono spiegati in [PERSONAGGI.md](PERSONAGGI.md).
 
 ## Copyright
 

@@ -5,22 +5,32 @@ let current = null, drafts = { codex: '', claude: '', locale: '' }, watchStream 
 // La finestra della chat viene solo nascosta, quindi l'elenco dura finché Mascotte resta aperta. Immagini e secondo parere chiedono sempre.
 const remoteConfirmed = new Set();
 let selectedTab = 'chat';
+// Impostazioni al posto della chat: l'ingranaggio apre, «← Chat» (o l'ingranaggio di nuovo) torna indietro.
 function selectTab(tab) {
   selectedTab = tab;
-  const managing = tab === 'management';
-  document.querySelector('h1').textContent = managing ? 'Gestione' : 'Due parole?';
-  $('tab-chat').textContent = current?.watching ? 'Chat · osserva' : 'Chat';
-  $('management-panel').hidden = !managing;
-  for (const id of ['messages', 'status', 'composer']) $(id).hidden = managing;
-  document.querySelector('header .controls').hidden = managing;
-  document.querySelector('footer').hidden = managing;
-  $('watch-panel').hidden = managing || !current?.watchAvailable;
-  $('tab-chat').setAttribute('aria-pressed', String(!managing));
-  $('tab-management').setAttribute('aria-pressed', String(managing));
+  const settingsOpen = tab === 'settings';
+  document.querySelector('h1').textContent = settingsOpen ? 'Impostazioni' : 'Due parole?';
+  $('watch-dot').hidden = !current?.watching;
+  $('settings-panel').hidden = !settingsOpen;
+  for (const id of ['messages', 'status', 'composer']) $(id).hidden = settingsOpen;
+  $('chat-controls').hidden = settingsOpen;
+  document.querySelector('footer').hidden = settingsOpen;
+  $('watch-panel').hidden = settingsOpen || !current?.watchAvailable;
+  $('settings-toggle').setAttribute('aria-pressed', String(settingsOpen));
+}
+// Sezioni aperte delle impostazioni: ricordate tra una apertura e l'altra (se il browser non permette di salvarle, si parte dalla prima).
+const SECTIONS_KEY = 'mascotte-sezioni-aperte';
+function restoreSections() {
+  let open = ['sec-mascotte'];
+  try { const saved = JSON.parse(localStorage.getItem(SECTIONS_KEY)); if (Array.isArray(saved)) open = saved; } catch {}
+  for (const section of document.querySelectorAll('details.sec')) {
+    section.open = open.includes(section.id);
+    section.addEventListener('toggle', () => { try { localStorage.setItem(SECTIONS_KEY, JSON.stringify([...document.querySelectorAll('details.sec[open]')].map(item => item.id))); } catch {} });
+  }
 }
 async function invoke(action, data) {
   try { return await window.mascotte.invoke(action, data); }
-  catch { $(selectedTab === 'management' ? 'update-status' : 'status').textContent = 'Operazione non completata. Puoi riprovare.'; }
+  catch { $(selectedTab === 'settings' ? 'settings-error' : 'status').textContent = 'Operazione non completata. Puoi riprovare.'; }
 }
 function clearPendingImage() {
   pendingImage = null; $('share-preview').removeAttribute('src');
@@ -70,6 +80,8 @@ function render(value) {
   const management = value.management || {};
   const locked = value.busy || management.running;
   selectTab(selectedTab);
+  for (const item of document.querySelectorAll('.device')) item.textContent = value.deviceName || 'PC';
+  $('settings-error').textContent = '';
   const packageName = management.packageName || 'Windows';
   $('app-version').textContent = `MASCOTTE ${packageName.toUpperCase()} ${management.version || ''}`.trim();
   $('update-intro').textContent = packageName === 'Mac'
@@ -162,6 +174,15 @@ function render(value) {
   $('update-status').textContent = management.available ? management.status || '' : value.deviceName === 'Mac' ? 'Gli aggiornamenti sono disponibili nell’app installata dal pacchetto (non da npm start).' : 'Aggiornamenti e hook disponibili nel pacchetto Windows.';
   $('update-status').className = management.failed ? 'error' : '';
   $('hook-status').textContent = value.notice || '';
+  renderCharacters(value, locked);
+  const folderCount = folders.defaults.length + folders.extra.length, noteCount = (value.memories || []).length;
+  $('sum-ia').textContent = `${engineLabel} · ${value.localModel}`;
+  $('sum-cli').textContent = `Codex ${value.available.includes('codex') ? '✓' : '✗'} · Claude ${value.available.includes('claude') ? '✓' : '✗'}`;
+  $('sum-note').textContent = noteCount ? `${noteCount} ${noteCount === 1 ? 'nota' : 'note'}` : 'Nessuna nota';
+  $('sum-cartelle').textContent = `${folderCount} ${folderCount === 1 ? 'cartella' : 'cartelle'}`;
+  $('sum-hook').textContent = !value.hooksAvailable ? 'Non disponibile' : { active: 'Hook attivi', moved: 'Da ricollegare', none: 'Da collegare' }[management.hooks] || 'Da collegare';
+  $('sum-aggiornamenti').textContent = `${packageName} · ${management.version || ''}`.trim();
+  $('watch-dot').hidden = !value.watching;
   $('engine').value = value.engine;
   $('engine').querySelector('option[value="locale"]').textContent = value.localEngine && value.localEngine !== 'ollama' ? `Locale · ${value.localEngineLabel}` : 'Locale · Ollama';
   $('account-hint').textContent = value.engine === 'locale' ? `Chat locale su questo ${value.deviceName}` : 'Usa il tuo account IA';
@@ -187,7 +208,7 @@ function render(value) {
     $('messages').append(item);
   }
   $('messages').scrollTop = $('messages').scrollHeight;
-  $('status').textContent = value.busy ? 'Sta pensando…' : value.notice || (value.available.includes(value.engine) ? 'Pronto · ' + (value.engine === 'codex' ? 'Codex' : value.engine === 'claude' ? 'Claude' : localTitle(value, true)) : value.engine === 'locale' ? (value.localEngine !== 'ollama' ? `${value.localEngineLabel} o il modello non sono disponibili: controlla in Gestione.` : 'Installa Ollama e il modello in Gestione.') : 'Installa e accedi alla CLI ' + value.engine);
+  $('status').textContent = value.busy ? 'Sta pensando…' : value.notice || (value.available.includes(value.engine) ? 'Pronto · ' + (value.engine === 'codex' ? 'Codex' : value.engine === 'claude' ? 'Claude' : localTitle(value, true)) : value.engine === 'locale' ? (value.localEngine !== 'ollama' ? `${value.localEngineLabel} o il modello non sono disponibili: controlla nelle Impostazioni (ingranaggio in alto).` : 'Installa Ollama e il modello nelle Impostazioni (ingranaggio in alto).') : 'Installa e accedi alla CLI ' + value.engine);
   $('status').className = value.notice ? 'error' : '';
   $('send').textContent = value.busy ? 'Interrompi' : 'Invia ↗';
   $('send').disabled = management.running || (!value.busy && !$('input').value.trim());
@@ -200,7 +221,7 @@ function render(value) {
     : value.engine === 'locale' ? 'Il modello locale vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Il fotogramma resta sul ' + value.deviceName + ' e non viene salvato nella cronologia. Per fermare la cattura usa Smetti.'
     : `L'anteprima resta sul ${value.deviceName}. Il servizio vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Chiudere questa sezione nasconde l'anteprima ma non ferma la cattura: usa Smetti.`;
   $('share-view').disabled = (value.engine === 'locale' && !value.localVision) || !value.watching || locked || !watchStream;
-  $('share-view').title = value.engine === 'locale' && !value.localVision ? `Scegli ${localCatalog.visionChoice} in Gestione per analizzare immagini.` : '';
+  $('share-view').title = value.engine === 'locale' && !value.localVision ? `Scegli ${localCatalog.visionChoice} nelle Impostazioni per analizzare immagini.` : '';
   $('toggle-watch').hidden = value.watching; $('stop-watch').hidden = !value.watching;
   $('watch-source').disabled = value.watching;
   if (value.setup) {
@@ -209,6 +230,33 @@ function render(value) {
   } else if ($('setup-dialog').open) $('setup-dialog').close();
   if (value.pendingAction) { $('pc-action-description').textContent = value.pendingAction.description; if (!$('pc-action-dialog').open) $('pc-action-dialog').showModal(); }
   else if ($('pc-action-dialog').open) $('pc-action-dialog').close();
+}
+// Sezione Mascotte: personaggio e grandezza (stessa logica del clic destro sulla mascotte) e mascotte personali.
+function renderCharacters(value, locked) {
+  const info = value.characters; if (!info) return;
+  const busy = locked || Boolean(value.setup);
+  const select = $('character-select'), signature = JSON.stringify(info.list.map(c => [c.id, c.name, c.category]));
+  if (select.dataset.signature !== signature) {
+    const groups = new Map();
+    for (const c of info.list) { if (!groups.has(c.category)) { const group = document.createElement('optgroup'); group.label = c.category; groups.set(c.category, group); } groups.get(c.category).append(new Option(c.name, c.id)); }
+    select.replaceChildren(...groups.values()); select.dataset.signature = signature;
+  }
+  select.value = info.current; select.disabled = $('character-scale').disabled = Boolean(value.setup);
+  $('character-scale').replaceChildren(...info.scales.map(scale => new Option(`${scale}×`, String(scale))));
+  $('character-scale').value = String(info.scale);
+  const currentName = info.list.find(c => c.id === info.current)?.name || '';
+  $('sum-mascotte').textContent = `${currentName} · ${info.scale}×`; $('character-eyebrow').textContent = currentName.toUpperCase();
+  const personal = info.list.filter(c => c.personal);
+  $('character-list').replaceChildren(...personal.map(c => {
+    const row = document.createElement('div'); row.className = 'folder-row';
+    const name = document.createElement('strong'); name.textContent = c.name;
+    const remove = document.createElement('button'); remove.type = 'button'; remove.textContent = 'Rimuovi'; remove.disabled = busy;
+    remove.addEventListener('click', async () => render(await invoke('character-remove', c.id)));
+    row.append(name, document.createElement('br'), remove); return row;
+  }));
+  $('character-add').disabled = busy || personal.length >= info.max;
+  $('character-warnings').textContent = info.warnings.join('\n'); $('character-warnings').hidden = !info.warnings.length;
+  $('character-status').textContent = info.status || ''; $('character-status').className = info.failed ? 'error' : '';
 }
 function openMemory(text = '', source = 'manuale') { memorySource = source; $('memory-text').value = text.slice(0, 2000); $('memory-dialog').showModal(); }
 function openRemote(text, engine, imageData = null, noHistory = false) {
@@ -252,8 +300,12 @@ $('input').addEventListener('keydown', event => { if (event.key === 'Enter' && !
 $('input').addEventListener('input', () => { if (current) drafts[current.engine] = $('input').value; $('send').disabled = !current?.busy && !$('input').value.trim(); });
 $('engine').addEventListener('change', async () => { const next = await invoke('engine', $('engine').value); $('input').value = drafts[next.engine] || ''; render(next); $('input').focus(); });
 $('new').addEventListener('click', async () => { $('input').value = ''; drafts[current.engine] = ''; render(await invoke('new')); });
-$('tab-chat').addEventListener('click', () => selectTab('chat'));
-$('tab-management').addEventListener('click', async () => { selectTab('management'); render(await invoke('local-scan')); });
+$('settings-back').addEventListener('click', () => selectTab('chat'));
+$('settings-toggle').addEventListener('click', async () => { if (selectedTab === 'settings') { selectTab('chat'); $('input').focus(); return; } selectTab('settings'); render(await invoke('local-scan')); });
+$('character-select').addEventListener('change', async () => render(await invoke('character-select', $('character-select').value)));
+$('character-scale').addEventListener('change', async () => render(await invoke('character-scale', Number($('character-scale').value))));
+$('character-add').addEventListener('click', async () => render(await invoke('character-add')));
+$('guide-characters').addEventListener('click', () => invoke('cli-guide', 'characters'));
 $('local-scan').addEventListener('click', async () => render(await invoke('local-scan')));
 $('folders-add').addEventListener('click', async () => render(await invoke('folders-add')));
 $('choose-repo').addEventListener('click', async () => render(await invoke('repo-select')));
@@ -295,6 +347,7 @@ $('cancel-share').addEventListener('click', clearPendingImage);
 $('share-dialog').addEventListener('cancel', clearPendingImage);
 window.mascotte.onWatchStop(stopWatchLocal);
 window.mascotte.onChat(render);
+restoreSections();
 invoke('snapshot').then(value => { render(value); $('input').focus(); });
 // Riaprendo la chat (barra dei menu, mascotte) il cursore torna nel campo, se non c'è un dialogo aperto o un altro campo/elenco in uso.
 window.addEventListener('focus', () => { if (!document.querySelector('dialog[open]') && !document.activeElement?.matches('textarea, input, select') && !$('input').disabled) $('input').focus(); });

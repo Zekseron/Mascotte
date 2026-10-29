@@ -33,7 +33,7 @@ const COPY_SUFFIX = /(?:\s*\(\d+\)|\s+(?:copia|copy)(?:\s*\d+)?|\s*-\s*\d+)+$/;
 const baseName = name => { const ext = extensionOf(name), stem = ext ? name.slice(0, -(ext.length + 1)) : name; return fold(stem.replace(COPY_SUFFIX, '').trim()) + (ext ? '.' + ext : ''); };
 
 // Legge la cartella e calcola conteggi e doppi probabili. `folder` deve essere una cartella conosciuta (non Applicazioni).
-// Per le cartelle aggiunte da Gestione (`extraFolders`) ricontrolla che esistano ancora, che il realpath sia lo stesso dell'elenco e che siano valide.
+// Per le cartelle aggiunte dalle Impostazioni (`extraFolders`) ricontrolla che esistano ancora, che il realpath sia lo stesso dell'elenco e che siano valide.
 function readFolder(folder, { platform = process.platform, home = os.homedir(), limit = READ_LIMIT, extraFolders = [], dataDir = '' } = {}) {
   const known = viewableFolders(platform, home, extraFolders).find(item => folder && item.target === folder.target && item.display === folder.display);
   if (!known) throw new Error('Cartella non consultabile.');
