@@ -43,15 +43,17 @@ function startApplication() {
   const FRAME_TTL = 10 * 60 * 1000;
   let lastFrame = null, lastFrameTimer = null;
   // Promemoria e sveglie impostati dalla chat locale: notifica di sistema alla scadenza, anche per quelli scaduti ad app chiusa.
-  const Reminders = require('./lib/reminders.cjs'), AlarmSound = require('./lib/alarm-sound.cjs');
-  let reminders = null, reminderTimer = null, activeAlarm = null, alarmTimer = null;
+  const Reminders = require('./lib/reminders.cjs'), AlarmSound = require('./lib/alarm-sound.cjs'), { createScheduler } = require('./lib/reminder-scheduler.cjs');
+  let reminders = null, reminderScheduler = null, activeAlarm = null, alarmTimer = null;
   const ALARM_RING = 3 * 60 * 1000, SNOOZE = 5 * 60 * 1000;
   function stopAlarm() { clearTimeout(alarmTimer); alarmTimer = null; activeAlarm = null; }
   function fireReminder(item) {
     const late = Date.now() - item.when > 60000;
     const body = item.text + (late ? ` (era per ${Reminders.formatWhen(item.when)})` : '');
-    if (Notification.isSupported()) new Notification({ title: item.alarm ? 'Mascotte · sveglia' : 'Mascotte · promemoria', body, silent: false }).show();
-    else if (!item.alarm) { notice = `⏰ ${body}`; showChat(); broadcast(); }
+    // Una notifica che non si può mostrare non blocca il resto: un promemoria ricade sull'avviso in chat, una sveglia suona comunque.
+    let shown = false;
+    try { if (Notification.isSupported()) { new Notification({ title: item.alarm ? 'Mascotte · sveglia' : 'Mascotte · promemoria', body, silent: false }).show(); shown = true; } } catch {}
+    if (!shown && !item.alarm) { notice = `⏰ ${body}`; showChat(); broadcast(); }
     // Sveglia (non troppo in ritardo): finestra con «Ferma» e «Rimanda», suono a ripetizione nella chat per al massimo 3 minuti, gattino in attesa.
     if (item.alarm && Date.now() - item.when < 10 * 60000) {
       stopAlarm(); activeAlarm = { id: item.id, text: item.text, when: item.when };
@@ -59,13 +61,14 @@ function startApplication() {
       if (!currentRun) controller.set('waiting'); showChat(); broadcast();
     }
   }
-  function scheduleReminders() {
-    clearTimeout(reminderTimer); reminderTimer = null;
-    if (!reminders) return;
-    for (const item of reminders.takeDue()) fireReminder(item);
-    const next = reminders.next();
-    // Al massimo un'ora per volta: i timer molto lunghi non sono affidabili e dopo lo stop del computer si ricontrolla subito.
-    if (next) reminderTimer = setTimeout(scheduleReminders, Math.max(1000, Math.min(next.when - Date.now(), 3600000)));
+  // Il pianificatore parte solo a fine avvio: prima dello start, reschedule non fa nulla.
+  function scheduleReminders() { reminderScheduler?.reschedule(); }
+  // Un promemoria che non si è potuto mostrare è già stato tolto dall'elenco: resta almeno un avviso in chat col suo testo.
+  function reminderFailed(item, error) {
+    console.error('Promemoria non mostrato:', error?.message || error);
+    notice = item ? `Non sono riuscito a mostrare ${item.alarm ? 'la sveglia' : 'il promemoria'} «${item.text}» (era per ${Reminders.formatWhen(item.when)}): ${error?.message || 'errore sconosciuto'}.` : `Non riesco a controllare i promemoria: ${error?.message || 'errore sconosciuto'}.`;
+    try { showChat(); } catch {}
+    try { broadcast(); } catch {}
   }
   function clearLastFrame() { clearTimeout(lastFrameTimer); lastFrameTimer = null; if (lastFrame) { lastFrame.bytes.fill(0); lastFrame = null; } }
   function keepLastFrame(bytes, name, message, reply) {
@@ -364,7 +367,7 @@ function startApplication() {
   if (process.platform !== 'win32') for (const signal of ['SIGTERM', 'SIGHUP', 'SIGINT']) process.on(signal, () => app.quit());
   app.on('before-quit', () => {
     updateAbort?.abort();
-    quitting = true; clearTimeout(reminderTimer); stopAlarm(); localDownload?.abort(); LocalEngines.shutdown(); currentRun?.stop('Risposta interrotta.', true); controller?.close(); clearInterval(mouseTimer);
+    quitting = true; reminderScheduler?.stop(); stopAlarm(); localDownload?.abort(); LocalEngines.shutdown(); currentRun?.stop('Risposta interrotta.', true); controller?.close(); clearInterval(mouseTimer);
     stopWatching();
     if (activeShareDirectory && fs.existsSync(activeShareDirectory)) { try { fs.rmSync(activeShareDirectory, { recursive: true, force: true }); } catch {} }
     activeShareDirectory = null;
@@ -386,8 +389,8 @@ function startApplication() {
     const chatDirectory = path.join(dataDirectory, 'chat'); prepareDirectory(chatDirectory);
     store = new ChatStore(chatDirectory);
     memory = new LocalAI.LocalMemory(chatDirectory);
-    reminders = new Reminders.ReminderStore(path.join(dataDirectory, 'reminders.json')); scheduleReminders();
-    powerMonitor.on('resume', scheduleReminders);
+    reminders = new Reminders.ReminderStore(path.join(dataDirectory, 'reminders.json'));
+    reminderScheduler = createScheduler({ store: reminders, fire: fireReminder, onError: reminderFailed });
     const raw = readJSON(stateFile, {});
     // Motore: un valore sconosciuto, o un modello di un altro motore senza nome valido, torna a Ollama e al predefinito.
     let startEngine = LocalEngines.normalizeEngine(raw.localEngine);
@@ -427,6 +430,8 @@ function startApplication() {
     if (process.platform === 'darwin') screen.on('display-added', () => setScale(settings.scale));
     screen.on('display-removed', () => setScale(settings.scale));
     screen.on('display-metrics-changed', () => setScale(settings.scale));
+    // Solo ora esistono controllo degli stati, finestre e tray: le sveglie scadute ad app chiusa possono reagire (B1).
+    reminderScheduler.start(); powerMonitor.on('resume', scheduleReminders);
     server = new EventServer(endpoint, Object.keys(P.STATES.states), event => { if (!currentRun) controller.set(event.state); });
     try { await server.start(process.env.MASCOTTE_PREVIEW ? 0 : 8766); }
     catch { notice = 'Server eventi non disponibile: controlla se la porta 8766 è occupata.'; }
