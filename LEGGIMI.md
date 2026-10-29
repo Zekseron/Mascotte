@@ -50,6 +50,7 @@ Puoi anche usare modelli già presenti in Ollama o altri motori locali già avvi
 
 - **Note e azioni:** «ricorda: …» salva una nota; «apri la calcolatrice» o «apri download» chiedono conferma e poi aprono. Su Mac si possono aprire anche altre app («apri Safari»).
 - **Osservazione di una finestra:** apri la sezione «Finestra da condividere», scegli la finestra → «Osserva» mostra un'anteprima locale; «Allega fotogramma…» invia **un solo fotogramma, dopo la tua conferma**. Con la chat locale e un modello che legge le immagini, mentre osservi ogni messaggio include da solo il fotogramma attuale (resta sul computer).
+- **Promemoria e sveglie** (chat locale): «ricordami alle 15:30 di chiamare Marco», «sveglia tra 20 minuti», «che promemoria ho?», «cancella promemoria 2». Conferma prima di impostarli, notifica di sistema alla scadenza. Le **sveglie** («sveglia…», «timer…», «svegliami…») alla scadenza aprono anche la finestra di Mascotte con «Ferma» e «Rimanda 5 minuti» e suonano a ripetizione finché non le fermi (al massimo 3 minuti); i promemoria normali sono solo una notifica.
 - **Aggiornamenti:** **Impostazioni → Controlla aggiornamenti** cerca una release più recente su GitHub e, dopo la tua conferma, la scarica e riavvia l'app.
 
 ## Attivare le reazioni alle sessioni esterne (facoltativo)

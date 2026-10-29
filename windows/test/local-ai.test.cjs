@@ -257,7 +257,9 @@ test('contesto cartella: messaggio di sistema con i conteggi; senza il parametro
   const history = Array.from({ length: 12 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', text: `m${i}` }));
   await runLocal(history, 'Ciao', [{ text: 'una nota', source: 'manuale' }], { port, platform: 'darwin' }).promise;
   const plain = calls.find(item => item.endpoint === '/api/chat').payload;
-  assert.equal(plain.options.num_ctx, 4096); assert.equal(plain.messages.length, 1 + 1 + 12 + 1);
+  assert.equal(plain.options.num_ctx, 4096); assert.equal(plain.messages.length, 1 + 1 + 12 + 1 + 1);
+  // Data e ora come penultimo messaggio di sistema, subito prima della domanda.
+  assert.equal(plain.messages.at(-2).role, 'system'); assert.match(plain.messages.at(-2).content, /^Data e ora attuali sul computer dell'utente: .*\d{4}.*\d{2}:\d{2}/);
   assert.ok(!plain.messages.some(message => /Elenco della cartella/.test(message.content)));
   assert.match(plain.messages[0].content, /Download, Documenti, Scrivania e Immagini.*altre cartelle.*Impostazioni/);
   calls.length = 0;
@@ -269,6 +271,6 @@ test('contesto cartella: messaggio di sistema con i conteggi; senza il parametro
   assert.match(folderMessage.content, /dati non verificati.*esatti: usali invece di contare da solo/);
   assert.equal(withFolder.messages.at(-1).content, 'Qual è il pdf più recente?');
   assert.equal(withFolder.options.num_ctx, 8192);
-  assert.equal(withFolder.messages.filter(message => message.role === 'system').length, 3); // istruzioni, note, cartella
+  assert.equal(withFolder.messages.filter(message => message.role === 'system').length, 4); // istruzioni, note, cartella, data e ora
   assert.equal(withFolder.tools, undefined);
 });
