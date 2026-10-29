@@ -4,7 +4,7 @@ Questo repository contiene i sorgenti dell'app comune a Windows e Mac (cartella 
 
 Non copiare qui i vecchi ZIP, applicazioni compilate o cartelle personali: possono contenere asset esclusi dalla distribuzione pubblica. Ricompilare le release esclusivamente da questa cartella. La copia privata originale resta separata e non è collegata a questo repository.
 
-Non è stata ancora scelta una licenza di riutilizzo per il progetto. La visibilità pubblica non equivale a una licenza open source. Le dipendenze conservano le rispettive licenze.
+Copyright © 2026 Zekseron, tutti i diritti riservati: vedi [LICENSE](LICENSE). La visibilità pubblica non equivale a una licenza open source. Le dipendenze conservano le rispettive licenze.
 
 ## Cartelle e commit
 
