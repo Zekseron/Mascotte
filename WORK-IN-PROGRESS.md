@@ -405,3 +405,5 @@ Quando le proposte delle sezioni 1–4 diventano funzioni Windows, aggiungere an
 ## Nuove idee
 
 Aggiungere qui le prossime richieste senza perdere le decisioni già prese nelle cinque voci sopra. Se riguardano Windows, aggiornare anche il piano Mac della sezione 5.
+
+- [ ] **Rivedere la grafica della chat, soprattutto la scheda Gestione** (richiesta dell'utente, 28 ottobre 2026). La scheda è cresciuta a ogni passo (aggiornamenti, CLI, IA locale e motori, memoria, cartelle, hook) e va riordinata: gerarchia visiva, spaziature, raggruppamento delle sezioni, testi lunghi, stato dei pulsanti. Interfaccia comune a Windows e Mac (`renderer/chat.html`, `chat.css`, `chat.js`): verificare il risultato su entrambi; sul Mac aggiornare la nota nella sezione 5.

@@ -130,9 +130,9 @@ function prepareHooks(claudeText, codexText, executable, bridge, platform = /^[A
   removeMascotteClaudeHooks(hooks);
   for (const event of ['UserPromptSubmit', 'PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'PermissionRequest', 'Notification', 'Stop']) {
     if (hooks[event] !== undefined && !Array.isArray(hooks[event])) throw new Error('Hook esistente non valido.');
-    const value = { hooks: [{ type: 'command', command: claudeCommand, timeout: 5 }] };
-    if (['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'PermissionRequest'].includes(event)) value.matcher = '.*';
-    if (event === 'Notification') value.matcher = 'permission_prompt|idle_prompt|elicitation_dialog';
+    // `matcher` prima di `hooks`, come lo scrive Claude Code: riapplicando, il file resta identico.
+    const matcher = event === 'Notification' ? 'permission_prompt|idle_prompt|elicitation_dialog' : ['PreToolUse', 'PostToolUse', 'PostToolUseFailure', 'PermissionRequest'].includes(event) ? '.*' : null;
+    const value = { ...(matcher ? { matcher } : {}), hooks: [{ type: 'command', command: claudeCommand, timeout: 5 }] };
     hooks[event] = [...(hooks[event] || []), value];
   }
   claude.hooks = hooks;
