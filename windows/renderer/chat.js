@@ -375,7 +375,7 @@ function prepareShare() {
 $('composer').addEventListener('submit', event => { event.preventDefault(); submit(); });
 $('input').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); submit(); } });
 $('input').addEventListener('input', () => { if (current) drafts[current.engine] = $('input').value; $('send').disabled = !current?.busy && !$('input').value.trim(); });
-$('engine').addEventListener('change', async () => { const next = await invoke('engine', $('engine').value); $('input').value = drafts[next.engine] || ''; render(next); $('input').focus(); });
+$('engine').addEventListener('change', async () => { const next = await invoke('engine', $('engine').value); if (!next) { if (current) $('engine').value = current.engine; return; } $('input').value = drafts[next.engine] || ''; render(next); $('input').focus(); });
 $('new').addEventListener('click', async () => { $('input').value = ''; drafts[current.engine] = ''; render(await invoke('new')); });
 $('settings-back').addEventListener('click', () => selectTab('chat'));
 $('settings-toggle').addEventListener('click', async () => { if (selectedTab === 'settings') { selectTab('chat'); $('input').focus(); return; } selectTab('settings'); render(await invoke('local-scan')); });
