@@ -169,11 +169,7 @@ async function mainMac(args, options = {}) {
     }
     // Staging nella stessa cartella della destinazione: il rename finale è atomico. Se il volume risultasse diverso, moveBundle ripiega su ditto.
     if (args['ready-file']) fs.writeFileSync(path.resolve(args['ready-file']), 'ready', { flag: 'wx' });
-    if (waitPid !== null) {
-      const deadline = Date.now() + 45000;
-      while (pidIsRunning(waitPid) && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 250));
-      if (pidIsRunning(waitPid)) throw new Error('Mascotte non si è chiusa in tempo per applicare l’aggiornamento.');
-    }
+    if (waitPid !== null) await waitForPid(waitPid);
     const settle = Date.now() + 10000;
     while (otherProcesses().length && Date.now() < settle) await new Promise(resolve => setTimeout(resolve, 250));
     if (otherProcesses().length) throw new Error('Un altro processo Mascotte è ancora aperto. Chiudilo e riprova.');
