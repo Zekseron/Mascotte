@@ -28,7 +28,7 @@ const engineAt = (...ports) => Engines.create({ id: 'lmstudio', label: 'LM Studi
 const history = [{ role: 'user', text: 'ciao' }, { role: 'assistant', text: 'salve' }];
 
 test('preset: id, etichette e porte verificate sulla documentazione', () => {
-  assert.deepEqual(Engines.IDS, ['ollama', 'lmstudio', 'llamacpp', 'jan']);
+  assert.deepEqual(Engines.IDS, ['ollama', 'lmstudio', 'llamacpp', 'jan', 'llamacpp-mascotte']);
   const urls = Object.fromEntries(Engines.PRESETS.map(preset => [preset.id, preset.baseUrls]));
   assert.deepEqual(urls.lmstudio, ['http://127.0.0.1:1234/v1']);
   assert.deepEqual(urls.jan, ['http://127.0.0.1:1337/v1']);
