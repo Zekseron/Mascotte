@@ -13,7 +13,7 @@ const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const SCALES = [1, 2, 3, 4, 5, 6];
 // Come il menu «Grandezza»: il fotogramma ingrandito non supera 2048 punti per lato.
 const allowedScales = pack => SCALES.filter(scale => Math.max(pack.frame.width, pack.frame.height) * scale / (pack.pixelRatio || 1) <= 2048);
-const slugOf = (P, text) => String(text).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+const slugOf = text => String(text).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
 
 // Legge e convalida un pacchetto da una cartella. `strict` (mascotte personali): file normali e non link, foglio chiamato sprites.png.
 // Lancia un errore con un messaggio comprensibile; altrimenti restituisce { pack, bytes, json }.
@@ -74,7 +74,7 @@ function importFolder(P, source, userDirectory, { includedIds = [], personalIds 
     if (typeof source !== 'string' || !source || source.includes('\0')) throw new Error('Cartella non valida.');
     const real = fs.realpathSync(source);
     if (!fs.statSync(real).isDirectory()) throw new Error('Scegli una cartella.');
-    const folderId = slugOf(P, path.basename(real)) || 'mascotte';
+    const folderId = slugOf(path.basename(real)) || 'mascotte';
     const loaded = loadPack(P, real, { strict: true, folderName: folderId });
     const id = loaded.pack.id;
     if (!ID_PATTERN.test(id)) throw new Error(`L'id «${id}» non è valido: usa minuscole, cifre e trattini (massimo 40 caratteri).`);
