@@ -485,6 +485,8 @@ function startApplication() {
       // Un altro motore: il modello si sceglie solo dall'elenco che quel motore ha restituito alla ricerca.
       const chosenOther = otherEngine && typeof data === 'string' && Boolean(engineStatus?.find(item => item.id === settings.localEngine)?.models?.some(model => model.name === data));
       // Scelta del motore: solo uno rilevato alla ricerca con almeno un modello idoneo (il primo), oppure Ollama con il predefinito.
+      // Cambio di motore o modello durante una risposta, un download o un aggiornamento: rifiutato subito, senza cadere nel ricontrollo del modello qui sotto (B5).
+      if ((action === 'local-engine' || action === 'local-model') && (localDownload || currentRun || updateRunning)) return chatSnapshot();
       if (action === 'local-engine' && !localDownload && !currentRun && !updateRunning && LocalEngines.isEngine(data)) {
         const found = data === 'ollama' ? null : engineStatus?.find(item => item.id === data);
         if (data === 'ollama') { settings.localEngine = 'ollama'; settings.localModel = LocalAI.defaultModel(); settings.localModelSource = 'catalog'; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }

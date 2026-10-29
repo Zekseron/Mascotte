@@ -57,3 +57,11 @@ test('controllo del mittente e rifiuto finale: una sola volta ciascuno', () => {
   assert.match(check, /event\.senderFrame\.url !== expected/);
   assert.match(check, /\(!kitty && !chatting\)/);
 });
+
+test('B5: cambio di motore o modello rifiutato durante risposta, download o aggiornamento, prima dei loro gestori', () => {
+  const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'main.cjs'), 'utf8');
+  const guard = source.indexOf("if ((action === 'local-engine' || action === 'local-model') && (localDownload || currentRun || updateRunning)) return chatSnapshot();");
+  assert.ok(guard > 0, 'guardia B5 presente');
+  assert.ok(guard < source.indexOf("if (action === 'local-engine' && !localDownload"), 'prima del gestore del motore');
+  assert.ok(guard < source.indexOf("if ((action === 'local-check' || action === 'local-model' || action === 'local-engine') && !localDownload)"), 'prima del ricontrollo del modello');
+});
