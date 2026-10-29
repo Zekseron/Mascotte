@@ -8,6 +8,7 @@ const path = require('node:path');
 const os = require('node:os');
 const { execFileSync } = require('node:child_process');
 const { readJSON, atomicJSON } = require('./storage.cjs');
+const { SCALES } = require('./characters.cjs');
 
 const LEGACY_DOMAIN = 'local.mascotte.app';
 const MAX_HISTORY = 4 * 1024 * 1024, MAX_MESSAGES = 60, MAX_TEXT = 8000;
@@ -46,7 +47,7 @@ function readLegacyHistory(directory) {
 function mapSettings(defaults, characters = []) {
   const settings = {}, character = defaults['mascotte.characterID'];
   if (defaults['mascotte.dockAttachment'] === true || defaults['mascotte.dockAttachment'] === 1) settings.attachment = 'bar';
-  const valid = value => [1, 2, 3, 4, 5, 6].includes(value);
+  const valid = value => SCALES.includes(value);
   if (valid(defaults['mascotte.scale'])) settings.scale = defaults['mascotte.scale'];
   if (typeof character === 'string' && characters.includes(character)) {
     settings.character = character;

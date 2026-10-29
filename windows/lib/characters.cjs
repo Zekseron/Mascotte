@@ -107,4 +107,4 @@ function removePersonal(userDirectory, id) {
     return { ok: true };
   } catch (error) { return { ok: false, reason: error.message || 'Non riesco a rimuovere la mascotte.' }; }
 }
-module.exports = { MAX_PERSONAL, CATEGORY, ID_PATTERN, allowedScales, loadPack, readIncluded, readPersonal, importFolder, removePersonal };
+module.exports = { MAX_PERSONAL, SCALES, CATEGORY, ID_PATTERN, allowedScales, loadPack, readIncluded, readPersonal, importFolder, removePersonal };
