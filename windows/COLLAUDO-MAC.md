@@ -43,3 +43,11 @@ Segna ogni riga con ✅ oppure ❌ e una nota. In caso di ❌ copia il messaggio
 ## H. Aggiornamento
 21. **Aggiornamento rifiutato:** crea un file qualsiasi nella repo (per esempio `prova.txt`), premi «Compila e aggiorna»: rifiuta per modifiche locali e l'app resta quella di prima. Poi cancella il file.
 22. **Interruzione:** avvia «Compila e aggiorna» e chiudi Mascotte durante la compilazione, poi riaprila: l'app è ancora quella di prima e funziona.
+
+## Esito (29 ottobre 2026)
+
+- **A–E:** superati dall'utente sul Mac.
+- **F17, G19:** superati ai passi 7 e 8 (stesse prove, stessa app). **F18** (permesso negato: messaggio e pulsante, poi riattivazione): superato.
+- **G20:** verificato da terminale sui file reali: riapplicando gli hook non si aggiunge nulla. Corretto l'ordine dei campi (`matcher` prima di `hooks`): ora il file di Claude resta identico byte per byte.
+- **H21:** verificato da terminale: con un file non tracciato nella repo l'aggiornamento rifiuta («La repo contiene modifiche locali…»). **H22** (chiusura durante la compilazione): superato; nessun processo di compilazione rimasto, app installata intatta (stesso requisito designato), cartella di compilazione parziale rimossa (la toglie comunque il prossimo aggiornamento).
+- **Limiti rimasti:** aggiornamento da release GitHub e installazione su un altro Mac (rimandati al passo 12); Windows da ricollaudare per il codice comune cambiato (vedi piano, sezione 5).
