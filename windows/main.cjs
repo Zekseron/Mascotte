@@ -20,7 +20,7 @@ if (process.argv.includes('--mascotte-notify')) {
 
 function startApplication() {
   if (can.hideDock) app.dock?.hide();
-  const { prepareDirectory, readJSON, atomicJSON, ChatStore, assertRegularPath } = require('./lib/storage.cjs');
+  const { prepareDirectory, readJSON, atomicJSON, ChatStore } = require('./lib/storage.cjs');
   const CLI = require('./lib/cli.cjs');
   const LocalAI = require('./lib/local-ai.cjs'), LocalEngines = require('./lib/local-engines.cjs');
   const { StateController, clampPosition } = require('./lib/state.cjs');

@@ -37,7 +37,6 @@ const MODELS = Object.freeze([Object.freeze({
     modelFile('model', 'gemma-4-E4B-it-Q4_0.gguf', 4590807392, 'a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2'),
     modelFile('mmproj', 'mmproj-gemma-4-E4B-it-Q8_0.gguf', 559874816, '197f49a93027f9843772bd24a6a9e0be2a32a788de5a3def330e9c585d86edd1')])
 })]);
-const DEFAULT_MODEL = MODELS[0].id;
 const findModel = id => MODELS.find(item => item.id === id) || null;
 
 // Host ammessi: solo HTTPS. GitHub come in releases.cjs; Hugging Face e il suo CDN (osservato il 29 ottobre 2026: us.aws.cdn.hf.co; altri nomi *.hf.co sono dello stesso servizio).
@@ -220,4 +219,4 @@ async function downloadAll({ dataDir, runtime, model, signal, onProgress = () =>
   return { downloaded: total };
 }
 
-module.exports = { BUILD, RUNTIMES, MODELS, DEFAULT_MODEL, HF_REVISION, runtimeFor, findModel, allowedHost, getResponse, downloadFile, downloadAll, freeBytes, safeEntryName, checkEntryNames, zipEntryNames, verifyTree, findServer, serverName, extractArchive, paths, runtimeServer, modelPresent, MARKER };
+module.exports = { BUILD, RUNTIMES, MODELS, HF_REVISION, runtimeFor, findModel, allowedHost, getResponse, downloadFile, downloadAll, freeBytes, safeEntryName, checkEntryNames, zipEntryNames, verifyTree, findServer, serverName, extractArchive, paths, runtimeServer, modelPresent, MARKER };
