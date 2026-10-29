@@ -96,9 +96,16 @@ class ReminderStore {
   next() { return this.items[0] || null; }
 }
 
+// «Rimanda» di una sveglia: ne aggiunge un'altra con lo stesso testo. Non lancia mai: con l'elenco pieno (o un salvataggio
+// fallito) restituisce { error } e chi chiama lascia la sveglia attiva, così «Ferma» funziona ancora.
+function snoozeAlarm(store, alarm, { now = Date.now(), delay }) {
+  try { return { item: store.add({ when: now + delay, text: alarm.text, alarm: true }) }; }
+  catch (error) { return { error: error.message }; }
+}
+
 function describeReminders(items, now = new Date()) {
   if (!items.length) return 'Non hai promemoria. Per impostarne uno scrivi per esempio «ricordami alle 15:30 di chiamare Marco» o «sveglia tra 20 minuti».';
   return 'I tuoi promemoria:\n' + items.map((item, index) => `${index + 1}. ${formatWhen(item.when, now)} · ${item.text}`).join('\n') + '\n\nPer cancellarne uno scrivi «cancella promemoria 2»; per tutti «cancella tutti i promemoria».';
 }
 
-module.exports = { parseReminder, parseReminderCommand, formatWhen, describeReminders, ReminderStore, MAX_REMINDERS, MAX_AHEAD };
+module.exports = { parseReminder, parseReminderCommand, formatWhen, snoozeAlarm, describeReminders, ReminderStore, MAX_REMINDERS, MAX_AHEAD };

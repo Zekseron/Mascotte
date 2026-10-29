@@ -64,3 +64,26 @@ test('salvataggio, ordine, scaduti e limiti', t => {
   assert.match(R.describeReminders([]), /Non hai promemoria/);
   assert.match(R.describeReminders([{ when: at(1, 9), text: 'riunione' }], NOW), /1\. domani alle 09:00 · riunione/);
 });
+
+test('B2: «Rimanda» con l\'elenco pieno non lancia, non toglie nulla e restituisce il messaggio', () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte-snooze-'));
+  try {
+    const store = new R.ReminderStore(path.join(directory, 'reminders.json'));
+    for (let i = 0; i < R.MAX_REMINDERS; i++) store.add({ when: NOW.getTime() + (i + 1) * 3600000, text: 'p' + i });
+    const full = R.snoozeAlarm(store, { text: 'Sveglia' }, { now: NOW.getTime(), delay: 300000 });
+    assert.equal(full.item, undefined);
+    assert.match(full.error, /Hai già 50 promemoria/);
+    assert.equal(store.list().length, R.MAX_REMINDERS);
+    // Con spazio libero rimanda davvero: stesso testo, di nuovo sveglia, tra `delay` millisecondi.
+    store.remove(store.list()[0].id);
+    const ok = R.snoozeAlarm(store, { text: 'Sveglia' }, { now: NOW.getTime(), delay: 300000 });
+    assert.equal(ok.error, undefined);
+    assert.deepEqual([ok.item.when, ok.item.text, ok.item.alarm], [NOW.getTime() + 300000, 'Sveglia', true]);
+    assert.equal(store.list().length, R.MAX_REMINDERS);
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+  // In main.cjs il gestore passa da snoozeAlarm e ferma la sveglia solo se il rimando è riuscito.
+  const main = fs.readFileSync(path.join(__dirname, '..', 'main.cjs'), 'utf8');
+  const handler = main.slice(main.indexOf("action === 'alarm-snooze'"), main.indexOf("action === 'new'"));
+  assert.match(handler, /Reminders\.snoozeAlarm\(/);
+  assert.ok(handler.indexOf('if (snoozed.error)') < handler.indexOf('stopAlarm()'), 'stopAlarm solo dopo il controllo dell\'errore');
+});
