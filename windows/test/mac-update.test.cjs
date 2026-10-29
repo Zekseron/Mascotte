@@ -326,3 +326,14 @@ test('aggiornamento da sorgenti: rimuove solo le vecchie compilazioni mascotte-u
   removeOldOutputs(base, path.join(dist, running, 'x', 'Mascotte'));
   assert.deepEqual(fs.readdirSync(dist).sort(), ['Mascotte-Mac-0.8.0-arm64.zip', 'mac-arm64', 'mascotte-update-non-uuid', running].sort());
 });
+
+test('B3: la cartella dati dell\'installatore Windows usa --data-dir, poi %LOCALAPPDATA%\\Mascotte', () => {
+  assert.equal(typeof Installer.windowsDataDirectory, 'function');
+  assert.equal(Installer.windowsDataDirectory({ 'data-dir': '/dati/mia' }, { LOCALAPPDATA: '/local' }), path.resolve('/dati/mia'));
+  assert.equal(Installer.windowsDataDirectory({ 'data-dir': '/dati/mia' }, {}), path.resolve('/dati/mia'), 'anche senza LOCALAPPDATA');
+  assert.equal(Installer.windowsDataDirectory({}, { LOCALAPPDATA: '/local' }), path.resolve('/local', 'Mascotte'));
+  assert.equal(Installer.windowsDataDirectory({}, {}), undefined);
+  // Il controllo di sicurezza di main() deve usare questa funzione, non LOCALAPPDATA direttamente.
+  const source = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'install-update.cjs'), 'utf8');
+  assert.match(source, /const dataDir = windowsDataDirectory\(args\)/);
+});
