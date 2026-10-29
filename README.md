@@ -95,3 +95,7 @@ Il Mac Intel non è supportato dall'app attuale (solo Apple Silicon).
 Menu Personaggio con categorie e grandezza ricordata per personaggio. I sorgenti grafici sono nelle stesse categorie sotto characters-src.
 
 La distribuzione pubblica include soltanto Rosso. I pacchetti personali restano fuori dal repository.
+
+## Copyright
+
+Copyright © 2026 Zekseron. Tutti i diritti riservati. Il repository è pubblico per essere consultato, ma non è open source: copiare, modificare, ridistribuire o presentare come proprio questo lavoro richiede il permesso scritto dell'autore. Dettagli in [LICENSE](LICENSE).

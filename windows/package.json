@@ -3,7 +3,8 @@
   "version": "0.8.0",
   "private": true,
   "description": "Mascotte desktop per Windows — anteprima",
-  "author": "Mascotte",
+  "author": "Zekseron",
+  "license": "UNLICENSED",
   "main": "main.cjs",
   "scripts": {
     "resources": "node scripts/resources.cjs",
@@ -25,6 +26,7 @@
     "electron-builder": "26.15.3"
   },
   "build": {
+    "copyright": "Copyright © 2026 Zekseron. Tutti i diritti riservati.",
     "appId": "local.mascotte.windows",
     "productName": "Mascotte",
     "asar": true,
