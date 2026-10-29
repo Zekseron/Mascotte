@@ -392,11 +392,7 @@ function startApplication() {
     reminders = new Reminders.ReminderStore(path.join(dataDirectory, 'reminders.json'));
     reminderScheduler = createScheduler({ store: reminders, fire: fireReminder, onError: reminderFailed });
     const raw = readJSON(stateFile, {});
-    // Motore: un valore sconosciuto, o un modello di un altro motore senza nome valido, torna a Ollama e al predefinito.
-    let startEngine = LocalEngines.normalizeEngine(raw.localEngine);
-    if (startEngine !== 'ollama' && !(raw.localModelSource === 'installed' && LocalAI.validName(raw.localModel))) startEngine = 'ollama';
-    const startModel = startEngine === 'ollama' ? LocalAI.normalizeModel(raw.localModel, undefined, raw.localModelSource) : raw.localModel;
-    settings = {scale:Characters.SCALES.includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localEngine:startEngine,localModel:startModel,localModelSource:startEngine==='ollama'&&LocalAI.isModel(startModel)?'catalog':'installed',extraFolders:ExtraFolders.normalizeExtraFolders(raw.extraFolders,ExtraFolders.realOpts({platform:process.platform,home:os.homedir(),dataDir:dataDirectory})),alarmSound:raw.alarmSound==='custom'?'custom':'beep',alarmSoundName:typeof raw.alarmSoundName==='string'?raw.alarmSoundName.slice(0,120):'',alarmVolume:AlarmSound.normalizeVolume(raw.alarmVolume)};
+    settings = require('./lib/settings.cjs').normalizeSettings(raw, { LocalEngines, LocalAI, ExtraFolders, Characters, AlarmSound, platform: process.platform, home: os.homedir(), dataDir: dataDirectory });
     if (legacyImport) {
       const count = Object.values(legacyImport.messages).reduce((sum, n) => sum + n, 0);
       notice = `Importato dalla vecchia Mascotte per Mac: ${[legacyImport.settings.length ? 'impostazioni' : '', count ? `${count} messaggi` : ''].filter(Boolean).join(' e ') || 'nessun dato da trasferire'}. La vecchia app e i suoi dati restano invariati.`;
