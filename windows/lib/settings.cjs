@@ -5,6 +5,9 @@
 function normalizeSettings(raw, ctx) {
   const { LocalEngines, LocalAI, ExtraFolders, Characters, AlarmSound } = ctx;
   // Motore: un valore sconosciuto, o un modello di un altro motore senza nome valido, torna a Ollama e al predefinito.
+  // Nessuna scelta salvata (prima installazione): su Windows il predefinito è llama.cpp gestito da Mascotte con il suo unico modello
+  // (prove del 30 ottobre 2026: più veloce di Ollama con Vulkan e legge le immagini). Su Mac resta Ollama.
+  if (raw.localEngine === undefined && ctx.platform === 'win32') raw = { ...raw, localEngine: LocalEngines.MANAGED, localModel: ctx.managedModel, localModelSource: 'installed' };
   let startEngine = LocalEngines.normalizeEngine(raw.localEngine);
   if (startEngine !== 'ollama' && !(raw.localModelSource === 'installed' && LocalAI.validName(raw.localModel))) startEngine = 'ollama';
   const startModel = startEngine === 'ollama' ? LocalAI.normalizeModel(raw.localModel, undefined, raw.localModelSource) : raw.localModel;

@@ -409,7 +409,7 @@ function startApplication() {
     reminders = new Reminders.ReminderStore(path.join(dataDirectory, 'reminders.json'));
     reminderScheduler = createScheduler({ store: reminders, fire: fireReminder, onError: reminderFailed });
     const raw = readJSON(stateFile, {});
-    settings = require('./lib/settings.cjs').normalizeSettings(raw, { LocalEngines, LocalAI, ExtraFolders, Characters, AlarmSound, platform: process.platform, home: os.homedir(), dataDir: dataDirectory });
+    settings = require('./lib/settings.cjs').normalizeSettings(raw, { LocalEngines, LocalAI, ExtraFolders, Characters, AlarmSound, managedModel: require('./lib/llama-runtime.cjs').MODELS[0].id, platform: process.platform, home: os.homedir(), dataDir: dataDirectory });
     if (legacyImport) {
       const count = Object.values(legacyImport.messages).reduce((sum, n) => sum + n, 0);
       notice = `Importato dalla vecchia Mascotte per Mac: ${[legacyImport.settings.length ? 'impostazioni' : '', count ? `${count} messaggi` : ''].filter(Boolean).join(' e ') || 'nessun dato da trasferire'}. La vecchia app e i suoi dati restano invariati.`;
@@ -827,7 +827,7 @@ function startApplication() {
           store.set(selected, [...store.get(selected), { role: 'assistant', text }]); controller.set('talk');
           if (selected === 'locale' && image) keepLastFrame(image.bytes, image.name, store.get('locale').length - 1, text);
         } catch (e) {
-          notice = (e.name === 'AbortError' ? 'Risposta interrotta.' : selected === 'locale' && settings.localEngine !== 'ollama' && ['MODEL_INVALID', 'ECONNREFUSED', 'AUTH', 'UNRECOGNIZED', 'NOT_READY'].includes(e.code) ? fallbackToDefault(e.message) : e.code === 'MODEL_INVALID' && selected === 'locale' && !LocalAI.isModel(settings.localModel) ? fallbackToDefault(e.message) : e.message).slice(0, 1500); controller.set('error');
+          notice = (e.name === 'AbortError' ? 'Risposta interrotta.' : selected === 'locale' && settings.localEngine !== 'ollama' && !(settings.localEngine === LocalEngines.MANAGED && e.code === 'NOT_READY') && ['MODEL_INVALID', 'ECONNREFUSED', 'AUTH', 'UNRECOGNIZED', 'NOT_READY'].includes(e.code) ? fallbackToDefault(e.message) : e.code === 'MODEL_INVALID' && selected === 'locale' && !LocalAI.isModel(settings.localModel) ? fallbackToDefault(e.message) : e.message).slice(0, 1500); controller.set('error');
         } finally {
           currentRun = null;
           if (imageDirectory && fs.existsSync(imageDirectory)) { try { fs.rmSync(imageDirectory, { recursive: true, force: true }); } catch {} }
