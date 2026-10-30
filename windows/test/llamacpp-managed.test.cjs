@@ -247,7 +247,7 @@ http.createServer((req, res) => {
     if (req.url === '/health') { res.statusCode = ready ? 200 : 503; res.end(JSON.stringify({ status: ready ? 'ok' : 'loading' })); return; }
     if (req.url === '/v1/models') { res.end(JSON.stringify({ data: [{ id: 'gemma-4-e4b', object: 'model' }] })); return; }
     if (req.url === '/v1/chat/completions') { const p = JSON.parse(body); const last = p.messages[p.messages.length - 1];
-      res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ max_tokens: p.max_tokens, image: Array.isArray(last.content) && last.content.some(x => x.type === 'image_url'), n: p.messages.length }) }, finish_reason: 'stop' }] })); return; }
+      res.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify({ max_tokens: p.max_tokens, image: Array.isArray(last.content) && last.content.some(x => x.type === 'image_url'), n: p.messages.length, thinking: p.chat_template_kwargs?.enable_thinking }) }, finish_reason: 'stop' }] })); return; }
     res.statusCode = 404; res.end('{}');
   });
 }).listen(port, '127.0.0.1');
@@ -291,7 +291,7 @@ test('chat: avvia llama-server con i flag attesi, ambiente pulito, 127.0.0.1; un
   const { models } = await engine.listModels(); assert.deepEqual(models.map(m => [m.name, m.vision]), [['gemma-4-e4b', true]]);
   assert.equal(engine.supportsVision('gemma-4-e4b'), true);
   const [a, b] = await Promise.all([engine.chat({ messages, model: 'gemma-4-e4b', options: { maxTokens: 1536 } }), engine.chat({ messages, model: 'gemma-4-e4b', options: { maxTokens: 321 } })]);
-  assert.deepEqual(JSON.parse(a), { max_tokens: 1536, image: false, n: 1 }); assert.equal(JSON.parse(b).max_tokens, 321);
+  assert.deepEqual(JSON.parse(a), { max_tokens: 1536, image: false, n: 1, thinking: false }); assert.equal(JSON.parse(b).max_tokens, 321);
   assert.equal(starts().length, 1); assert.equal(engine.serverState(), 'ready');
   const start = starts()[0], arg = name => start.args[start.args.indexOf(name) + 1];
   assert.equal(arg('-m'), path.join(p.modelDir, 'model.gguf')); assert.equal(arg('--mmproj'), path.join(p.modelDir, 'mmproj.gguf'));
