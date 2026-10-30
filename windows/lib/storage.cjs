@@ -48,14 +48,15 @@ function readJSON(file, fallback, max = 1048576) {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch { return fallback; }
 }
+const chatMessage = m => ({ role: m.role, text: m.text.slice(0, 8000), ...(m.role === 'assistant' && m.kind === 'app' ? { kind: 'app' } : {}) });
 class ChatStore {
   constructor(directory) { this.file = path.join(directory, 'history.json'); this.value = readJSON(this.file, {}); }
   get(engine) {
     const messages = this.value?.[engine];
-    return Array.isArray(messages) ? messages.filter(m => ['user', 'assistant', 'notice'].includes(m.role) && typeof m.text === 'string').slice(-60).map(m => ({ role: m.role, text: m.text.slice(0, 8000) })) : [];
+    return Array.isArray(messages) ? messages.filter(m => m && ['user', 'assistant', 'notice'].includes(m.role) && typeof m.text === 'string').slice(-60).map(chatMessage) : [];
   }
   set(engine, messages) {
-    this.value = { codex: this.get('codex'), claude: this.get('claude'), locale: this.get('locale'), [engine]: messages.slice(-60).map(m => ({ role: m.role, text: m.text.slice(0, 8000) })) };
+    this.value = { codex: this.get('codex'), claude: this.get('claude'), locale: this.get('locale'), [engine]: messages.slice(-60).map(chatMessage) };
     while (Buffer.byteLength(JSON.stringify(this.value)) > 1048576) {
       const largest = ['codex', 'claude', 'locale'].sort((a, b) => this.value[b].length - this.value[a].length)[0];
       this.value[largest].shift();
