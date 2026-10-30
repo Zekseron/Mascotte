@@ -12,7 +12,7 @@ const PORT = 11434;
 // Catalogo dei modelli per piattaforma. Windows: invariato (Qwen3 + Qwen3-VL). Mac: scelta dell'utente per la memoria
 // condivisa da 16 GB (Gemma 4 E4B predefinito, multimodale). `formats` sono i valori di details.format che Ollama
 // riporta per i modelli del catalogo: gguf per i tag standard, safetensors per le varianti MLX (tag «-mlx»).
-const WIN_VISION_NOTE = 'Modello visivo: analizza solo il fotogramma allegato e confermato, sul PC. Consigliati 16 GB RAM; per il 4B una GPU compatibile con almeno 8 GB VRAM. Su CPU le risposte possono essere lente. Non controlla mouse o tastiera.';
+const WIN_VISION_NOTE = 'Modello visivo: durante l’osservazione ogni messaggio locale include il fotogramma attuale, sul PC. Usa Smetti per fermare la cattura. Consigliati 16 GB RAM; per il 4B una GPU compatibile con almeno 8 GB VRAM. Su CPU le risposte possono essere lente. Non controlla mouse o tastiera.';
 const CATALOGS = {
   win32: {
     default: 'qwen3:4b-instruct', keepAlive: 0, numPredict: 512, formats: ['gguf'], visionChoice: 'un modello Qwen3-VL',
@@ -29,7 +29,7 @@ const CATALOGS = {
   darwin: {
     default: 'gemma4:e4b', keepAlive: '2m', numPredict: 1536, formats: ['gguf', 'safetensors'], visionChoice: 'un modello multimodale',
     intro: 'Con Ollama la chat usa un modello locale sul Mac; i modelli proposti leggono anche le immagini. Installa Ollama, poi scegli e scarica un modello. Scarica / aggiorna cerca la revisione più recente del modello scelto; non cambia famiglia automaticamente. Serve una versione recente di Ollama (almeno 0.30.9 per Gemma 4).',
-    visionNote: 'Modello multimodale: analizza solo il fotogramma allegato e confermato, sul Mac. Non controlla mouse o tastiera. La prima risposta dopo una pausa è più lenta perché il modello va ricaricato in memoria.',
+    visionNote: 'Modello multimodale: durante l’osservazione ogni messaggio locale include il fotogramma attuale, sul Mac. Usa Smetti per fermare la cattura. Non controlla mouse o tastiera. La prima risposta dopo una pausa è più lenta perché il modello va ricaricato in memoria.',
     models: [
       { tag: 'qwen3.5:2b', label: 'Qwen3.5 2B · leggero · testo e immagini · circa 2,7 GB', vision: true },
       { tag: 'gemma4:e4b', label: 'Gemma 4 E4B · predefinito · testo e immagini · circa 6,6 GB', vision: true },
