@@ -1,6 +1,6 @@
 # Mascotte su Windows
 
-Guida per chi riceve l'app Windows. È la stessa app Electron usata anche sul Mac (versione 0.8.1, sorgenti nella cartella `windows/` della repo). Per il Mac vedi [LEGGIMI.md](LEGGIMI.md). Il vecchio piano di porting di questa pagina è stato completato e sostituito da questa guida.
+Guida per chi riceve l'app Windows. È la stessa app Electron usata anche sul Mac (versione 0.8.2, sorgenti nella cartella `windows/` della repo). Per il Mac vedi [LEGGIMI.md](LEGGIMI.md). Il vecchio piano di porting di questa pagina è stato completato e sostituito da questa guida.
 
 ## Requisiti
 
@@ -29,6 +29,8 @@ Questo è l'installer leggero: motori e modelli IA non sono inclusi. Da **Impost
 Mascotte riusa le credenziali locali delle CLI: non le copia e non chiede password. Usa CLI aggiornate: una versione troppo vecchia può rifiutare le opzioni di sicurezza che Mascotte passa. I login non vengono importati da altri computer. Se le CLI sono in percorsi particolari, il creatore o uno sviluppatore può impostare `MASCOTTE_CHAT_CODEX` o `MASCOTTE_CHAT_CLAUDE` (dettagli in `windows/README.md`, nella repo).
 
 **Il primo invio a Codex o a Claude dopo l'avvio chiede conferma**; i successivi allo stesso servizio no, finché Mascotte resta aperta (fotogrammi e secondo parere chiedono sempre). Invio invia, Maiusc+Invio va a capo.
+
+Codex e Claude possono fare ricerche web aggiornate quando servono e riportare i link delle fonti. Mascotte non concede loro accesso a file, comandi, altre integrazioni o agenti. Se la ricerca web non è disponibile per la CLI o per l'account, lo indicano nella risposta.
 
 ## IA locale (facoltativa)
 

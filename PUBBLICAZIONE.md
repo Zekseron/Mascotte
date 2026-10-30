@@ -1,6 +1,6 @@
 # Edizione pubblica e procedura di release
 
-Questo repository contiene i sorgenti dell'app comune a Windows e Mac (cartella `windows/`, versione in `windows/package.json`, oggi 0.8.1) e quelli della vecchia app Swift per Mac (`app/`, non più sviluppata). Include Rosso e Luma con i relativi sorgenti grafici.
+Questo repository contiene i sorgenti dell'app comune a Windows e Mac (cartella `windows/`, versione in `windows/package.json`, oggi 0.8.2) e quelli della vecchia app Swift per Mac (`app/`, non più sviluppata). Include Rosso e Luma con i relativi sorgenti grafici.
 
 Non copiare qui i vecchi ZIP, applicazioni compilate o cartelle personali: possono contenere asset esclusi dalla distribuzione pubblica. Ricompilare le release esclusivamente da questa cartella. La copia privata originale resta separata e non è collegata a questo repository.
 
@@ -18,6 +18,8 @@ Copyright © 2026 Zekseron, tutti i diritti riservati: vedi [LICENSE](LICENSE). 
 Su un nuovo PC: installare Mascotte, aprire le Impostazioni (ingranaggio in alto a destra), installare/avviare Ollama dal collegamento ufficiale, scegliere il modello e premere **Scarica / aggiorna modello**. Non servono Git o Node.js per questi passaggi. Il download richiede Internet e spazio libero; i dati della chat non vengono inviati per scaricare il modello.
 
 L'installer Windows 0.8.1 è leggero e include Electron, personaggi, icona e collegamenti Desktop/Start; non include runtime o pesi IA. È per il singolo utente e consente di scegliere la cartella. All'avvio la chat crea il pulsante nella barra principale, X la riduce a icona, Esci termina l'app. Il pin alla barra resta una scelta dell'utente in Windows. Generare l'icona con `npm run resources` prima della build: `scripts/app-icon.cjs` deriva PNG e ICO dal primo fotogramma di Rosso in `windows/resources/`, senza asset privati.
+
+Da 0.8.2, nella chat Codex usa la ricerca web live quando serve; Claude può usare solo WebSearch e WebFetch. Nessuno dei due riceve accesso a file, comandi, altre integrazioni o agenti. Le risposte recenti dovrebbero citare le fonti; se la ricerca non è disponibile per account o CLI devono dirlo.
 
 Il catalogo compatibile e esplicito in `windows/lib/local-ai.cjs`: ogni download aggiorna il tag ufficiale scelto, senza adottare automaticamente una nuova famiglia. La verifica controlla presenza locale, formato GGUF e supporto alla generazione testuale; non certifica accuratezza o velocita su ogni PC. Se la revisione non supera la verifica, Mascotte non la dichiara pronta. Per aggiungere un nuovo modello/famiglia occorre aggiornare e verificare il catalogo nell'app.
 

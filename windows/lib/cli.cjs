@@ -3,17 +3,17 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 const { spawn, execFile } = require('node:child_process');
-const INSTRUCTIONS = 'Sei l’assistente della micro chat Mascotte. Rispondi in modo chiaro e conciso nella lingua dell’utente. Solo conversazione: nessun comando, file, strumento, integrazione o altro agente.';
+const INSTRUCTIONS = 'Sei l’assistente della micro chat Mascotte. Rispondi in modo chiaro e conciso nella lingua dell’utente. Per domande su fatti recenti, informazioni che possono cambiare o richieste di ricerca online, usa la ricerca web integrata e cita i link delle fonti consultate. Se la ricerca non è disponibile, dichiaralo e non fingere di aver cercato. Non eseguire comandi, non leggere o modificare file, non usare integrazioni o agenti.';
 const ENGINES = ['codex', 'claude'];
 const DISABLED = ['shell_tool', 'unified_exec', 'shell_snapshot', 'apps', 'plugins', 'multi_agent', 'computer_use', 'browser_use', 'browser_use_external', 'in_app_browser', 'code_mode', 'code_mode_host', 'view_image', 'image_generation', 'goals', 'sleep_tool', 'tool_suggest'];
 
 function argumentsFor(engine, imagePath = null, streamImage = false) {
-  if (engine === 'claude') return ['--print', '--output-format', 'json', ...(streamImage ? ['--input-format', 'stream-json'] : []), '--tools', '', '--permission-mode', 'dontAsk',
+  if (engine === 'claude') return ['--print', '--output-format', 'json', ...(streamImage ? ['--input-format', 'stream-json'] : []), '--tools', 'WebSearch,WebFetch', '--permission-mode', 'dontAsk',
     '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--disable-slash-commands',
     '--setting-sources', '', '--no-session-persistence', '--append-system-prompt', INSTRUCTIONS];
   if (engine !== 'codex') throw new Error('IA sconosciuta.');
   const args = ['exec', '--json', '--skip-git-repo-check', '--ephemeral', '--ignore-user-config', '--ignore-rules',
-    '--sandbox', 'read-only', '--config', 'approval_policy="never"', '--config', 'web_search="disabled"',
+    '--sandbox', 'read-only', '--config', 'approval_policy="never"', '--config', 'web_search="live"',
     '--config', 'project_doc_max_bytes=0', '--config', 'tools.view_image=false', '--config', 'developer_instructions=' + JSON.stringify(INSTRUCTIONS),
     ...DISABLED.flatMap(name => ['--disable', name]), '-'];
   if (imagePath) args.splice(args.length - 1, 0, '--image=' + imagePath);

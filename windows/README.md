@@ -1,4 +1,4 @@
-# Mascotte 0.8.1 — app comune per Windows e Mac (anteprima da provare)
+# Mascotte 0.8.2 — app comune per Windows e Mac (anteprima da provare)
 
 Questa cartella contiene l'app Electron usata su **Windows x64** e su **Mac Apple Silicon** (il nome `windows/` è rimasto da quando era solo Windows; rinominarla è rimandato). Le istruzioni per Windows sono in questa prima parte; quelle per il Mac nella sezione [Mac (Apple Silicon)](#mac-apple-silicon) più in basso. La vecchia app Swift per Mac è in `../app/` e non è più sviluppata. Guide per chi riceve l'app: [LEGGIMI.md](../LEGGIMI.md) e [WINDOWS.md](../WINDOWS.md); dati e privacy: [PRIVACY.md](../PRIVACY.md); release: [PUBBLICAZIONE.md](../PUBBLICAZIONE.md); esito del collaudo Mac: [COLLAUDO-MAC.md](COLLAUDO-MAC.md).
 
@@ -59,7 +59,7 @@ La chat locale può anche «vedere» le cartelle Download, Documenti, Scrivania 
 - Il wrapper npm standard `codex.cmd` viene risolto al suo `codex.js` senza passare il messaggio a cmd.exe. Wrapper personalizzati `.bat`/`.ps1` non sono supportati; preferisci le installazioni ufficiali.
 - Se le CLI sono in percorsi particolari, avvia dal terminale con `MASCOTTE_CHAT_CODEX` o `MASCOTTE_CHAT_CLAUDE` impostata sul loro eseguibile. Queste variabili non sono salvate nel pacchetto.
 
-Nella chat scegli l'IA, scrivi e premi Invio (Maiusc+Invio va a capo). Interrompi ferma la richiesta, Nuova svuota solo la conversazione dell'IA scelta. Le cronologie sono separate. Per Codex e Claude ogni invio è una nuova sessione CLI con al massimo gli ultimi 20 messaggi della conversazione come contesto; la richiesta di approfondimento dalla chat locale parte invece senza cronologia precedente. La cronologia locale conserva al massimo 60 messaggi per IA. Le configurazioni personali del modello remoto non vengono caricate: questa anteprima usa i modelli standard delle CLI, per tenere fuori le integrazioni personali.
+Nella chat scegli l'IA, scrivi e premi Invio (Maiusc+Invio va a capo). Interrompi ferma la richiesta, Nuova svuota solo la conversazione dell'IA scelta. Le cronologie sono separate. Per Codex e Claude ogni invio è una nuova sessione CLI con al massimo gli ultimi 20 messaggi della conversazione come contesto; la richiesta di approfondimento dalla chat locale parte invece senza cronologia precedente. Codex e Claude possono usare la ricerca web live quando serve e citare le fonti; non ricevono strumenti per leggere o modificare file, eseguire comandi, usare altre integrazioni o avviare agenti. La cronologia locale conserva al massimo 60 messaggi per IA. Le configurazioni personali del modello remoto non vengono caricate: questa anteprima usa i modelli standard delle CLI, per tenere fuori le integrazioni personali.
 
 ### Osservare una finestra e condividere un fotogramma
 
