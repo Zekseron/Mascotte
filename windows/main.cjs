@@ -6,6 +6,7 @@ const { randomUUID } = require('node:crypto');
 const { pathToFileURL } = require('node:url');
 const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer, shell, systemPreferences, Notification, powerMonitor } = require('electron');
 const Platform = require('./lib/platform.cjs');
+const { showMascot } = require('./lib/mascot-window.cjs');
 const Capture = require('./lib/capture.cjs');
 const can = Platform.capabilities();
 const dataDirectory = Platform.dataDirectory({ appData: app.getPath('appData') });
@@ -214,7 +215,7 @@ function startApplication() {
   function detach() {
     follower?.close(); follower = null; clearInterval(anchorTimer); anchorTimer = null;
     targetBounds = null; attachment = 'free'; singing = false; if (settings) settings.attachment = 'free';
-    if (concealed && userVisible && !quitting) mascot.showInactive(); concealed = false;
+    if (concealed && userVisible && !quitting) showMascot(mascot); concealed = false;
     if(mascot&&!mascot.isDestroyed()&&pack&&!quitting){
       const b=mascot.getBounds(),position=clampPosition(b,b.width,b.height,displayAreas());
       moveMascot(position.x,position.y);
@@ -230,7 +231,7 @@ function startApplication() {
     const anchor=pack.perch?{x:pack.perch.anchor.x*displayScale(),y:pack.perch.anchor.y*displayScale()}:undefined;
     const position = Attachment.origin(b, edge, display.workArea, anchorFraction,anchor);
     if (b.x !== position.x || b.y !== position.y) moveMascot(position.x, position.y);
-    if (concealed) { mascot.showInactive(); concealed = false; }
+    if (concealed) { showMascot(mascot); concealed = false; }
     updateHit();
   }
   function taskbarDisplayAt(point) {
@@ -371,11 +372,11 @@ function startApplication() {
       ] },
       ...(pack.perch?.singing ? [{label:'Canta sul bordo (manuale)',type:'checkbox',checked:singing,enabled:attachment!=='free',click:()=>{singing=!singing;updatePose();}}] : []),
       { label: 'Prova uno stato', submenu: Object.keys(P.STATES.states).map(state => ({ label: state+(attachment!=='free'&&pack.perch?' · posa seduta':''), click: () => { if (!currentRun) controller.set(state); } })) },
-      { label: userVisible ? 'Nascondi' : 'Mostra', click: () => { userVisible = !userVisible; if (!userVisible) mascot.hide(); else { if (!concealed) mascot.showInactive(); placeAttachment(); } follower?.pause(!userVisible); mascot.webContents.send('mascotte-state', { paused: !userVisible }); } },
+      { label: userVisible ? 'Nascondi' : 'Mostra', click: () => { userVisible = !userVisible; if (!userVisible) mascot.hide(); else { if (!concealed) showMascot(mascot); placeAttachment(); } follower?.pause(!userVisible); mascot.webContents.send('mascotte-state', { paused: !userVisible }); } },
       { type: 'separator' }, { label: 'Esci', click: () => app.quit() }
     ]);
   }
-  app.on('second-instance', () => { mascot?.showInactive(); if (chat) showChat(); });
+  app.on('second-instance', () => { showMascot(mascot); if (chat) showChat(); });
   app.on('window-all-closed', () => {});
   // Mac/Linux: un SIGTERM/SIGHUP/SIGINT all'app passi da before-quit, così il gruppo di processi della CLI viene chiuso.
   if (process.platform !== 'win32') for (const signal of ['SIGTERM', 'SIGHUP', 'SIGINT']) process.on(signal, () => app.quit());
@@ -429,7 +430,7 @@ function startApplication() {
     // Mac: prima tutte le scrivanie e il tutto schermo, poi il livello (l'ordine inverso può perdere il livello).
     if (can.allSpaces) { if (can.hideDock) app.dock?.hide(); mascot.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true }); mascot.setAlwaysOnTop(true, 'screen-saver'); }
     mascot.setIgnoreMouseEvents(true, { forward: true });
-    mascot.once('ready-to-show', () => mascot.showInactive());
+    mascot.once('ready-to-show', () => showMascot(mascot));
     controller.set('idle');
     if (settings.attachment === 'bar') attachBar();
     mouseTimer = setInterval(updateHit, 100);
