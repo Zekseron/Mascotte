@@ -19,7 +19,7 @@ L'app e l'installer **non sono firmati digitalmente**: Windows (SmartScreen) pu�
 
 Le impostazioni, la chat e le note restano in `%LOCALAPPDATA%\Mascotte` anche dopo la disinstallazione: cancellale solo se vuoi eliminare la cronologia. All'avvio si apre la chat con il pulsante nella barra principale di Windows. **X riduce la chat a icona**, mantenendo il pulsante e la mascotte attivi; riaprila dalla barra o cliccando sulla mascotte. Per tenere il collegamento anche quando l'app è chiusa, clic destro sul pulsante → **Aggiungi alla barra delle applicazioni**. Rimane anche l'icona nell'area di notifica. **Esci**, dal menu della mascotte o dell'icona, chiude l'app.
 
-Questo è l'installer leggero: motori e modelli IA non sono inclusi. Da **Impostazioni → IA locale** puoi aprire l'installazione ufficiale di Ollama e poi scaricare il modello scelto dall'app. I componenti Codex/Claude restano facoltativi e si configurano con il proprio account.
+Questo è l'installer leggero: motori e modelli IA non sono inclusi. Da **Impostazioni → IA locale** scarichi llama.cpp e il modello con un pulsante (vedi «IA locale»), oppure usi Ollama. I componenti Codex/Claude restano facoltativi e si configurano con il proprio account.
 
 ## Collegare i propri account
 
@@ -34,7 +34,9 @@ Codex e Claude possono fare ricerche web aggiornate quando servono e riportare i
 
 ## IA locale (facoltativa)
 
-Installa [Ollama per Windows](https://ollama.com/download/windows), avvialo e in **Impostazioni → IA locale** scegli un modello e premi **Scarica / aggiorna modello** (il predefinito richiede circa 2,5 GB). Sono utilizzabili anche modelli già presenti in Ollama e altri motori locali già avviati (LM Studio, llama.cpp, Jan). Su Windows Mascotte può avviare un runtime Ollama autonomo, se lo hai messo in `%LOCALAPPDATA%\Mascotte\local-ai\runtime`.
+Alla prima installazione il motore locale è **llama.cpp (Mascotte)**: in **Impostazioni → IA locale** premi **Scarica llama.cpp e modello** e conferma (circa 5,2 GB: runtime llama.cpp e Gemma 4 E4B, che legge anche le immagini). Mascotte verifica i file, avvia il motore solo sul computer quando scrivi in Locale e lo chiude dopo 2 minuti di inattività. Con una scheda video usa Vulkan; la prima risposta richiede qualche secondo in più.
+
+In alternativa installa [Ollama per Windows](https://ollama.com/download/windows), avvialo, scegli Ollama come motore locale e premi **Scarica / aggiorna modello** (il modello proposto richiede circa 2,5 GB). Sono utilizzabili anche modelli già presenti in Ollama e altri motori locali già avviati (LM Studio, llama.cpp, Jan). Su Windows Mascotte può avviare un runtime Ollama autonomo, se lo hai messo in `%LOCALAPPDATA%\Mascotte\local-ai\runtime`.
 
 ## Altre funzioni
 
@@ -49,7 +51,7 @@ Installa [Ollama per Windows](https://ollama.com/download/windows), avvialo e in
 
 - Aggancio alla barra delle applicazioni invece che al Dock.
 - Installer disponibile oltre allo ZIP, non firmato digitalmente.
-- Modelli locali proposti diversi e Ollama avviabile dall'app (vedi sopra).
+- Motore locale predefinito llama.cpp (Mascotte) invece di Ollama, modelli Ollama proposti diversi e Ollama avviabile dall'app (vedi sopra).
 - Le azioni locali aprono solo Calcolatrice e cartelle (su Mac anche le app installate).
 - Nessun permesso di sistema per l'osservazione.
 

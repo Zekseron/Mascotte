@@ -11,6 +11,8 @@ const { normalizeSettings } = require('../lib/settings.cjs');
 // Funzione di riferimento: copia TESTUALE dell'espressione che stava in main.cjs (whenReady) prima dell'estrazione
 // in lib/settings.cjs, con le stesse dipendenze. Il test confronta la nuova funzione con questa su molti casi.
 function reference(raw, dataDirectory) {
+  // Unica modifica voluta dopo l'estrazione (30 ottobre 2026): prima installazione su Windows con llama.cpp gestito da Mascotte.
+  if (raw.localEngine === undefined && process.platform === 'win32') raw = { ...raw, localEngine: LocalEngines.MANAGED, localModel: 'gemma-4-e4b', localModelSource: 'installed' };
   let startEngine = LocalEngines.normalizeEngine(raw.localEngine);
   if (startEngine !== 'ollama' && !(raw.localModelSource === 'installed' && LocalAI.validName(raw.localModel))) startEngine = 'ollama';
   const startModel = startEngine === 'ollama' ? LocalAI.normalizeModel(raw.localModel, undefined, raw.localModelSource) : raw.localModel;
@@ -23,7 +25,7 @@ test('normalizeSettings uguale all’espressione originale su molti casi', () =>
   const dataDir = path.join(base, 'dati'); fs.mkdirSync(dataDir);
   const good = path.join(base, 'cartella-buona'); fs.mkdirSync(good);
   const good2 = path.join(base, 'altra'); fs.mkdirSync(good2);
-  const ctx = { LocalEngines, LocalAI, ExtraFolders, Characters, AlarmSound, platform: process.platform, home: os.homedir(), dataDir };
+  const ctx = { LocalEngines, LocalAI, ExtraFolders, Characters, AlarmSound, managedModel: 'gemma-4-e4b', platform: process.platform, home: os.homedir(), dataDir };
   const catalogModel = LocalAI.defaultModel();
   const cases = [
     {}, { scale: 6 }, { scale: Characters.SCALES[0] }, { scale: 7 }, { scale: '6' }, { scale: null },
@@ -64,6 +66,15 @@ test('normalizeSettings uguale all’espressione originale su molti casi', () =>
   }
   // Su impostazioni vuote: stessi default noti.
   const empty = normalizeSettings({}, ctx);
-  assert.equal(empty.scale, 6); assert.equal(empty.localEngine, 'ollama'); assert.equal(empty.alarmSound, 'beep'); assert.equal(empty.attachment, 'free');
+  assert.equal(empty.scale, 6); assert.equal(empty.localEngine, process.platform === 'win32' ? 'llamacpp-mascotte' : 'ollama'); assert.equal(empty.alarmSound, 'beep'); assert.equal(empty.attachment, 'free');
   fs.rmSync(base, { recursive: true, force: true });
+});
+
+test('motore locale alla prima installazione: llama.cpp (Mascotte) su Windows, Ollama su Mac; una scelta salvata resta', () => {
+  const ctx = platform => ({ LocalEngines, LocalAI, ExtraFolders, Characters, AlarmSound, managedModel: 'gemma-4-e4b', platform, home: os.homedir(), dataDir: os.tmpdir() });
+  const win = normalizeSettings({}, ctx('win32'));
+  assert.deepEqual([win.localEngine, win.localModel, win.localModelSource], ['llamacpp-mascotte', 'gemma-4-e4b', 'installed']);
+  assert.equal(normalizeSettings({}, ctx('darwin')).localEngine, 'ollama');
+  // Chi aveva già scelto Ollama (o un valore non valido) non viene spostato.
+  for (const localEngine of ['ollama', null, 3, 'sconosciuto']) assert.equal(normalizeSettings({ localEngine }, ctx('win32')).localEngine, 'ollama', String(localEngine));
 });

@@ -42,7 +42,7 @@ Clicca il gattino, scegli l'IA e scrivi. Invio invia; Maiusc+Invio va a capo. Il
 
 ## IA locale (facoltativa)
 
-Per una chat che non esce dal computer, installa [Ollama](https://ollama.com/download) (su Mac: <https://ollama.com/download/mac>; serve una versione recente, almeno 0.30.9 per il modello predefinito), aprilo, poi in **Impostazioni → IA locale** scegli un modello e premi **Scarica / aggiorna modello**. Il download richiede Internet e spazio libero (qualche GB). Su Mac Mascotte non avvia Ollama: lo apri tu. Su Windows può avviarlo da sola se è stato messo in `%LOCALAPPDATA%\Mascotte\local-ai\runtime`.
+Su Windows il motore locale proposto alla prima installazione è **llama.cpp (Mascotte)**: in **Impostazioni → IA locale** premi **Scarica llama.cpp e modello** (circa 5,2 GB, Gemma 4 E4B, legge anche le immagini) e Mascotte fa il resto. Su Mac, o se preferisci Ollama, installa [Ollama](https://ollama.com/download) (su Mac: <https://ollama.com/download/mac>; serve una versione recente, almeno 0.30.9 per il modello predefinito), aprilo, poi in **Impostazioni → IA locale** scegli un modello e premi **Scarica / aggiorna modello**. Il download richiede Internet e spazio libero (qualche GB). Su Mac Mascotte non avvia Ollama: lo apri tu. Su Windows può avviarlo da sola se è stato messo in `%LOCALAPPDATA%\Mascotte\local-ai\runtime`.
 
 Puoi anche usare modelli già presenti in Ollama o altri motori locali già avviati da te (LM Studio, llama.cpp, Jan). Dei motori diversi da Ollama è stato provato dal vivo solo LM Studio. I modelli piccoli possono sbagliare: verifica le informazioni importanti.
 
@@ -62,7 +62,7 @@ Se sposti l'app (per esempio nella cartella Applicazioni dopo aver fatto gli hoo
 ## Differenze tra Mac e Windows
 
 - **Aggancio:** al Dock su Mac, alla barra delle applicazioni su Windows. L'aggancio alla finestra attiva c'è su entrambi.
-- **IA locale:** i modelli proposti sono diversi (su Mac Gemma 4 e Qwen3.5, tutti in grado di leggere le immagini; su Windows Qwen3 e Qwen3-VL). Ollama gestito dall'app solo su Windows.
+- **IA locale:** i modelli proposti sono diversi (su Mac Gemma 4 e Qwen3.5, tutti in grado di leggere le immagini; su Windows Qwen3 e Qwen3-VL). Su Windows il motore predefinito è llama.cpp (Mascotte), su Mac Ollama. Ollama gestito dall'app solo su Windows.
 - **Azioni:** su Mac si aprono anche le app installate; su Windows solo Calcolatrice e cartelle.
 - **Distribuzione:** su Mac solo ZIP, firmato con un certificato personale e non notarizzato (serve «Apri comunque»); su Windows ZIP e installer, non firmati.
 - **Permessi:** solo su Mac serve «Registrazione schermo» per l'osservazione.
