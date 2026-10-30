@@ -1,6 +1,6 @@
 {
   "name": "mascotte-windows",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "private": true,
   "description": "Mascotte desktop per Windows — anteprima",
   "author": "Zekseron",
@@ -44,7 +44,8 @@
     ],
     "win": {
       "target": "zip",
-      "signAndEditExecutable": false
+      "icon": "resources/app-icon.ico",
+      "signExecutable": false
     },
     "mac": {
       "target": [{ "target": "zip", "arch": "arm64" }, { "target": "dir", "arch": "arm64" }],
@@ -57,8 +58,13 @@
       "extraResources": [{ "from": "resources/mac/mascotte-window-helper", "to": "mascotte-window-helper" }]
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
       "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Mascotte",
+      "uninstallDisplayName": "Mascotte",
       "deleteAppDataOnUninstall": false,
       "artifactName": "Mascotte-Setup-${version}-${arch}.${ext}"
     },

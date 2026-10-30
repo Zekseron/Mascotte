@@ -1,6 +1,6 @@
 # Mascotte su Windows
 
-Guida per chi riceve l'app Windows. È la stessa app Electron usata anche sul Mac (versione 0.8.0, sorgenti nella cartella `windows/` della repo). Per il Mac vedi [LEGGIMI.md](LEGGIMI.md). Il vecchio piano di porting di questa pagina è stato completato e sostituito da questa guida.
+Guida per chi riceve l'app Windows. È la stessa app Electron usata anche sul Mac (versione 0.8.1, sorgenti nella cartella `windows/` della repo). Per il Mac vedi [LEGGIMI.md](LEGGIMI.md). Il vecchio piano di porting di questa pagina è stato completato e sostituito da questa guida.
 
 ## Requisiti
 
@@ -12,12 +12,14 @@ Guida per chi riceve l'app Windows. È la stessa app Electron usata anche sul Ma
 
 Dalla pagina **Releases** di `github.com/Zekseron/Mascotte` (solo dopo che una release è stata pubblicata) scegli una delle due forme:
 
-1. **Installer** `Mascotte-Setup-<versione>-x64.exe`: installa Mascotte nel tuo profilo Windows (`%LOCALAPPDATA%\Programs\Mascotte`) e crea il collegamento. Non richiede diritti di amministratore. Per rimuoverla: **Impostazioni → App → Mascotte → Disinstalla**.
+1. **Installer** `Mascotte-Setup-<versione>-x64.exe`: installa Mascotte nel tuo profilo Windows (`%LOCALAPPDATA%\Programs\Mascotte`, oppure la cartella scelta nella procedura) e crea i collegamenti nel menu Start e sul Desktop. Include il runtime Electron, Rosso e Luma; non servono installazioni separate di Node.js, Python o Git. Non richiede diritti di amministratore. Per rimuoverla: **Impostazioni → App → Mascotte → Disinstalla**.
 2. **Versione portatile** `Mascotte-Windows-<versione>-x64.zip`: estrai tutta la cartella in una posizione stabile e apri `Mascotte.exe`. Mantieni insieme tutti i suoi file. Per rimuoverla elimina la cartella.
 
 L'app e l'installer **non sono firmati digitalmente**: Windows (SmartScreen) può chiedere una verifica della provenienza. Procedi solo se hai scaricato i file dalla release ufficiale. Lo ZIP è circa 150 MB perché include il runtime Electron.
 
-Le impostazioni, la chat e le note restano in `%LOCALAPPDATA%\Mascotte` anche dopo la disinstallazione: cancellale solo se vuoi eliminare la cronologia. Il gattino appare con un'icona nell'area di notifica; clic destro sul gattino per il menu, **Esci** per chiudere.
+Le impostazioni, la chat e le note restano in `%LOCALAPPDATA%\Mascotte` anche dopo la disinstallazione: cancellale solo se vuoi eliminare la cronologia. All'avvio si apre la chat con il pulsante nella barra principale di Windows. **X riduce la chat a icona**, mantenendo il pulsante e la mascotte attivi; riaprila dalla barra o cliccando sulla mascotte. Per tenere il collegamento anche quando l'app è chiusa, clic destro sul pulsante → **Aggiungi alla barra delle applicazioni**. Rimane anche l'icona nell'area di notifica. **Esci**, dal menu della mascotte o dell'icona, chiude l'app.
+
+Questo è l'installer leggero: motori e modelli IA non sono inclusi. Da **Impostazioni → IA locale** puoi aprire l'installazione ufficiale di Ollama e poi scaricare il modello scelto dall'app. I componenti Codex/Claude restano facoltativi e si configurano con il proprio account.
 
 ## Collegare i propri account
 
