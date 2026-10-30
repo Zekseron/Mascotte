@@ -62,6 +62,17 @@ function findCLI(engine, env = process.env) {
   if (win) {
     if (env.APPDATA) dirs.push(path.join(env.APPDATA, 'npm'));
     if (env.LOCALAPPDATA) dirs.push(path.join(env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Links'));
+    if (engine === 'codex' && env.LOCALAPPDATA) {
+      const bundled = path.join(env.LOCALAPPDATA, 'OpenAI', 'Codex', 'bin');
+      try {
+        dirs.push(bundled);
+        const versions = fs.readdirSync(bundled, { withFileTypes: true })
+          .filter(entry => entry.isDirectory())
+          .map(entry => path.join(bundled, entry.name))
+          .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+        dirs.push(...versions);
+      } catch { /* Installazione desktop facoltativa: continua con gli altri percorsi. */ }
+    }
   } else {
     dirs.push('/usr/local/bin', '/opt/homebrew/bin');
     const nvm = path.join(os.homedir(), '.nvm/versions/node');
