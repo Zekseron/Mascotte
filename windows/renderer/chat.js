@@ -94,6 +94,7 @@ function render(value) {
   for (const item of document.querySelectorAll('.device')) item.textContent = value.deviceName || 'PC';
   $('settings-error').textContent = '';
   const packageName = management.packageName || 'Windows';
+  $('app-hint').textContent = packageName === 'Windows' ? 'X riduce a icona · Esci dal menu mascotte' : 'Hook e aggiornamenti: ingranaggio in alto';
   $('app-version').textContent = `MASCOTTE ${packageName.toUpperCase()} ${management.version || ''}`.trim();
   $('update-intro').textContent = packageName === 'Mac'
     ? 'Controlla le versioni pubblicate e installa l’ultimo pacchetto Mac in Applicazioni. Se in Applicazioni c’è un’altra app Mascotte (la vecchia app Swift), ne viene fatto prima un backup ZIP; poi Mascotte si riavvia.'

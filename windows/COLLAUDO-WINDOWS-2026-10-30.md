@@ -46,3 +46,13 @@ Nel pacchetto aggiornato: flag nativo presente e mascotte sopra la finestra norm
 Suite finale Windows: **232 test, 192 passati, 40 saltati, zero fallimenti**. Gli skip comprendono casi Mac e requisiti non disponibili su questa sessione Windows; non costituiscono una prova di quei percorsi. Parser/visore già verificato con 56 test passati.
 
 Il collaudo Mac precedente resta valido per la sua base. Le sole modifiche comuni successive richiedono una prova mirata sul Mac; la correzione dello z-order è specifica Windows. Restano separati B-OBS (precedenza dei comandi con immagine), A4 scroll e fase tecnica 4.
+
+## Installer Windows 0.8.1 e barra delle applicazioni
+
+Creato `Mascotte-Setup-0.8.1-x64.exe`, 113.580.612 byte (circa 108 MiB): installazione per utente con scelta della cartella, collegamenti Desktop e Start e icona Rosso. Include Electron, app e personaggi; motori IA e modelli restano esterni, configurabili dalle Impostazioni.
+
+Installazione e disinstallazione silenziose provate in una cartella di collaudo isolata: versione e collegamenti corretti; disinstallazione rimuove app, registrazione e collegamenti, conservando i dati del profilo. Nessuna installazione permanente lasciata sul PC.
+
+Nell'app installata verificati avvio automatico della chat, finestra nativa idonea alla barra delle applicazioni, X di Windows che riduce a icona conservando il pulsante e successivo ripristino. Per uscire si usa Esci dal menu della mascotte. L'aggiunta alla barra come collegamento permanente resta una scelta manuale dell'utente; non viene attivato l'avvio all'accesso di Windows.
+
+Suite dopo questa modifica: **235 test, 195 passati, 40 saltati, zero fallimenti**, inclusi tre casi di regressione per X su Windows, comportamento Mac invariato ed Esci. La simulazione del ramo Mac non sostituisce un collaudo su Mac. Installer, icona Windows e integrazione nella barra sono specifici Windows e non richiedono porting; resta valida la checklist Mac già aperta per le precedenti modifiche comuni.

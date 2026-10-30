@@ -10,4 +10,5 @@ for (const name of ['characters', 'spec']) {
 }
 fs.copyFileSync(path.join(root, 'viewer/pack.js'), path.join(dest, 'pack.js'));
 require('./mac-helper.cjs').build(); // solo su macOS: compila l'helper dell'aggancio finestre
-console.log('Personaggi, spec e parser copiati dalla fonte comune.');
+const icons = process.platform === 'win32' ? require('./app-icon.cjs').build() : Promise.resolve();
+icons.then(() => console.log('Personaggi, icona, spec e parser copiati dalla fonte comune.')).catch(error => { console.error(error); process.exitCode = 1; });

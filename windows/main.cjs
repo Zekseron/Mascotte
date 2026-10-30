@@ -9,6 +9,7 @@ const Platform = require('./lib/platform.cjs');
 const { showMascot } = require('./lib/mascot-window.cjs');
 const Capture = require('./lib/capture.cjs');
 const can = Platform.capabilities();
+if (process.platform === 'win32') app.setAppUserModelId('local.mascotte.windows');
 const dataDirectory = Platform.dataDirectory({ appData: app.getPath('appData') });
 const endpoint = path.join(dataDirectory, 'events.json');
 if (process.argv.includes('--mascotte-notify')) {
@@ -319,7 +320,7 @@ function startApplication() {
     }
   }
   function safeWindow(name, options) {
-    const window = new BrowserWindow({ ...options, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
+    const window = new BrowserWindow({ ...(process.platform === 'win32' ? { icon: path.join(__dirname, 'resources', 'app-icon.png') } : {}), ...options, webPreferences: { preload: path.join(__dirname, 'preload.cjs'), sandbox: true, contextIsolation: true, nodeIntegration: false } });
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
     window.webContents.on('will-navigate', event => event.preventDefault());
     window.webContents.on('will-attach-webview', event => event.preventDefault());
@@ -333,17 +334,18 @@ function startApplication() {
   }
   function showChat() {
     if (!chat || chat.isDestroyed()) {
-      chat = safeWindow('chat', { width: 440, height: 680, minWidth: 400, minHeight: 600, show: false, title: 'Mascotte · micro chat', alwaysOnTop: true, autoHideMenuBar: true, backgroundColor: '#191b22' });
+      chat = safeWindow('chat', { width: 440, height: 680, minWidth: 400, minHeight: 600, show: false, skipTaskbar: false, title: 'Mascotte · micro chat', alwaysOnTop: true, autoHideMenuBar: true, backgroundColor: '#191b22' });
       // Mac: app senza Dock, la chat deve comparire sulla scrivania/tutto schermo corrente e non riportare altrove.
       if (can.allSpaces) chat.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
       chat.once('ready-to-show', () => { if (can.hideDock) app.focus({ steal: true }); chat.show(); chat.focus(); });
-      chat.on('close', event => { if (!quitting) { event.preventDefault(); currentRun?.stop(); chat.hide(); } });
+      chat.on('close', event => { if (!quitting) { event.preventDefault(); currentRun?.stop(); if (process.platform === 'win32') chat.minimize(); else chat.hide(); } });
       chat.webContents.on('render-process-gone', stopWatching);
     }
     const b = mascot.getBounds(), d = screen.getDisplayMatching(b).workArea;
     const pos = clampPosition({ x: b.x - 410, y: b.y }, chat.getBounds().width, chat.getBounds().height, [d]);
     chat.setPosition(pos.x, pos.y);
     if (can.hideDock) app.focus({ steal: true }); // Mac: app accessoria (LSUIElement), senza questo la tastiera può restare all'app precedente
+    if (chat.isMinimized()) chat.restore();
     chat.show(); chat.focus(); broadcast();
   }
   function setScale(scale) {
@@ -445,6 +447,7 @@ function startApplication() {
     server = new EventServer(endpoint, Object.keys(P.STATES.states), event => { if (!currentRun) controller.set(event.state); });
     try { await server.start(process.env.MASCOTTE_PREVIEW ? 0 : 8766); }
     catch { notice = 'Server eventi non disponibile: controlla se la porta 8766 è occupata.'; }
+    if (process.platform === 'win32') showChat();
     console.log('Mascotte pronta. Nessuna richiesta IA automatica.');
   }).catch(error => { dialog.showErrorBox('Mascotte non riesce ad avviarsi', error.message); app.quit(); });
 

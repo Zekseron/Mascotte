@@ -1,4 +1,4 @@
-# Mascotte 0.8.0 — app comune per Windows e Mac (anteprima da provare)
+# Mascotte 0.8.1 — app comune per Windows e Mac (anteprima da provare)
 
 Questa cartella contiene l'app Electron usata su **Windows x64** e su **Mac Apple Silicon** (il nome `windows/` è rimasto da quando era solo Windows; rinominarla è rimandato). Le istruzioni per Windows sono in questa prima parte; quelle per il Mac nella sezione [Mac (Apple Silicon)](#mac-apple-silicon) più in basso. La vecchia app Swift per Mac è in `../app/` e non è più sviluppata. Guide per chi riceve l'app: [LEGGIMI.md](../LEGGIMI.md) e [WINDOWS.md](../WINDOWS.md); dati e privacy: [PRIVACY.md](../PRIVACY.md); release: [PUBBLICAZIONE.md](../PUBBLICAZIONE.md); esito del collaudo Mac: [COLLAUDO-MAC.md](COLLAUDO-MAC.md).
 
@@ -112,7 +112,7 @@ Esci dal menu della mascotte. Per rimuovere gli hook, elimina dalle configurazio
 
 ## Limiti di questa anteprima
 
-- Solo Windows x64; ARM64 non compilato né verificato. Nessun avvio automatico. L'exe ha ancora l'icona/metadata del runtime Electron; tray e finestra mostrano Rosso. Il pacchetto non è firmato digitalmente.
+- Solo Windows x64; ARM64 non compilato né verificato. Nessun avvio automatico all'accesso Windows. L'exe, l'installer e il pulsante nella barra usano l'icona di Rosso; il pacchetto non è firmato digitalmente. La chat si apre all'avvio: X la riduce a icona mantenendo il pulsante nella barra. Esci dal menu della mascotte termina l'app. Il collegamento può essere fissato alla barra dalle opzioni di Windows.
 - Incluso Rosso, selezionabile per categoria; import di altri pacchetti non ancora esposto nell’interfaccia Windows.
 - Electron include Chromium: lo ZIP è circa 150 MB ed è più pesante dell'app nativa Mac. CPU/RAM/energia e costo dei processi hook si misurano sul PC nella prova.
 - Trasparenza/click-through, DPI, ACL, chiusura dell'albero dei processi con taskkill, hook e login reali richiedono la prova Windows.
