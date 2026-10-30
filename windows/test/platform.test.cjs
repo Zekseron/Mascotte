@@ -18,7 +18,7 @@ test('link creato dall’utente rifiutato, anche in cartella temporanea', t => {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte link '));
   t.after(() => fs.rmSync(base, { recursive: true, force: true }));
   const reale = path.join(base, 'reale'), link = path.join(base, 'link');
-  fs.mkdirSync(reale); fs.symlinkSync(reale, link, 'dir');
+  fs.mkdirSync(reale); fs.symlinkSync(reale, link, process.platform === 'win32' ? 'junction' : 'dir');
   assert.throws(() => assertRegularPath(path.join(link, 'dati.json')), /link non consentito/);
 });
 
@@ -26,7 +26,7 @@ test('link di root ignorato fuori da Windows ma sempre rifiutato su Windows', t 
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte link '));
   t.after(() => fs.rmSync(base, { recursive: true, force: true }));
   const reale = path.join(base, 'reale'), link = path.join(base, 'link');
-  fs.mkdirSync(reale); fs.symlinkSync(reale, link, 'dir');
+  fs.mkdirSync(reale); fs.symlinkSync(reale, link, process.platform === 'win32' ? 'junction' : 'dir');
   const comeRoot = p => { const s = fs.lstatSync(p); return { isSymbolicLink: () => s.isSymbolicLink(), uid: 0 }; };
   assert.doesNotThrow(() => assertRegularPath(path.join(link, 'dati.json'), { platform: 'darwin', lstat: comeRoot }));
   assert.throws(() => assertRegularPath(path.join(link, 'dati.json'), { platform: 'win32', lstat: comeRoot }), /link non consentito/);
@@ -55,7 +55,8 @@ test('capacità e cartella dati per piattaforma', () => {
 
 test('percorso dell’helper Mac: pacchetto se presente, altrimenti resources/mac', () => {
   const { macHelperPath } = require('../lib/platform.cjs');
-  assert.equal(macHelperPath({ resourcesPath: '/App/Contents/Resources', exists: p => p === '/App/Contents/Resources/mascotte-window-helper' }), '/App/Contents/Resources/mascotte-window-helper');
+  const packaged = path.join('/App/Contents/Resources', 'mascotte-window-helper');
+  assert.equal(macHelperPath({ resourcesPath: '/App/Contents/Resources', exists: p => p === packaged }), packaged);
   assert.equal(macHelperPath({ resourcesPath: '/App/Contents/Resources', exists: () => false }), path.join(__dirname, '..', 'resources', 'mac', 'mascotte-window-helper'));
   assert.equal(macHelperPath({ resourcesPath: undefined }), path.join(__dirname, '..', 'resources', 'mac', 'mascotte-window-helper'));
 });

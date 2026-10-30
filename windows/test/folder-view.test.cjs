@@ -18,7 +18,9 @@ function fakeHome() {
   put('uguale-a.bin', '12345678', 20); put('uguale-b.bin', '87654321', 30);
   fs.mkdirSync(path.join(dir, 'Progetti')); fs.writeFileSync(path.join(dir, 'Progetti', 'dentro.pdf'), 'non va letto');
   fs.mkdirSync(path.join(dir, 'Programma.app'));
-  fs.symlinkSync('/etc/hosts', path.join(dir, 'collegamento'));
+  // Una junction permette di verificare che i link non siano seguiti anche su Windows senza privilegi symlink.
+  const outside = path.join(home, 'fuori'); fs.mkdirSync(outside); fs.writeFileSync(path.join(outside, 'segreto.pdf'), 'non leggere');
+  fs.symlinkSync(outside, path.join(dir, 'collegamento'), process.platform === 'win32' ? 'junction' : 'dir');
   for (const name of ['Progetti', 'Programma.app']) fs.utimesSync(path.join(dir, name), 10, 10);
   fs.lutimesSync(path.join(dir, 'collegamento'), 10, 10); // date fisse: l'ordine per data è prevedibile
   return { home, dir, folder: viewableFolders('darwin', home).find(f => f.display === 'Download'), platform: 'darwin' };

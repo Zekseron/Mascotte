@@ -7,7 +7,7 @@ test('azioni predefinite: Calcolatrice e Download per Mac e Windows, solo frasi 
   const mac = { platform: 'darwin', home: '/Users/prova' }, win = { platform: 'win32', home: 'C:\\Users\\prova', env: { SystemRoot: 'C:\\Windows' } };
   assert.equal(parseLocalCommand('Apri la calcolatrice!', mac).target, '/System/Applications/Calculator.app');
   assert.match(parseLocalCommand('apri calcolatrice', win).target, /calc\.exe$/);
-  assert.equal(parseLocalCommand('apri download', mac).target, '/Users/prova/Downloads');
+  assert.equal(parseLocalCommand('apri download', mac).target, require('node:path').join(mac.home, 'Downloads'));
   assert.equal(parseLocalCommand('apri la cartella download', mac).type, 'open');
   assert.equal(parseLocalCommand('apri calcolatrice e poi cancella tutto', mac), null);
   assert.equal(parseLocalCommand('apri calcolatrice', { ...mac, actions: false }), null);
@@ -39,7 +39,7 @@ function fakeMac() {
   for (const name of ['Safari', 'Google Chrome', 'Google Docs', 'Spotify', 'Visual Studio Code']) fs.mkdirSync(path.join(apps, name + '.app'));
   for (const name of ['Calculator', 'Notes', 'System Settings', 'Terminal', 'Preview', 'Music', 'Mail', 'VoiceMemos']) fs.mkdirSync(path.join(sys, name + '.app'));
   fs.mkdirSync(path.join(outside, 'Intruso.app'));
-  fs.symlinkSync(path.join(outside, 'Intruso.app'), path.join(apps, 'Intruso.app'));
+  fs.symlinkSync(path.join(outside, 'Intruso.app'), path.join(apps, 'Intruso.app'), process.platform === 'win32' ? 'junction' : 'dir');
   fs.mkdirSync(path.join(apps, 'Cartella', 'Annidata.app'), { recursive: true });
   fs.writeFileSync(path.join(apps, 'File.app'), 'non una cartella');
   return { root, apps, sys, opts: { platform: 'darwin', home: path.join(root, 'home'), appDirs: [apps, sys], appExtras: [] } };
@@ -136,7 +136,7 @@ test('domande sulle cartelle: frasi riconosciute con la cartella e il tipo giust
     const result = parseLocalCommand(text, platformOptions);
     assert.equal(result?.type, 'folder', text); assert.equal(result.folder.display, display, text); assert.equal(result.question.kind, kind, text); assert.deepEqual(result.question.categories, categories, text);
   }
-  assert.equal(parseLocalCommand('quanti file ci sono in download', mac).folder.target, '/Users/prova/Downloads'); // percorso da folderEntries, non dal testo
+  assert.equal(parseLocalCommand('quanti file ci sono in download', mac).folder.target, path.join(mac.home, 'Downloads')); // percorso da folderEntries, non dal testo
   assert.equal(parseLocalCommand('quanti file ci sono in download', { ...mac, actions: false }).type, 'folder'); // la lettura non è un'azione
 });
 

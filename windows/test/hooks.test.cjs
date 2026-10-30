@@ -61,7 +61,7 @@ test('Windows launcher delivers stdin through bundled Electron Node, independent
   // The resolved directory is created by this test under tmp; never remove a
   // caller-provided path. Copies cover apostrophes, spaces and Unicode paths.
   t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
-  for (const file of ['notify-entry.cjs', 'notify.cjs', 'storage.cjs']) fs.copyFileSync(path.join(__dirname, '../lib', file), path.join(directory, file));
+  for (const file of ['notify-entry.cjs', 'notify.cjs', 'storage.cjs', 'platform.cjs']) fs.copyFileSync(path.join(__dirname, '../lib', file), path.join(directory, file));
   const executable = process.env.MASCOTTE_HOOK_TEST_EXE || require('electron');
   const bridge = process.env.MASCOTTE_HOOK_TEST_BRIDGE || path.join(directory, 'notify-entry.cjs');
   const proposal = prepareHooks('{}', '', executable, bridge);

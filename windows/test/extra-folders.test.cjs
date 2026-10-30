@@ -62,7 +62,7 @@ test('addExtraFolder: percorso reale, nomi in conflitto e limite', () => {
   try {
     const siti = path.join(root, 'siti'), doc = path.join(root, 'Download'), nested = path.join(root, 'x', 'siti');
     for (const dir of [siti, doc, nested]) fs.mkdirSync(dir, { recursive: true });
-    const link = path.join(root, 'collegamento'); fs.symlinkSync(siti, link);
+    const link = path.join(root, 'collegamento'); fs.symlinkSync(siti, link, process.platform === 'win32' ? 'junction' : 'dir');
     const first = Extra.addExtraFolder([], link, opts);
     assert.equal(first.ok, true); assert.deepEqual(first.list, [{ name: 'siti', path: siti }]); // il link viene risolto
     assert.match(Extra.addExtraFolder(first.list, siti, opts).reason, /già nell’elenco/);
@@ -119,7 +119,7 @@ test('validateTarget accetta le cartelle aggiunte presenti nell’elenco e ancor
     assert.equal(validateTarget(siti, { ...options, extraFolders: [] }), false);
     assert.equal(validateTarget(nascosta, options), false); // in elenco ma non più valida per le regole
     assert.equal(validateTarget(path.join(siti, '..', 'altra'), options), false);
-    const link = path.join(root, 'link'); fs.symlinkSync(altra, link);
+    const link = path.join(root, 'link'); fs.symlinkSync(altra, link, process.platform === 'win32' ? 'junction' : 'dir');
     assert.equal(validateTarget(link, options), false);
     fs.rmSync(siti, { recursive: true });
     assert.equal(validateTarget(siti, options), false); // cancellata dopo l'aggiunta
@@ -139,7 +139,7 @@ test('lettura di una cartella aggiunta: un livello, e se sparisce o cambia rispo
     assert.throws(() => FolderView.readFolder(command.folder, { ...options, extraFolders: [] }), /non consultabile/); // non in elenco
     fs.rmSync(siti, { recursive: true });
     assert.throws(() => FolderView.readFolder(command.folder, options), error => error.code === 'GONE' && error.message === 'La cartella siti non è più disponibile: rimuovila o aggiungila di nuovo dalle Impostazioni.');
-    const altra = path.join(root, 'altra'); fs.mkdirSync(altra); fs.symlinkSync(altra, siti); // la cartella è stata sostituita da un link: realpath diverso
+    const altra = path.join(root, 'altra'); fs.mkdirSync(altra); fs.symlinkSync(altra, siti, process.platform === 'win32' ? 'junction' : 'dir'); // la cartella è stata sostituita da un link: realpath diverso
     assert.throws(() => FolderView.readFolder(command.folder, options), error => error.code === 'GONE');
   } finally { clean(); }
 });

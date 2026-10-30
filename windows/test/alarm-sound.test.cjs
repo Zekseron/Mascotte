@@ -31,8 +31,21 @@ test('copia, sostituzione, lettura e rimozione; file non validi non copiati', t 
   assert.deepEqual(fs.readdirSync(data), ['alarm-sound.wav']); assert.equal(A.readSound(data).mime, 'audio/wav');
   assert.match(A.importSound(fake, data).reason, /Formato non riconosciuto/); assert.deepEqual(fs.readdirSync(data), ['alarm-sound.wav']);
   assert.match(A.importSound(base, data).reason, /non una cartella/);
-  const link = path.join(base, 'collegamento.mp3'); fs.symlinkSync(mp3, link); assert.match(A.importSound(link, data).reason, /collegamento/);
   const big = path.join(base, 'lungo.mp3'); fs.writeFileSync(big, Buffer.concat([Buffer.from('ID3'), Buffer.alloc(A.MAX_BYTES)])); assert.match(A.importSound(big, data).reason, /10 MB/);
   fs.writeFileSync(path.join(data, 'alarm-sound.wav'), 'ID3 cambiato dopo'); assert.equal(A.readSound(data), null); // ricontrollato a ogni lettura
   A.removeSound(data); assert.deepEqual(fs.readdirSync(data), []); assert.equal(A.readSound(data), null);
+});
+
+test('un file audio collegato non viene importato', t => {
+  const base = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte audio link '));
+  t.after(() => fs.rmSync(base, { recursive: true, force: true }));
+  const mp3 = path.join(base, 'audio.mp3'), link = path.join(base, 'link.mp3'), data = path.join(base, 'dati');
+  fs.mkdirSync(data); fs.writeFileSync(mp3, pad('ID3\u0004'));
+  try { fs.symlinkSync(mp3, link); }
+  catch (error) {
+    if (process.platform === 'win32' && error.code === 'EPERM') return t.skip('Windows richiede il privilegio per creare symlink di file');
+    throw error;
+  }
+  assert.match(A.importSound(link, data).reason, /collegamento/);
+  assert.deepEqual(fs.readdirSync(data), []);
 });
