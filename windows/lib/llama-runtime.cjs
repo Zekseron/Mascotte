@@ -32,7 +32,7 @@ const HF_BASE = `https://huggingface.co/ggml-org/gemma-4-E4B-it-GGUF/resolve/${H
 const modelFile = (role, name, size, sha256) => Object.freeze({ role, name, url: HF_BASE + encodeURIComponent(name), size, sha256, source: 'huggingface' });
 // Un solo modello per ora; la struttura è pronta per altri. `id` è anche il nome (alias) con cui il server lo espone.
 const MODELS = Object.freeze([Object.freeze({
-  id: 'gemma-4-e4b', label: 'Gemma 4 E4B', license: 'Apache 2.0', vision: true, ctx: 8192, dir: `gemma-4-e4b-${HF_REVISION.slice(0, 8)}`,
+  id: 'gemma-4-e4b', label: 'Gemma 4 E4B', license: 'Apache 2.0', vision: true, ctx: 16384, dir: `gemma-4-e4b-${HF_REVISION.slice(0, 8)}`,
   files: Object.freeze([
     modelFile('model', 'gemma-4-E4B-it-Q4_0.gguf', 4590807392, 'a555b900214b477d8880e7832e0b8925e139b0159640036b09fe472b6f2097f2'),
     modelFile('mmproj', 'mmproj-gemma-4-E4B-it-Q8_0.gguf', 559874816, '197f49a93027f9843772bd24a6a9e0be2a32a788de5a3def330e9c585d86edd1')])

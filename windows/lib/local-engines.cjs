@@ -55,7 +55,7 @@ function run(engine, history, prompt, memories, { port, platform, model, install
   const selected = resolve(engine);
   if (selected.id === 'ollama') return LocalAI.runLocal(history, prompt, memories, { port, platform, model, installed, imageBase64, folderContext });
   const controller = new AbortController();
-  const promise = selected.chat({ messages: LocalAI.buildMessages(history, prompt, memories, folderContext), model, images: imageBase64 ? [imageBase64] : [], options: { maxTokens: LocalAI.numPredict(platform) }, signal: controller.signal });
+  const promise = selected.chat({ messages: LocalAI.buildMessages(history, prompt, memories, folderContext), model, images: imageBase64 ? [imageBase64] : [], options: { maxTokens: selected.maxTokens ?? LocalAI.numPredict(platform) }, signal: controller.signal });
   return { promise, stop: () => controller.abort() };
 }
 module.exports = { IDS, PRESETS, MANAGED, configureManaged, shutdown, get, isEngine, normalizeEngine, label, supportsVision, detectAll, run, create: build, localBase: OpenAICompatible.localBase };

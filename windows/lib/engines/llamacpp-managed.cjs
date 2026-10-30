@@ -13,6 +13,22 @@ const LocalAI = require('../local-ai.cjs');
 
 const ID = 'llamacpp-mascotte', LABEL = 'llama.cpp (Mascotte)';
 const IDLE_MS = 120000, START_TIMEOUT = 240000, LOG_CAP = 256 * 1024, TAIL = 4000;
+// Risposta fino a 1536 token anche su Windows (come sul Mac); con la sola CPU (~7 token/s) servono alcuni minuti, da qui l'attesa più lunga.
+const MAX_TOKENS = 1536, CHAT_TIMEOUT = 600000;
+// Stima prudente dei token (circa 3 caratteri l'uno in italiano) e spazio riservato a ogni immagine e ai margini del modello di chat.
+const CHARS_PER_TOKEN = 3, IMAGE_TOKENS = 1024, MARGIN_TOKENS = 512;
+const tokensOf = message => Math.ceil(String(message.content ?? '').length / CHARS_PER_TOKEN) + 8;
+// I messaggi più vecchi della conversazione escono finché tutto sta nel contesto del server; istruzioni e domanda attuale restano sempre.
+function fitContext(messages, { ctx, maxTokens, images = 0 }) {
+  const budget = ctx - maxTokens - images * IMAGE_TOKENS - MARGIN_TOKENS;
+  const kept = [...messages];
+  let used = kept.reduce((sum, message) => sum + tokensOf(message), 0);
+  for (let i = 0; used > budget && i < kept.length - 1;) {
+    if (kept[i].role === 'system') { i++; continue; }
+    used -= tokensOf(kept[i]); kept.splice(i, 1);
+  }
+  return kept;
+}
 const fail = (message, code) => Object.assign(new Error(message), { code });
 const NOT_READY = `${LABEL} non è pronto: scarica runtime e modello da Impostazioni › IA locale.`;
 const gb = bytes => (bytes / 1e9).toFixed(1).replace('.', ',') + ' GB';
@@ -152,12 +168,12 @@ function create({ dataDir, platform = process.platform, arch = process.arch, var
   const chatEngine = listen => {
     if (!delegate || delegatePort !== listen) { delegate = OpenAICompatible.create({ id: ID, label: LABEL, baseUrls: [`http://127.0.0.1:${listen}/v1`], platform, totalMemory, assumeVision: models.filter(item => item.vision).map(item => item.id),
       // Gemma 4 ragiona prima di rispondere e, con il limite di token di Windows (512), il ragionamento li consumava tutti lasciando la risposta vuota.
-      chatOptions: { chat_template_kwargs: { enable_thinking: false } } }); delegatePort = listen; }
+      chatOptions: { chat_template_kwargs: { enable_thinking: false } }, chatTimeout: CHAT_TIMEOUT }); delegatePort = listen; }
     return delegate;
   };
 
   return {
-    id: ID, label: LABEL,
+    id: ID, label: LABEL, maxTokens: MAX_TOKENS,
     capabilities: { vision: 'proiettore delle immagini caricato da Mascotte' },
     supportsVision: name => name === model.id && model.vision && status().model.present,
     status,
@@ -180,7 +196,8 @@ function create({ dataDir, platform = process.platform, arch = process.arch, var
         const listen = await ensureRunning(signal);
         const engine = chatEngine(listen);
         if (images.length) await engine.listModels({ signal }); // il motore compatibile conosce la visione solo dopo aver letto l'elenco del server
-        return await engine.chat({ messages, model: name, images, options, signal });
+        const maxTokens = options.maxTokens ?? MAX_TOKENS;
+        return await engine.chat({ messages: fitContext(messages, { ctx: model.ctx, maxTokens, images: images.length }), model: name, images, options: { ...options, maxTokens }, signal });
       } finally { busy--; touch(); }
     },
     // Spazio e dimensioni prima del download (per la conferma).
@@ -215,4 +232,4 @@ function create({ dataDir, platform = process.platform, arch = process.arch, var
     logPath: p?.log
   };
 }
-module.exports = { create, ID, LABEL, NOT_READY, killTree, health, cleanEnv };
+module.exports = { create, ID, LABEL, NOT_READY, MAX_TOKENS, fitContext, killTree, health, cleanEnv };

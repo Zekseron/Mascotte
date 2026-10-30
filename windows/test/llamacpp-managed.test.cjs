@@ -403,3 +403,27 @@ test('integrazione con i motori locali: registrato, configurabile e chiuso con l
   assert.doesNotThrow(() => Engines.shutdown());
   Engines.configureManaged({ dataDir: dir }); assert.notEqual(Engines.get(Engines.MANAGED), engine);
 });
+
+test('risposte lunghe: 1536 token per il motore gestito su ogni piattaforma, contesto 16384 nel catalogo', () => {
+  assert.equal(Managed.MAX_TOKENS, 1536);
+  assert.equal(Runtime.MODELS[0].ctx, 16384);
+  assert.equal(Managed.create({ dataDir: null }).maxTokens, 1536);
+});
+
+test('contesto: i messaggi più vecchi escono finché tutto sta; istruzioni e domanda attuale restano', () => {
+  const long = role => ({ role, content: 'x'.repeat(3000) }); // circa 1000 token ciascuno
+  const messages = [{ role: 'system', content: 'istruzioni' }, { role: 'system', content: 'note' }, ...Array.from({ length: 20 }, (_, i) => long(i % 2 ? 'assistant' : 'user')), { role: 'user', content: 'domanda attuale' }];
+  const kept = Managed.fitContext(messages, { ctx: 16384, maxTokens: 1536 });
+  assert.deepEqual(kept.slice(0, 2).map(m => m.content), ['istruzioni', 'note']);
+  assert.equal(kept.at(-1).content, 'domanda attuale');
+  assert.ok(kept.length < messages.length && kept.length > 4);
+  const tokens = kept.reduce((sum, m) => sum + Math.ceil(m.content.length / 3) + 8, 0);
+  assert.ok(tokens <= 16384 - 1536 - 512, String(tokens));
+  // Restano i messaggi più recenti, nello stesso ordine.
+  assert.deepEqual(kept.slice(2, -1), messages.slice(messages.length - kept.length + 2, -1));
+  // Un'immagine riserva spazio: escono più messaggi.
+  assert.ok(Managed.fitContext(messages, { ctx: 16384, maxTokens: 1536, images: 1 }).length < kept.length);
+  // Conversazione breve: nulla cambia.
+  const short = [{ role: 'system', content: 's' }, { role: 'user', content: 'ciao' }];
+  assert.deepEqual(Managed.fitContext(short, { ctx: 16384, maxTokens: 1536 }), short);
+});

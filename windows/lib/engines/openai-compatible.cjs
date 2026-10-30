@@ -39,7 +39,8 @@ function classify(item, label, native) {
 
 // `assumeVision` (solo per il motore gestito da Mascotte, che carica lui stesso il proiettore delle immagini): nomi di modelli con visione garantita.
 // `chatOptions`: campi in più per /chat/completions, solo per il motore gestito (gli altri server ricevono la richiesta standard).
-function create({ id, label, baseUrls, nativeModels, platform = process.platform, totalMemory, assumeVision = [], chatOptions = {} }) {
+// `chatTimeout`: attesa massima di una risposta (il motore gestito la allunga per le risposte più lunghe sulla sola CPU).
+function create({ id, label, baseUrls, nativeModels, platform = process.platform, totalMemory, assumeVision = [], chatOptions = {}, chatTimeout = CHAT_TIMEOUT }) {
   const bases = baseUrls.map(localBase);
   const vision = new Map();
   let active = null;
@@ -122,7 +123,7 @@ function create({ id, label, baseUrls, nativeModels, platform = process.platform
       await this.checkModel(model, { signal });
       if (images.length && !vision.get(model)) throw new Error('Immagine non valida o modello solo testuale.');
       const sent = images.length ? messages.map((item, index) => index === messages.length - 1 ? { role: item.role, content: [{ type: 'text', text: item.content }, ...images.map(image => ({ type: 'image_url', image_url: { url: 'data:image/jpeg;base64,' + image } }))] } : item) : messages;
-      const result = await call(active, '/chat/completions', { ...chatOptions, model, messages: sent, stream: false, max_tokens: options.maxTokens ?? LocalAI.numPredict(platform), temperature: TEMPERATURE }, { signal, timeout: CHAT_TIMEOUT });
+      const result = await call(active, '/chat/completions', { ...chatOptions, model, messages: sent, stream: false, max_tokens: options.maxTokens ?? LocalAI.numPredict(platform), temperature: TEMPERATURE }, { signal, timeout: chatTimeout });
       const choice = result?.choices?.[0];
       const text = typeof choice?.message?.content === 'string' ? choice.message.content.replace(/^\s*<think>[\s\S]*?<\/think>\s*/i, '') : '';
       if (!text.trim()) throw new Error('Risposta locale incompleta.');
