@@ -145,6 +145,10 @@ test('chat: stop, length con avviso e stessi messaggi di sistema di Ollama', asy
   assert.equal(chat.stream, false); assert.equal(chat.max_tokens, LocalAI.numPredict('darwin')); assert.ok(chat.temperature > 0 && chat.temperature <= 0.7);
   assert.deepEqual(chat.messages, LocalAI.buildMessages(history, 'come stai?', [{ text: 'nota', source: 'manuale' }], null));
   assert.ok(!chat.messages.some(item => 'images' in item));
+  assert.ok(!('chat_template_kwargs' in chat)); // solo il motore gestito disattiva il ragionamento
+  const managed = Engines.create({ id: 'llamacpp-mascotte', label: 'llama.cpp (Mascotte)', baseUrls: [`http://127.0.0.1:${server.port}/v1`], chatOptions: { chat_template_kwargs: { enable_thinking: false } } });
+  await managed.chat({ messages: [{ role: 'user', content: 'x' }], model: 'llama-3.2-1b' });
+  assert.deepEqual(server.calls.filter(call => call.path === '/v1/chat/completions').pop().payload.chat_template_kwargs, { enable_thinking: false });
   finish = 'length';
   assert.equal(await Engines.run(engine, history, 'x', [], { platform: 'darwin', model: 'llama-3.2-1b' }).promise, 'Risposta.' + LocalAI.TRUNCATED);
   assert.match(LocalAI.TRUNCATED, /Risposta interrotta/);

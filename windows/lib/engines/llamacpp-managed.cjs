@@ -150,7 +150,9 @@ function create({ dataDir, platform = process.platform, arch = process.arch, var
     });
   }
   const chatEngine = listen => {
-    if (!delegate || delegatePort !== listen) { delegate = OpenAICompatible.create({ id: ID, label: LABEL, baseUrls: [`http://127.0.0.1:${listen}/v1`], platform, totalMemory, assumeVision: models.filter(item => item.vision).map(item => item.id) }); delegatePort = listen; }
+    if (!delegate || delegatePort !== listen) { delegate = OpenAICompatible.create({ id: ID, label: LABEL, baseUrls: [`http://127.0.0.1:${listen}/v1`], platform, totalMemory, assumeVision: models.filter(item => item.vision).map(item => item.id),
+      // Gemma 4 ragiona prima di rispondere e, con il limite di token di Windows (512), il ragionamento li consumava tutti lasciando la risposta vuota.
+      chatOptions: { chat_template_kwargs: { enable_thinking: false } } }); delegatePort = listen; }
     return delegate;
   };
 
