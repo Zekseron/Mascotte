@@ -21,8 +21,10 @@ function run(text, imageData = null, question = null) {
 test('A0: risposta operativa e proposta restano distinte dalla generazione IA', () => {
   const list = run('che promemoria ho?');
   assert.equal(list.result.replied, true); assert.match(list.messages[1].text, /Non hai promemoria/);
+  assert.equal(list.messages[1].kind, 'app');
   const proposal = run('ricordami tra 20 minuti di studiare');
   assert.equal(proposal.pending.kind, 'reminder'); assert.match(proposal.messages[1].text, /Posso impostarlo/);
+  assert.equal(proposal.messages[1].kind, 'app');
   assert.equal(run('spiegami le VLAN').result.delegated, true);
 });
 test('A0: cartella diretta risponde dall’app, domanda interpretativa prosegue verso il modello', () => {
