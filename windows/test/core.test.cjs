@@ -50,7 +50,7 @@ test('chat privata, bounded e distinta per IA', t => {
 test('link nei dati non seguiti', t => {
   const directory = temporary(t), outside = path.join(directory, 'original.json'), link = path.join(directory, 'history.json');
   fs.writeFileSync(outside, '{"private":"data"}');
-  try { fs.symlinkSync(outside, link); } catch (e) { if (process.platform === 'win32' && e.code === 'EPERM') return; throw e; }
+  try { fs.symlinkSync(outside, link); } catch (e) { if (process.platform === 'win32' && e.code === 'EPERM') return t.skip('Windows richiede il privilegio per creare symlink di file'); throw e; }
   assert.deepEqual(readJSON(link, {}), {});
   assert.throws(() => new ChatStore(directory).set('codex', []));
   assert.equal(fs.readFileSync(outside, 'utf8'), '{"private":"data"}');

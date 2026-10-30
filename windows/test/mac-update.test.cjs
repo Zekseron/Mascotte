@@ -53,7 +53,7 @@ test('release Mac: controlli del bundle (identificativo, firma, stessa identità
   await assert.rejects(Releases.verifyMacBundle('/n/Mascotte.app', { run: fake({ verify: false }) }), /firma del pacchetto non è valida/);
   await assert.rejects(Releases.verifyMacBundle('/n/Mascotte.app', { run: fake({ requirements: { '/c/Mascotte.app': certA, '/n/Mascotte.app': certB } }), currentApp: '/c/Mascotte.app' }), /identità diversa/);
   await assert.rejects(Releases.verifyMacBundle('/n/Mascotte.app', { run: fake({ requirements: { '/c/Mascotte.app': certA } }), currentApp: '/c/Mascotte.app' }), /identità diversa/); // nuovo ad hoc
-  assert.equal(Releases.runningMacApp('/Applications/Mascotte.app/Contents/MacOS/Mascotte'), '/Applications/Mascotte.app');
+  assert.equal(Releases.runningMacApp('/Applications/Mascotte.app/Contents/MacOS/Mascotte'), path.resolve('/Applications/Mascotte.app'));
   assert.equal(Releases.runningMacApp('/usr/local/bin/node'), null);
 });
 
