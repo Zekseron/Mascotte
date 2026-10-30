@@ -149,6 +149,11 @@ test('chat: stop, length con avviso e stessi messaggi di sistema di Ollama', asy
   const managed = Engines.create({ id: 'llamacpp-mascotte', label: 'llama.cpp (Mascotte)', baseUrls: [`http://127.0.0.1:${server.port}/v1`], chatOptions: { chat_template_kwargs: { enable_thinking: false } } });
   await managed.chat({ messages: [{ role: 'user', content: 'x' }], model: 'llama-3.2-1b' });
   assert.deepEqual(server.calls.filter(call => call.path === '/v1/chat/completions').pop().payload.chat_template_kwargs, { enable_thinking: false });
+  // Un motore con il proprio limite (il gestito: 1536) lo usa al posto di quello della piattaforma (Windows: 512).
+  await Engines.run(Object.assign(engineAt(server.port), { maxTokens: 1536 }), [], 'x', [], { platform: 'win32', model: 'llama-3.2-1b' }).promise;
+  assert.equal(server.calls.filter(call => call.path === '/v1/chat/completions').pop().payload.max_tokens, 1536);
+  await Engines.run(engine, [], 'x', [], { platform: 'win32', model: 'llama-3.2-1b' }).promise;
+  assert.equal(server.calls.filter(call => call.path === '/v1/chat/completions').pop().payload.max_tokens, LocalAI.numPredict('win32'));
   finish = 'length';
   assert.equal(await Engines.run(engine, history, 'x', [], { platform: 'darwin', model: 'llama-3.2-1b' }).promise, 'Risposta.' + LocalAI.TRUNCATED);
   assert.match(LocalAI.TRUNCATED, /Risposta interrotta/);
