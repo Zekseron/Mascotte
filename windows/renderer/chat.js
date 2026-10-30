@@ -82,8 +82,8 @@ async function startWatching() {
     render(await invoke('watch-disable'));
   }
 }
-// Etichetta della risposta locale: con un motore diverso da Ollama dice quale programma risponde, per esempio «Locale · LM Studio · modello».
-function localTitle(value, withModel) { return value.localEngine && value.localEngine !== 'ollama' ? `Locale · ${value.localEngineLabel}${withModel ? ' · ' + value.localModel : ''}` : withModel ? 'locale' : 'Locale'; }
+// I dettagli di motore e modello restano nelle Impostazioni.
+function localTitle() { return 'Locale'; }
 function render(value) {
   if (!value) return;
   current = value;
@@ -214,8 +214,8 @@ function render(value) {
   $('sum-aggiornamenti').textContent = `${packageName} · ${management.version || ''}`.trim();
   $('watch-dot').hidden = !value.watching;
   $('engine').value = value.engine;
-  $('engine').querySelector('option[value="locale"]').textContent = value.localEngine && value.localEngine !== 'ollama' ? `Locale · ${value.localEngineLabel}` : 'Locale · Ollama';
-  $('account-hint').textContent = value.engine === 'locale' ? `Chat locale su questo ${value.deviceName}` : 'Usa il tuo account IA';
+  $('engine').querySelector('option[value="locale"]').textContent = 'Locale';
+  $('account-hint').textContent = value.engine === 'locale' ? `Sul tuo ${value.deviceName || 'PC'}` : `Invio a ${SERVICE_NAMES[value.engine]}`;
   $('engine').disabled = $('new').disabled = $('input').disabled = locked;
   $('messages').replaceChildren();
   if (!value.messages.length) {
@@ -225,7 +225,7 @@ function render(value) {
   }
   for (const [index, message] of value.messages.entries()) {
     const item = document.createElement('section'); item.className = 'message ' + message.role;
-    const name = document.createElement('strong'); name.textContent = message.role === 'user' ? 'Tu' : SERVICE_NAMES[value.engine] || localTitle(value);
+    const name = document.createElement('strong'); name.textContent = message.role === 'user' ? 'Tu' : message.role === 'notice' ? 'Mascotte' : SERVICE_NAMES[value.engine] || localTitle(value);
     const text = document.createElement('span'); text.textContent = message.text;
     item.append(name, text);
     if (message.role === 'assistant') item.append(listButton('Ricorda…', () => openMemory(message.text, value.engine), locked));
