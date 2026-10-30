@@ -27,3 +27,4 @@ header,#status,#composer,footer{flex-shrink:0}
 /* Il titolo e i controlli mantengono spazio anche nella finestra da 400 px. */
 header>.controls{flex-shrink:0}.title-row{flex-wrap:wrap;gap:3px 8px}h1{white-space:nowrap}#engine{width:90px;max-width:90px}#account-hint{display:block;font-size:11px;color:#b3b7c5;margin:0 0 7px}footer{justify-content:flex-end}
 .message.app{padding:8px 12px;background:#20232b;border-left:2px solid #58505a;border-radius:5px}.message.app strong{margin-bottom:3px}.message-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;white-space:normal}.message-actions button{margin:0}.message-actions button+button{margin-left:0}
+#image-status{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 0 7px;color:#e4a964;font-size:11px}

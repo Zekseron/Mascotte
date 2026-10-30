@@ -51,6 +51,7 @@ function stopWatchLocal() {
   watchStream = null; $('watch-video').srcObject = null; $('watch-video').classList.remove('active');
   $('watch-state').textContent = 'Osservazione spenta · acquisizione solo locale';
   clearPendingImage();
+  updateImageStatus();
 }
 async function stopWatching() { stopWatchLocal(); render(await invoke('watch-disable')); }
 async function refreshWatchSources() {
@@ -158,7 +159,7 @@ function render(value) {
   $('local-excluded').hidden = !excluded.length;
   $('local-excluded-summary').textContent = `${excluded.length} ${excluded.length === 1 ? 'modello escluso' : 'modelli esclusi'}`;
   $('local-excluded-list').replaceChildren(...excluded.map(model => { const item = document.createElement('li'); item.textContent = `${model.name} — escluso: ${model.reason}`; return item; }));
-  $('local-vision-hardware').textContent = otherEngine ? (value.localVision ? `${engineLabel} dichiara che questo modello legge le immagini: analizza solo il fotogramma allegato e confermato, sul computer.` : `${engineLabel} non dichiara il supporto alle immagini per questo modello: gli allegati sono disattivati.`) : localCatalog.visionNote;
+  $('local-vision-hardware').textContent = otherEngine ? (value.localVision ? `${engineLabel} dichiara che questo modello legge le immagini. Durante l’osservazione ogni messaggio locale include il fotogramma attuale, sul computer. Usa Smetti per fermare la cattura.` : `${engineLabel} non dichiara il supporto alle immagini per questo modello: gli allegati sono disattivati.`) : localCatalog.visionNote;
   $('local-vision-hardware').hidden = otherEngine ? false : !value.localVision;
   const localWarning = (otherEngine ? '' : localCatalog.models.find(model => model.tag === value.localModel)?.warning) || found.find(model => model.name === value.localModel)?.warning || '';
   $('local-hardware').textContent = localWarning; $('local-hardware').hidden = !localWarning;
@@ -240,7 +241,7 @@ function render(value) {
       // Secondo parere con immagine: il fotogramma che ha visto il modello locale (conservato 10 minuti) oppure, se stai osservando, quello attuale.
       const frame = value.secondOpinionFrame, kept = frame && frame.message === index && message.text.startsWith(frame.reply);
       if (kept || watchStream) {
-        const second = document.createElement('button'); second.type = 'button'; second.textContent = 'Secondo parere con schermata…'; second.disabled = locked;
+        const second = document.createElement('button'); second.type = 'button'; second.textContent = kept ? 'Secondo parere con schermata precedente…' : 'Secondo parere con schermata attuale…'; second.disabled = locked;
         second.title = kept ? `Usa il fotogramma di «${frame.name}» analizzato dal modello locale` : 'Usa il fotogramma attuale della finestra osservata';
         second.addEventListener('click', async () => {
           if (kept) { const preview = await invoke('second-opinion-frame'); if (preview) { openRemote(askText, 'codex', null, true, preview); return; } }
@@ -259,7 +260,7 @@ function render(value) {
   $('send').textContent = value.busy ? 'Interrompi' : 'Invia ↗';
   $('send').disabled = management.running || (!value.busy && !$('input').value.trim());
   $('watch-summary').textContent = value.watching
-    ? (value.engine === 'locale' && !value.localVision ? 'Anteprima attiva - IA locale senza visione' : 'Anteprima attiva - allega un fotogramma')
+    ? (value.engine === 'locale' ? (value.localVision ? 'Osservazione attiva · immagine automatica locale' : 'Anteprima attiva · modello solo testo') : 'Anteprima attiva · allega un fotogramma')
     : 'Finestra da condividere';
   $('watch-summary').title = value.watching ? value.watchName : '';
   $('watch-help').textContent = value.engine === 'locale' && !value.localVision
@@ -267,6 +268,7 @@ function render(value) {
     : value.engine === 'locale' ? 'Mentre osservi, ogni messaggio alla chat locale include il fotogramma attuale della finestra (non un video in diretta). Il fotogramma resta sul ' + value.deviceName + ' e non viene salvato nella cronologia. Per fermare la cattura usa Smetti.'
     : `L'anteprima resta sul ${value.deviceName}. Il servizio vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Chiudere questa sezione nasconde l'anteprima ma non ferma la cattura: usa Smetti.`;
   $('share-view').disabled = (value.engine === 'locale' && !value.localVision) || !value.watching || locked || !watchStream;
+  updateImageStatus();
   $('share-view').title = value.engine === 'locale' && !value.localVision ? `Scegli ${localCatalog.visionChoice} nelle Impostazioni per analizzare immagini.` : '';
   $('toggle-watch').hidden = value.watching; $('stop-watch').hidden = !value.watching;
   $('watch-source').disabled = value.watching;
@@ -365,10 +367,24 @@ async function submit(imageData = null, noHistory = false, confirmed = false, us
   if (next?.notice) { $('input').value = text; drafts[engine] = text; }
   render(next); $('input').focus();
 }
+// Stesse condizioni già usate dalla cattura: stream presente e dimensioni disponibili.
+function frameReady() { const video = $('watch-video'); return Boolean(watchStream && video.videoWidth && video.videoHeight); }
+function updateImageStatus() {
+  let text = '';
+  if (current?.watching) {
+    text = current.engine !== 'locale' ? 'Nessuna immagine inviata automaticamente'
+      : !current.localVision ? 'Modello solo testo · nessuna immagine inviata'
+      : frameReady() ? `Immagine automatica attiva · ${current.watchName} · sul dispositivo`
+      : 'Video in preparazione · immagine non disponibile';
+  }
+  const status = $('image-status'); status.textContent = text; status.title = text; status.hidden = !text;
+  status.setAttribute('aria-label', text);
+}
+for (const event of ['loadedmetadata', 'loadeddata', 'playing', 'resize', 'emptied', 'ended']) $('watch-video').addEventListener(event, updateImageStatus);
 // Fotogramma JPEG dalla finestra osservata (massimo 1600×900), oppure null se l'osservazione non è attiva.
 function captureFrame() {
   const video = $('watch-video');
-  if (!watchStream || !video.videoWidth || !video.videoHeight) return null;
+  if (!frameReady()) return null;
   const scale = Math.min(1, 1600 / video.videoWidth, 900 / video.videoHeight);
   const canvas = document.createElement('canvas');
   canvas.width = Math.max(1, Math.round(video.videoWidth * scale)); canvas.height = Math.max(1, Math.round(video.videoHeight * scale));

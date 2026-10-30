@@ -113,6 +113,47 @@ test('A2b: anteprima e prompt remoto contengono gli stessi role/text senza kind'
   assert.equal(calls.some(([action]) => action === 'send'), false, 'aprire la conferma non invia');
 });
 
+test('A3: indicatore coerente su video pronto/non pronto, cambio servizio e stop', () => {
+  const { render, element, evaluate, listeners } = loadChatDom();
+  const value = chatFixture({ watching: true, localVision: true, watchName: '<Finestra> molto lunga' });
+  evaluate('watchStream = null'); render(value);
+  assert.equal(element('image-status').textContent, 'Video in preparazione · immagine non disponibile');
+  assert.equal(evaluate('captureFrame()'), null);
+  evaluate('watchStream = { getTracks: () => [] }');
+  element('watch-video').videoWidth = 1280; element('watch-video').videoHeight = 720;
+  listeners.get('watch-video:loadeddata')();
+  assert.equal(element('image-status').textContent, 'Immagine automatica attiva · <Finestra> molto lunga · sul dispositivo');
+  assert.equal(element('image-status').title, element('image-status').textContent);
+  render({ ...value, localVision: false });
+  assert.equal(element('image-status').textContent, 'Modello solo testo · nessuna immagine inviata');
+  render({ ...value, engine: 'codex' });
+  assert.equal(element('image-status').textContent, 'Nessuna immagine inviata automaticamente');
+  render({ ...value, watching: false });
+  assert.equal(element('image-status').hidden, true); assert.equal(element('image-status').textContent, '');
+  render(value); evaluate('stopWatchLocal()');
+  assert.equal(evaluate('frameReady()'), false);
+});
+
+test('A3: invio locale automatico preservato; remoto richiede conferma senza inviare immagini automaticamente', async () => {
+  for (const engine of ['locale', 'codex']) {
+    const { render, element, evaluate, calls, setHandler } = loadChatDom();
+    const value = chatFixture({ engine, watching: true, localVision: true, watchName: 'Prova' });
+    setHandler(action => action === 'snapshot' ? value : undefined);
+    render(value); element('input').value = 'domanda';
+    evaluate("watchStream = {}; document.createElement = () => ({ getContext: () => ({ drawImage() {} }), toDataURL: () => 'data:image/jpeg;base64,fixture' })");
+    element('watch-video').videoWidth = 640; element('watch-video').videoHeight = 480;
+    await evaluate('submit()');
+    const sent = calls.filter(([action]) => action === 'send');
+    if (engine === 'locale') {
+      assert.equal(sent.length, 1); assert.equal(sent[0][1].imageData, 'data:image/jpeg;base64,fixture');
+    } else {
+      assert.equal(sent.length, 0); assert.equal(element('remote-image-status').textContent, 'Nessuna immagine allegata.');
+      await evaluate('submit(null, false, true)');
+      assert.deepEqual(calls.find(([action]) => action === 'send'), ['send', 'domanda']);
+    }
+  }
+});
+
 test('D24: l\'HTML di note, cartelle, promemoria e mascotte personali resta identico', () => {
   const { render, element, serialize } = loadChatDom();
   const snapshot = {
