@@ -744,7 +744,7 @@ function startApplication() {
         if (pendingAction) { notice = 'Conferma o annulla prima l’azione proposta.'; broadcast(); return; }
         let folderRead = null;
         if (engine === 'locale' && !imageData) {
-          const reply = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer }]); notice = ''; };
+          const reply = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer, kind: 'app' }]); notice = ''; };
           const replyNow = answer => { reply(answer); broadcast(); return chatSnapshot(); };
           // Promemoria e sveglie: orario calcolato da Mascotte, impostazione con conferma, elenco e cancellazione diretti.
           const reminderCommand = Reminders.parseReminderCommand(text);

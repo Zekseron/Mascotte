@@ -224,17 +224,19 @@ function render(value) {
     $('messages').append(intro);
   }
   for (const [index, message] of value.messages.entries()) {
-    const item = document.createElement('section'); item.className = 'message ' + message.role;
-    const name = document.createElement('strong'); name.textContent = message.role === 'user' ? 'Tu' : message.role === 'notice' ? 'Mascotte' : SERVICE_NAMES[value.engine] || localTitle(value);
+    const appMessage = message.role === 'assistant' && message.kind === 'app';
+    const item = document.createElement('section'); item.className = 'message ' + message.role + (appMessage ? ' app' : '');
+    const name = document.createElement('strong'); name.textContent = message.role === 'user' ? 'Tu' : appMessage || message.role === 'notice' ? 'Mascotte' : SERVICE_NAMES[value.engine] || localTitle(value);
     const text = document.createElement('span'); text.textContent = message.text;
     item.append(name, text);
-    if (message.role === 'assistant') item.append(listButton('Ricorda…', () => openMemory(message.text, value.engine), locked));
-    if (message.role === 'assistant' && value.engine === 'locale') {
+    const actions = document.createElement('div'); actions.className = 'message-actions';
+    if (message.role === 'assistant' && !appMessage) actions.append(listButton('Salva nota…', () => openMemory(message.text, value.engine), locked));
+    if (message.role === 'assistant' && !appMessage && value.engine === 'locale') {
       const question = [...value.messages.slice(0, index)].reverse().find(entry => entry.role === 'user')?.text || '';
-      const ask = document.createElement('button'); ask.type = 'button'; ask.textContent = 'Chiedi a Codex o Claude…'; ask.disabled = locked;
+      const ask = document.createElement('button'); ask.type = 'button'; ask.textContent = 'Secondo parere…'; ask.disabled = locked;
       const askText = `Domanda: ${question}\n\nRisposta locale da approfondire o verificare: ${message.text}`.slice(0, 8000);
       ask.addEventListener('click', () => openRemote(askText, 'codex', null, true));
-      item.append(ask);
+      actions.append(ask);
       // Secondo parere con immagine: il fotogramma che ha visto il modello locale (conservato 10 minuti) oppure, se stai osservando, quello attuale.
       const frame = value.secondOpinionFrame, kept = frame && frame.message === index && message.text.startsWith(frame.reply);
       if (kept || watchStream) {
@@ -245,9 +247,10 @@ function render(value) {
           const fresh = captureFrame(); if (fresh) openRemote(askText, 'codex', fresh, true, fresh);
           else $('status').textContent = 'Il fotogramma non è più disponibile: osserva di nuovo la finestra.';
         });
-        item.append(second);
+        actions.append(second);
       }
     }
+    if (message.role === 'assistant' && !appMessage) item.append(actions);
     $('messages').append(item);
   }
   $('messages').scrollTop = $('messages').scrollHeight;
@@ -340,7 +343,7 @@ function openRemote(text, engine, imageData = null, noHistory = false, preview =
   if (preview) $('remote-image').src = preview; else $('remote-image').removeAttribute('src');
   $('remote-engine').value = engine; $('remote-engine').disabled = !noHistory;
   $('remote-text').value = text;
-  const context = noHistory ? [] : current.messages.filter(message => ['user', 'assistant'].includes(message.role)).slice(-20);
+  const context = noHistory ? [] : current.messages.filter(message => ['user', 'assistant'].includes(message.role)).slice(-20).map(({ role, text }) => ({ role, text }));
   $('remote-context').textContent = context.length ? JSON.stringify(context, null, 2) : 'Nessun messaggio precedente.';
   $('remote-image-status').textContent = preview && noHistory ? 'Fotogramma da inviare insieme al testo (togli la spunta per mandare solo il testo):' : imageData ? 'È incluso anche il fotogramma che hai appena approvato.' : 'Nessuna immagine allegata.';
   const name = SERVICE_NAMES[engine] || 'Claude';
