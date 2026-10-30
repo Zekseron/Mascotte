@@ -7,6 +7,12 @@
       "name": "Rosso",
       "category": "Cat",
       "path": "Cat/rosso/"
+    },
+    {
+      "id": "luma",
+      "name": "Luma",
+      "category": "People",
+      "path": "People/luma/"
     }
   ]
 }

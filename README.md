@@ -1,6 +1,6 @@
 # Mascotte
 
-Una mascotte desktop per **Windows (x64)** e **Mac (Apple Silicon)** che reagisce con animazioni a Claude Code e Codex, e che all'occorrenza fa domande al volo, risponde con un'IA locale o guarda una finestra che scegli tu. Il personaggio è intercambiabile: quello della distribuzione pubblica è un gattino in pixel art, Rosso.
+Una mascotte desktop per **Windows (x64)** e **Mac (Apple Silicon)** che reagisce con animazioni a Claude Code e Codex, e che all'occorrenza fa domande al volo, risponde con un'IA locale o guarda una finestra che scegli tu. Il personaggio è intercambiabile: i sorgenti includono il gattino in pixel art Rosso e Luma, con idle illustrato.
 
 Versione attuale: **0.8.0**. È un'unica app Electron, in `windows/`, usata sia su Windows sia su Mac (la cartella ha ancora il vecchio nome: rinominarla è rimandato). La vecchia app nativa Swift per Mac, in `app/`, non è più sviluppata e resta come riferimento.
 
@@ -95,10 +95,11 @@ Il Mac Intel non è supportato dall'app attuale (solo Apple Silicon).
 ## Personaggi disponibili
 
 - **Cat → Rosso**, pacchetto `characters/Cat/rosso/`.
+- **People → Luma**, pacchetto `characters/People/luma/`: prima versione con idle trasparente, respiro e battito degli occhi.
 
 Menu Personaggio con categorie e grandezza ricordata per personaggio. I sorgenti grafici sono nelle stesse categorie sotto characters-src.
 
-La distribuzione pubblica include soltanto Rosso. Le mascotte personali si aggiungono dall'app (**Impostazioni → Mascotte → Aggiungi mascotte…**) e restano nella cartella dati sul tuo computer, fuori dal repository: formato, creazione e prova nel visore sono spiegati in [PERSONAGGI.md](PERSONAGGI.md).
+I sorgenti includono Rosso e Luma; i pacchetti già esportati restano invariati finché non vengono ricostruiti. Le mascotte personali si aggiungono dall'app (**Impostazioni → Mascotte → Aggiungi mascotte…**) e restano nella cartella dati sul tuo computer, fuori dal repository: formato, creazione e prova nel visore sono spiegati in [PERSONAGGI.md](PERSONAGGI.md).
 
 ## Copyright
 

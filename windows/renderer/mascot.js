@@ -6,6 +6,7 @@ let loading=false,pendingAnimation;
 function loadCharacter(value){
   clearTimeout(timer);loading=true;pendingAnimation=null;pack=value.pack;
   canvas.width=pack.frame.width;canvas.height=pack.frame.height;
+  canvas.style.imageRendering=(pack.pixelRatio||1)>1?'auto':'pixelated';
   canvas.setAttribute('aria-label',pack.name+': clic per aprire la micro chat');
   image.onload=()=>{loading=false;play(pendingAnimation||value.animation);};
   image.src=value.imageData;

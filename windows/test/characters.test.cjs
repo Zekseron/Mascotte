@@ -22,7 +22,10 @@ const named = (id, name) => json => ({ ...json, id, name });
 test('unione dei personaggi inclusi e personali, con categoria Personali', () => {
   const work = tmp(), user = path.join(work, 'characters');
   const included = Characters.readIncluded(P, path.join(__dirname, '../../characters'));
-  assert.deepEqual(included.map(c => c.id), ['rosso']); assert.equal(included[0].personal, false);
+  assert.deepEqual(included.map(c => c.id), ['rosso', 'luma']); assert.ok(included.every(c => !c.personal));
+  const luma = included.find(c => c.id === 'luma');
+  assert.deepEqual(luma.pack.frame, { width: 256, height: 512 });
+  assert.equal(luma.pack.pixelRatio, 8); assert.ok(luma.pack.animations.idle.frames.length > 1);
   const one = source(user, 'biscotto', named('biscotto', 'Biscotto'));
   const personal = Characters.readPersonal(P, user, ['rosso']);
   assert.deepEqual(personal.warnings, []);

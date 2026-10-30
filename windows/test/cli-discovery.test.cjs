@@ -1,0 +1,21 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { findCLI } = require('../lib/cli.cjs');
+test('Windows discovers the desktop CLI outside PATH and skips empty version folders', { skip: process.platform !== 'win32' }, t => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte-cli-'));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  const bin = path.join(root, 'OpenAI', 'Codex', 'bin');
+  for (const v of ['older', 'newer', 'empty']) fs.mkdirSync(path.join(bin, v), { recursive: true });
+  for (const v of ['older', 'newer']) fs.writeFileSync(path.join(bin, v, 'codex.exe'), 'fixture');
+  fs.utimesSync(path.join(bin, 'older'), 100, 100);
+  fs.utimesSync(path.join(bin, 'newer'), 200, 200);
+  fs.utimesSync(path.join(bin, 'empty'), 300, 300);
+  const env = { PATH: '', LOCALAPPDATA: root };
+  assert.equal(findCLI('codex', env).file, path.join(bin, 'newer', 'codex.exe'));
+  env.MASCOTTE_CHAT_CODEX = path.join(bin, 'older', 'codex.exe');
+  assert.equal(findCLI('codex', env).file, env.MASCOTTE_CHAT_CODEX);
+});
