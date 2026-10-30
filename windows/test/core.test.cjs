@@ -90,12 +90,12 @@ test('hook mapping senza trasmissione del testo', () => {
   assert.equal(hookState({ hook_event_name: 'PermissionRequest' }), 'waiting');
   assert.equal(hookState({ hook_event_name: 'PostToolUseFailure', is_interrupt: true }), null);
 });
-test('Codex disabilita integrazioni/strumenti, nessun resume globale; Claude senza strumenti', () => {
+test('Codex e Claude consentono ricerca web ma non strumenti generici o sessioni persistenti', () => {
   const codex = argumentsFor('codex').join(' ');
   for (const flag of ['--ignore-user-config', '--ignore-rules', '--ephemeral', '--sandbox read-only']) assert.ok(codex.includes(flag));
   for (const feature of DISABLED) assert.ok(codex.includes('--disable ' + feature));
-  assert.ok(!codex.includes('--last')); assert.ok(argumentsFor('claude').includes('--no-session-persistence'));
-  const args = argumentsFor('claude'); assert.equal(args[args.indexOf('--tools') + 1], '');
+  assert.ok(!codex.includes('--last')); assert.ok(codex.includes('web_search="live"')); assert.ok(argumentsFor('claude').includes('--no-session-persistence'));
+  const args = argumentsFor('claude'); assert.equal(args[args.indexOf('--tools') + 1], 'WebSearch,WebFetch');
   assert.ok(!promptWithHistory([{ role: 'notice', text: 'private error' }], 'hi').includes('private error'));
 });
 for (const engine of ['codex', 'claude']) test('processo simulato ' + engine + ': stdin, JSON e niente shell', async t => {
