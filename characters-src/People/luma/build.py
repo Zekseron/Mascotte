@@ -1,0 +1,748 @@
+"""Costruisce il pacchetto di Luma (mascotte-pack/1) e le sue anteprime.
+
+    python3 characters-src/People/luma/build.py
+
+scrive ROOT/characters/People/luma/{character.json,sprites.png}, aggiorna
+preview.png qui accanto e mette in ROOT/work/previews/luma/ contact.png e
+una GIF per stato. Da tools/build_all.py viene chiamata build(out_root,
+preview_root). Serve solo Pillow.
+
+Luma parte dai due disegni approvati (occhi aperti e chiusi, in source.png):
+ogni posa nasce deformando quei pixel (respiro, testa, inclinazione, salti),
+innestando bocche e sguardi disegnati da Codex (disegni/A5-espressioni/) e
+aggiungendo effetti con lo stesso contorno scuro. Le pose uguali diventano
+una sola cella del foglio.
+"""
+from __future__ import annotations
+
+import json
+import math
+from dataclasses import dataclass, replace
+from pathlib import Path
+
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
+
+HERE = Path(__file__).resolve().parent
+ROOT = HERE.parents[2]
+
+# Ritagli dei due disegni in source.png (il secondo a x=949 conserva la
+# correzione di allineamento approvata) e loro misura in pixel sorgente.
+CROP_W, CROP_H = 480, 937
+OPEN_X, CLOSED_X = 250, 949
+# Spazio di lavoro in pixel sorgente: margini per salti ed effetti sopra e ai
+# lati. Alla fine viene centrato in FRAMED e ridotto a 8/17, il fotogramma più
+# grande ammesso (512 di altezza); con pixelRatio 7 Luma resta alta come prima.
+CANVAS = (600, 1080)
+OFFSET = (60, 138)
+FRAMED = (612, 1088)
+TILE = (288, 512)
+COLS = 10
+
+# Punti di riferimento nello spazio di lavoro.
+FEET = (300, 1063)
+NECK = (300, 538)
+HEAD_TOP = (300, 174)
+EYES = ((215, 410), (331, 410))
+EAR = (432, 440)
+HAND_R = (478, 760)
+HOLD = (300, 60)  # dove la si tiene mentre la trascini
+
+INK = (48, 18, 14)
+SKIN = (252, 207, 181)
+CREAM = (255, 246, 222)
+YELLOW = (250, 204, 72)
+ORANGE = (236, 128, 52)
+PINK = (240, 112, 128)
+SKY = (132, 204, 240)
+STEEL = (150, 168, 176)
+TEAL = (52, 112, 118)
+
+
+def smooth(e0: float, e1: float, v: float) -> float:
+    t = min(1.0, max(0.0, (v - e0) / (e1 - e0)))
+    return t * t * (3 - 2 * t)
+
+
+def rotate(x: float, y: float, cx: float, cy: float, deg: float) -> tuple[float, float]:
+    a = math.radians(deg)
+    c, s = math.cos(a), math.sin(a)
+    x, y = x - cx, y - cy
+    return cx + x * c - y * s, cy + x * s + y * c
+
+
+@dataclass(frozen=True)
+class Pose:
+    breath: float = 0.0   # 0..1 respiro (oltre 1 nel sonno)
+    head: float = 0.0     # gradi, positivo verso destra di chi guarda
+    head_dx: float = 0.0
+    head_dy: float = 0.0
+    lean: float = 0.0     # gradi attorno ai piedi, piedi fermi
+    squash: float = 1.0   # <1 schiacciata, >1 allungata, ancorata ai piedi
+    dx: float = 0.0
+    dy: float = 0.0
+    swing: float = 0.0    # pendolo attorno a HOLD, gambe che penzolano
+    eyes: str = "open"    # open | closed | half | uno sguardo di EXPRESSIONS
+    mouth: str = ""       # "" (sorriso originale) | small | mid | open | worried | una bocca di EXPRESSIONS
+    lens: tuple | None = None  # centro della lente che ingrandisce
+    fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
+
+
+# ---------------------------------------------------------------- disegni base
+
+# Espressioni disegnate da Codex (disegni/A5-espressioni/): teste intere, di
+# cui si innesta solo la bocca o solo gli occhi. Scala e spostamento portano
+# la cella sul ritaglio originale; sono stati trovati confrontando pelle, naso
+# e contorno attorno alla zona (work/previews/luma/espressioni/registra.py).
+# nome: (foglio, riquadro della cella, zona, scala, dx, dy)
+EXPRESSIONS = {
+    "sorpresa": ("bocca-sorpresa-sguardo-sinistra-2-celle", (133, 55, 863, 887), "mouth", 0.5754, -6, -1),
+    "sinistra": ("bocca-sorpresa-sguardo-sinistra-2-celle", (944, 54, 1675, 887), "eyes", 0.5673, -3, 1),
+    "a": ("bocche-a-felice-2-celle", (126, 40, 873, 887), "mouth", 0.5609, -8, 4),
+    "felice": ("bocche-a-felice-2-celle", (921, 40, 1665, 887), "mouth", 0.5447, -2, 14),
+    "e": ("bocche-e-preoccupata-2-celle", (168, 56, 860, 851), "mouth", 0.6161, -7, -3),
+    "preoccupata": ("bocche-e-preoccupata-2-celle", (992, 56, 1681, 851), "mouth", 0.6172, -5, -4),
+    "sorriso": ("bocche-sorriso-o-2-celle", (124, 63, 843, 938), "mouth", 0.5754, -3, 5),
+    "o": ("bocche-sorriso-o-2-celle", (878, 63, 1594, 938), "mouth", 0.5808, -3, 2),
+    "assonnati": ("occhi-assonnati", (258, 51, 1183, 1086), "eyes", 0.4472, 0, 1),
+    "sorpresi": ("occhi-sorpresi-preoccupati-2-celle", (254, 45, 914, 789), "eyes", 0.6175, -5, 7),
+    "preoccupati": ("occhi-sorpresi-preoccupati-2-celle", (1075, 45, 1739, 789), "eyes", 0.6153, -4, 6),
+    "destra": ("sguardi-destra-alto-2-celle", (86, 63, 827, 950), "eyes", 0.5486, -8, 7),
+    "alto": ("sguardi-destra-alto-2-celle", (874, 63, 1605, 950), "eyes", 0.5516, -3, 6),
+}
+# nomi brevi usati negli stati, distinti per occhi e bocca ("open" vale per entrambi)
+EYE_ALIASES = {"half": "assonnati"}
+MOUTH_ALIASES = {"small": "o", "mid": "a", "open": "felice", "worried": "preoccupata"}
+# zone nel ritaglio 480 × 937, con il loro bordo sfumato
+ZONES = {"mouth": ("ellipse", (176, 314, 258, 360)), "eyes": ("round", (112, 196, 324, 308))}
+
+_CACHE: dict = {}
+
+
+def _crops() -> tuple[Image.Image, Image.Image]:
+    if "crops" not in _CACHE:
+        sheet = Image.open(HERE / "source.png").convert("RGBA")
+        if sheet.size != (1678, 937) or sheet.getpixel((0, 0))[3] != 0:
+            raise ValueError("source.png deve essere il foglio trasparente 1678 × 937")
+        opened = sheet.crop((OPEN_X, 0, OPEN_X + CROP_W, CROP_H))
+        closed = sheet.crop((CLOSED_X, 0, CLOSED_X + CROP_W, CROP_H))
+        # Solo gli occhi chiusi vengono innestati sul disegno aperto: i due disegni
+        # differiscono di poco anche nei contorni e lo scambio intero tremolava.
+        mask = Image.new("L", (CROP_W, CROP_H), 0)
+        ImageDraw.Draw(mask).rounded_rectangle((116, 229, 320, 306), radius=30, fill=255)
+        _CACHE["crops"] = (opened, Image.composite(closed, opened, mask.filter(ImageFilter.GaussianBlur(6))))
+    return _CACHE["crops"]
+
+
+def _zone_mask(zone: str) -> Image.Image:
+    shape, box = ZONES[zone]
+    m = Image.new("L", (CROP_W, CROP_H), 0)
+    d = ImageDraw.Draw(m)
+    if shape == "ellipse":
+        d.ellipse(box, fill=255)
+    else:
+        d.rounded_rectangle(box, radius=34, fill=255)
+    return m.filter(ImageFilter.GaussianBlur(5))
+
+
+def _expression(name: str) -> tuple[Image.Image, Image.Image]:
+    """La cella di Codex portata sul ritaglio originale, con il tono della pelle
+    pareggiato sul bordo della zona, e la maschera con cui innestarla."""
+    key = ("expr", name)
+    if key in _CACHE:
+        return _CACHE[key]
+    sheet, box, zone, scale, dx, dy = EXPRESSIONS[name]
+    cell = Image.open(HERE / "disegni" / "A5-espressioni" / f"{sheet}-trasparente.png").convert("RGBA").crop(box)
+    small = cell.convert("RGBa").resize((round(cell.width * scale), round(cell.height * scale)), Image.LANCZOS).convert("RGBA")
+    patch = Image.new("RGBA", (CROP_W, CROP_H), (0, 0, 0, 0))
+    patch.alpha_composite(small, (34 + dx, 36 + dy))  # 34, 36: angolo della figura nel ritaglio
+    mask = _zone_mask(zone)
+    inner = mask.point(lambda v: 255 if v > 10 else 0)
+    ring = ImageChops.subtract(inner.filter(ImageFilter.MaxFilter(15)), inner).load()
+    src, pp = _crops()[0].load(), patch.load()
+    skin = lambda c: c[3] > 250 and c[0] > 225 and 165 < c[1] < 225
+    a, b = [0.0] * 3, [0.0] * 3
+    for y in range(180, 380):
+        for x in range(90, 360):
+            if ring[x, y] and skin(src[x, y]) and skin(pp[x, y]):
+                for i in range(3):
+                    a[i] += src[x, y][i]
+                    b[i] += pp[x, y][i]
+    gain = [a[i] / b[i] if b[i] else 1.0 for i in range(3)]
+    bands = [band.point(lambda v, g=g: min(255, round(v * g))) for band, g in zip(patch.split()[:3], gain)]
+    patch = Image.merge("RGBA", bands + [patch.getchannel("A")])
+    _CACHE[key] = (patch, ImageChops.multiply(mask, patch.getchannel("A")))
+    return _CACHE[key]
+
+
+def _face(eyes: str, mouth: str) -> Image.Image:
+    """Il ritaglio con gli occhi e la bocca richiesti, già nello spazio di lavoro."""
+    key = ("face", eyes, mouth)
+    if key not in _CACHE:
+        opened, shut = _crops()
+        img = (shut if eyes == "closed" else opened).copy()
+        for name in (EYE_ALIASES.get(eyes, eyes), MOUTH_ALIASES.get(mouth, mouth)):
+            if name in EXPRESSIONS:
+                patch, mask = _expression(name)
+                img.paste(patch, (0, 0), mask)
+            elif name not in ("", "open", "closed"):
+                raise ValueError(f"espressione sconosciuta: {name}")
+        canvas = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+        canvas.paste(img, OFFSET)
+        _CACHE[key] = canvas
+    return _CACHE[key]
+
+
+# ---------------------------------------------------------------- deformazione
+
+def _inverse(p: Pose):
+    """Per un punto del fotogramma restituisce il punto del disegno da campionare."""
+    ox, oy = OFFSET
+    fx, fy = FEET
+    nx, ny = NECK
+
+    def f(x: float, y: float) -> tuple[float, float]:
+        x, y = x - p.dx, y - p.dy
+        if p.swing:
+            w = 1 + 0.7 * smooth(800, 1040, y)
+            x, y = rotate(x, y, HOLD[0], HOLD[1], -p.swing * w)
+        if p.lean:
+            x, y = rotate(x, y, fx, fy, -p.lean * (1 - smooth(900, 1050, y)))
+        if p.squash != 1:
+            y = fy + (y - fy) / p.squash
+            x = fx + (x - fx) * math.sqrt(p.squash)
+        wh = 1 - smooth(505, 590, y)
+        if wh and (p.head or p.head_dx or p.head_dy):
+            x, y = x - p.head_dx * wh, y - p.head_dy * wh
+            x, y = rotate(x, y, nx, ny, -p.head * wh)
+        if p.lens:
+            lx, ly = p.lens
+            r = math.hypot(x - lx, y - ly)
+            if r < 46:
+                k = 1 / 1.45
+                x, y = lx + (x - lx) * k, ly + (y - ly) * k
+        if p.breath:
+            yc = y - oy
+            # testa e spalle salgono appena, il busto si allunga (respiro approvato)
+            y += p.breath * 1.5 * (1 - smooth(380, 650, yc))
+            if 380 <= yc < 650:
+                y += p.breath * 4 * math.sin(math.pi * (yc - 380 + 0.5) / 270) ** 2
+        return x, y
+    return f
+
+
+def _warp(img: Image.Image, p: Pose, step: int = 6) -> Image.Image:
+    f = _inverse(p)
+    w, h = img.size
+    mesh = []
+    for y in range(0, h, step):
+        for x in range(0, w, step):
+            x1, y1 = min(x + step, w), min(y + step, h)
+            quad = (*f(x, y), *f(x, y1), *f(x1, y1), *f(x1, y))
+            mesh.append(((x, y, x1, y1), quad))
+    # colori premoltiplicati: niente aloni scuri sui bordi trasparenti
+    return img.convert("RGBa").transform(img.size, Image.MESH, mesh, Image.BICUBIC).convert("RGBA")
+
+
+# ---------------------------------------------------------------- effetti
+
+def _sticker(size: int, paint, alpha: float = 1.0, outline: float = 5.5) -> Image.Image:
+    """Disegna un effetto a 3x con contorno arrotondato e lo riduce."""
+    ss = 3
+    big = size * ss
+    layer = Image.new("RGBA", (big, big), (0, 0, 0, 0))
+    paint(ImageDraw.Draw(layer), big / 2, ss)
+    ring = layer.getchannel("A").filter(ImageFilter.GaussianBlur(outline * ss / 2))
+    ring = ring.point(lambda v: 255 if v > 18 else 0)
+    base = Image.new("RGBA", (big, big), INK + (0,))
+    base.putalpha(ring)
+    base.alpha_composite(layer)
+    out = base.resize((size, size), Image.LANCZOS)
+    if alpha < 1:
+        out.putalpha(out.getchannel("A").point(lambda v: int(v * alpha)))
+    return out
+
+
+def _star(r: float, rot: float = 0.0, inner: float = 0.38):
+    def paint(d, c, ss):
+        pts = []
+        for i in range(8):
+            a = math.radians(rot + i * 45)
+            rr = (r if i % 2 == 0 else r * inner) * ss
+            pts.append((c + math.sin(a) * rr, c - math.cos(a) * rr))
+        d.polygon(pts, fill=YELLOW + (255,))
+        d.ellipse((c - r * 0.18 * ss, c - r * 0.18 * ss, c + r * 0.18 * ss, c + r * 0.18 * ss), fill=CREAM + (255,))
+    return paint
+
+
+def _heart(r: float):
+    def paint(d, c, ss):
+        pts = []
+        for i in range(60):
+            t = 2 * math.pi * i / 60
+            x = 16 * math.sin(t) ** 3
+            y = 13 * math.cos(t) - 5 * math.cos(2 * t) - 2 * math.cos(3 * t) - math.cos(4 * t)
+            pts.append((c + x / 16 * r * ss, c - (y + 2) / 16 * r * ss))
+        d.polygon(pts, fill=PINK + (255,))
+        d.ellipse((c - r * 0.55 * ss, c - r * 0.6 * ss, c - r * 0.25 * ss, c - r * 0.3 * ss), fill=(255, 210, 214, 255))
+    return paint
+
+
+def _zee(r: float):
+    def paint(d, c, ss):
+        s = r * ss
+        pts = [(c - s, c - s * 0.9), (c + s, c - s * 0.9), (c - s, c + s * 0.9), (c + s, c + s * 0.9)]
+        d.line(pts, fill=CREAM + (255,), width=int(r * 0.42 * ss), joint="curve")
+    return paint
+
+
+def _dot(r: float):
+    def paint(d, c, ss):
+        d.ellipse((c - r * ss, c - r * ss, c + r * ss, c + r * ss), fill=CREAM + (255,))
+    return paint
+
+
+def _drop(r: float):
+    def paint(d, c, ss):
+        s = r * ss
+        pts = [(c, c - s * 1.6)]
+        for i in range(31):
+            a = math.pi * (-0.15 + 1.3 * i / 30)
+            pts.append((c + math.cos(a) * s, c + s * 0.25 + math.sin(a) * s))
+        d.polygon(pts, fill=SKY + (255,))
+        d.ellipse((c - s * 0.5, c - s * 0.1, c - s * 0.15, c + s * 0.35), fill=(235, 248, 255, 255))
+    return paint
+
+
+def _exclaim(h: float):
+    def paint(d, c, ss):
+        s = h * ss
+        d.polygon([(c - s * 0.2, c - s * 0.5), (c + s * 0.2, c - s * 0.5), (c + s * 0.09, c + s * 0.18), (c - s * 0.09, c + s * 0.18)],
+                  fill=ORANGE + (255,))
+        d.ellipse((c - s * 0.2, c - s * 0.62, c + s * 0.2, c - s * 0.38), fill=ORANGE + (255,))
+        d.ellipse((c - s * 0.13, c + s * 0.3, c + s * 0.13, c + s * 0.56), fill=ORANGE + (255,))
+    return paint
+
+
+def _gear(r: float, angle: float, teeth: int = 8):
+    def paint(d, c, ss):
+        pts = []
+        for i in range(teeth * 4):
+            a = math.radians(angle) + 2 * math.pi * i / (teeth * 4)
+            rr = (r if (i % 4) in (1, 2) else r * 0.74) * ss
+            pts.append((c + math.cos(a) * rr, c + math.sin(a) * rr))
+        d.polygon(pts, fill=STEEL + (255,))
+        hole = r * 0.28 * ss
+        d.ellipse((c - r * 0.5 * ss, c - r * 0.5 * ss, c + r * 0.5 * ss, c + r * 0.5 * ss), fill=(196, 210, 214, 255))
+        d.ellipse((c - hole, c - hole, c + hole, c + hole), fill=INK + (255,))
+    return paint
+
+
+def _bolt(r: float, bright: bool):
+    def paint(d, c, ss):
+        s = r * ss
+        pts = [(c + 0.25 * s, c - s), (c - 0.55 * s, c + 0.12 * s), (c - 0.02 * s, c + 0.12 * s),
+               (c - 0.3 * s, c + s), (c + 0.55 * s, c - 0.18 * s), (c + 0.04 * s, c - 0.18 * s)]
+        d.polygon(pts, fill=(YELLOW if bright else (238, 176, 60)) + (255,))
+    return paint
+
+
+def _arcs(n: int, zoom: float = 1.9):
+    def paint(d, c, ss):
+        ss *= zoom
+        for i in range(n):
+            r = (14 + i * 13) * ss
+            d.arc((c - 40 * ss - r, c - r, c - 40 * ss + r, c + r), -50, 50, fill=YELLOW + (255,), width=int(8 * ss))
+    return paint
+
+
+def _book(flip: float, zoom: float = 1.7):
+    """Libro aperto visto di fronte; flip 0..1 gira la pagina destra a sinistra."""
+    def paint(d, c, ss):
+        s = ss * zoom
+        w, h = 34, 60
+        d.polygon([(c - w * 2 * s - 4 * s, c - h / 2 * s + 6 * s), (c, c - h / 2 * s + 10 * s), (c, c + h / 2 * s + 10 * s),
+                   (c - w * 2 * s - 4 * s, c + h / 2 * s + 6 * s)], fill=(150, 84, 52, 255))
+        d.polygon([(c + w * 2 * s + 4 * s, c - h / 2 * s + 6 * s), (c, c - h / 2 * s + 10 * s), (c, c + h / 2 * s + 10 * s),
+                   (c + w * 2 * s + 4 * s, c + h / 2 * s + 6 * s)], fill=(150, 84, 52, 255))
+        for side in (-1, 1):
+            d.polygon([(c, c - h / 2 * s + 4 * s), (c + side * w * 2 * s, c - h / 2 * s), (c + side * w * 2 * s, c + h / 2 * s),
+                       (c, c + h / 2 * s + 4 * s)], fill=CREAM + (255,))
+            for k in range(4):
+                y = c + (-12 + k * 9) * s
+                d.line([(c + side * 10 * s, y + 2 * s), (c + side * (w * 2 - 10) * s, y)], fill=(210, 176, 140, 255), width=int(3 * s))
+        if 0 < flip < 1:
+            x = c + math.cos(math.pi * flip) * w * 2 * s
+            lift = math.sin(math.pi * flip) * 14 * s
+            d.polygon([(c, c - h / 2 * s + 4 * s), (x, c - h / 2 * s - lift), (x, c + h / 2 * s - lift),
+                       (c, c + h / 2 * s + 4 * s)], fill=(255, 252, 240, 255), outline=(210, 176, 140, 255), width=int(2 * s))
+        d.line([(c, c - h / 2 * s + 4 * s), (c, c + h / 2 * s + 4 * s)], fill=INK + (255,), width=int(3 * s))
+    return paint
+
+
+def _paper(lines: float, tip: tuple[float, float], zoom: float = 1.45):
+    def paint(d, c, ss):
+        s = ss * zoom
+        corners = [(-42, -50), (40, -54), (46, 48), (-36, 52)]
+        d.polygon([(c + x * s, c + y * s) for x, y in corners], fill=CREAM + (255,))
+        for k in range(4):
+            full = min(1.0, max(0.0, lines - k))
+            if full <= 0:
+                break
+            y = -30 + k * 20
+            x0, x1 = -28, -28 + 60 * full
+            pts = [(c + (x0 + (x1 - x0) * i / 12) * s, c + (y + math.sin(i * 1.7) * 2.5) * s) for i in range(13)]
+            d.line(pts, fill=(96, 112, 150, 255), width=int(3 * s), joint="curve")
+        # matita: corpo giallo, punta di legno e mina, gomma rosa
+        tx, ty = c + tip[0] * s, c + tip[1] * s
+        a = math.radians(-58)
+        ux, uy = math.cos(a), math.sin(a)
+        px, py = -uy, ux
+
+        def at(t, o):
+            return (tx + ux * t * s + px * o * s, ty + uy * t * s + py * o * s)
+        d.polygon([at(0, 0), at(16, -7), at(16, 7)], fill=(232, 196, 150, 255))
+        d.polygon([at(0, 0), at(6, -2.6), at(6, 2.6)], fill=INK + (255,))
+        d.polygon([at(16, -7), at(66, -7), at(66, 7), at(16, 7)], fill=YELLOW + (255,))
+        d.polygon([at(66, -7), at(78, -7), at(78, 7), at(66, 7)], fill=PINK + (255,))
+    return paint
+
+
+def _lens():
+    def paint(d, c, ss):
+        r = 48 * ss
+        a = math.radians(50)
+        hx, hy = c + math.cos(a) * r, c + math.sin(a) * r
+        d.line([(hx, hy), (hx + math.cos(a) * 46 * ss, hy + math.sin(a) * 46 * ss)], fill=(150, 84, 52, 255), width=int(16 * ss))
+        d.ellipse((c - r, c - r, c + r, c + r), outline=(214, 160, 64, 255), width=int(9 * ss))
+    return paint
+
+
+def _lens_glass(img: Image.Image, center) -> None:
+    ss = 3
+    r = 44
+    size = r * 2 + 4
+    layer = Image.new("RGBA", (size * ss, size * ss), (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    c = size * ss / 2
+    d.ellipse((c - r * ss, c - r * ss, c + r * ss, c + r * ss), fill=(190, 230, 250, 46))
+    d.arc((c - 30 * ss, c - 30 * ss, c + 30 * ss, c + 30 * ss), 200, 250, fill=(255, 255, 255, 200), width=int(6 * ss))
+    layer = layer.resize((size, size), Image.LANCZOS)
+    img.alpha_composite(layer, (int(center[0] - size / 2), int(center[1] - size / 2)))
+
+
+PAINTERS = {"star": _star, "heart": _heart, "z": _zee, "dot": _dot, "drop": _drop, "exclaim": _exclaim,
+            "gear": _gear, "bolt": _bolt, "arcs": _arcs, "book": _book, "paper": _paper}
+SIZES = {"star": 2.5, "heart": 2.6, "z": 2.8, "dot": 2.8, "drop": 4.2, "exclaim": 1.3,
+         "gear": 2.6, "bolt": 2.6, "arcs": 250, "book": 280, "paper": 330}
+
+
+def _effect(img: Image.Image, spec: tuple) -> None:
+    kind, x, y, *args = spec
+    alpha = 1.0
+    if args and isinstance(args[-1], tuple) and args[-1][0] == "alpha":
+        alpha = args[-1][1]
+        args = args[:-1]
+    if kind == "lens":
+        _lens_glass(img, (x, y))
+        size = 210
+        img.alpha_composite(_sticker(size, _lens()), (int(x - size / 2), int(y - size / 2)))
+        return
+    painter = PAINTERS[kind](*args)
+    factor = SIZES[kind]
+    size = factor if isinstance(factor, int) else int(args[0] * factor) + 16
+    img.alpha_composite(_sticker(size, painter, alpha), (int(x - size / 2), int(y - size / 2)))
+
+
+# ---------------------------------------------------------------- resa
+
+def render(p: Pose) -> Image.Image:
+    img = _face(p.eyes, p.mouth).copy()
+    img = _warp(img, p)
+    for spec in p.fx:
+        _effect(img, spec)
+    if p.lens:
+        _effect(img, ("lens", *p.lens))
+    framed = Image.new("RGBA", FRAMED, (0, 0, 0, 0))
+    framed.paste(img, ((FRAMED[0] - CANVAS[0]) // 2, FRAMED[1] - CANVAS[1]))
+    return framed.resize(TILE, Image.LANCZOS)
+
+
+def head_point(p: Pose, x: float, y: float) -> tuple[float, float]:
+    """Dove finisce un punto della testa dopo gli spostamenti principali."""
+    return x + p.dx + p.head_dx, y + p.dy + p.head_dy
+
+
+# ---------------------------------------------------------------- stati
+# Ogni stato è una lista di (posa, millisecondi). I tempi sono pensati per
+# leggere bene a 96 × 192 punti: gesti lenti, effetti grandi e pochi.
+
+def breath_at(t: float, period: float = 4000, inhale: float = 0.4) -> float:
+    """Inspirazione 40% del ciclo, espirazione 60%, come nell'idle approvato."""
+    phase = (t % period) / period
+    if phase < inhale:
+        return 0.5 - 0.5 * math.cos(math.pi * phase / inhale)
+    return 0.5 + 0.5 * math.cos(math.pi * (phase - inhale) / (1 - inhale))
+
+
+def q(v: float, levels: int = 8) -> float:
+    return round(v * levels) / levels
+
+
+def sampled(total: int, pose_at, step: int = 50, marks=()) -> list[tuple[Pose, int]]:
+    times = sorted(set(range(0, total, step)) | {m for m in marks if 0 <= m < total})
+    seq = []
+    for i, t in enumerate(times):
+        dur = (times[i + 1] if i + 1 < len(times) else total) - t
+        pose = pose_at(t)
+        if seq and seq[-1][0] == pose:
+            seq[-1] = (pose, seq[-1][1] + dur)
+        else:
+            seq.append((pose, dur))
+    if len(seq) > 1 and seq[0][0] == seq[-1][0]:
+        # il ciclo riparte dalla stessa posa: la si unisce in testa
+        first = seq.pop()
+        seq[0] = (seq[0][0], seq[0][1] + first[1])
+    return seq
+
+
+# Battiti d'occhi irregolari (ms dall'inizio del ciclo di 24 s), uno doppio.
+BLINKS = (2600, 7100, 7480, 12900, 17300, 21700)
+
+
+def eyes_at(t: int) -> str:
+    for b in BLINKS:
+        if b <= t < b + 40 or b + 140 <= t < b + 190:
+            return "half"
+        if b + 40 <= t < b + 140:
+            return "closed"
+    return "open"
+
+
+def idle():
+    marks = [m for b in BLINKS for m in (b, b + 40, b + 140, b + 190)]
+    return sampled(24000, lambda t: Pose(breath=q(breath_at(t)), eyes=eyes_at(t)), 50, marks), True
+
+
+# Area degli effetti e degli oggetti: in alto a destra, sopra la spalla,
+# dove a 96 punti di larghezza si leggono senza coprire il viso.
+SLOT = (462, 118)
+
+
+def sleep():
+    # respiro lento e profondo, testa un po' reclinata, z che salgono e svaniscono
+    head = dict(head=-5.0, head_dy=7.0, head_dx=-3.0)
+    seq = []
+    for i in range(6):
+        b = breath_at(i * 1000, 6000, 0.45) * 1.6
+        z = []
+        for off in (0.0, 0.5):
+            u = (i / 6 + off) % 1
+            x = 408 + u * 120 + math.sin(u * 5) * 10
+            y = 230 - u * 190
+            a = 1.0 if u < 0.65 else (1 - u) / 0.35
+            z.append(("z", x, y, 18 + u * 22, ("alpha", round(max(0.0, a), 2))))
+        seq.append((Pose(breath=round(b, 2), eyes="closed", fx=tuple(z), **head), 1000))
+    return seq, True
+
+
+def thinking():
+    base = dict(head=-4.0, head_dy=-4.0, head_dx=-2.0, breath=0.3)
+    dots = [("dot", 404, 200, 13), ("dot", 456, 140, 18), ("dot", 524, 70, 25)]
+    seq = [(Pose(**base, eyes="alto"), 500)]
+    for n in (1, 2, 3):
+        seq.append((Pose(**base, eyes="alto", fx=tuple(dots[:n])), 450 if n < 3 else 1100))
+    for eyes, ms in (("half", 40), ("closed", 90), ("half", 40), ("alto", 500)):
+        seq.append((Pose(**base, eyes=eyes, fx=tuple(dots)), ms))
+    return seq, True
+
+
+def listening():
+    # testa piegata verso chi parla, onde che arrivano all'orecchio
+    base = dict(head=5.0, head_dx=3.0, lean=1.2, breath=0.4)
+    seq = [(Pose(**base, eyes="destra", fx=(("arcs", EAR[0] + 112, EAR[1] - 6, n),)), 260) for n in (1, 2, 3)]
+    seq.append((Pose(**base, eyes="destra"), 340))
+    return seq, True
+
+
+def working():
+    # Luma è un'aggiustatutto: due ingranaggi girano accanto alla mano
+    seq = []
+    for i in range(4):
+        a = i * 360 / 8 / 4
+        nod = (0.0, 2.0, 3.0, 1.0)[i]
+        fx = (("gear", 526, 676, 54, a), ("gear", 500, 562, 36, -a * 54 / 36 + 22.5 / 2))
+        seq.append((Pose(head=2.5, head_dy=nod, breath=0.2, fx=fx), 125))
+    return seq, True
+
+
+def reading():
+    base = dict(head=4.0, head_dy=4.0, head_dx=2.0, breath=0.3)
+    seq = [(Pose(**base, fx=(("book", *SLOT, 0.0),)), 900),
+           (Pose(**base, eyes="closed", fx=(("book", *SLOT, 0.0),)), 110),
+           (Pose(**base, fx=(("book", *SLOT, 0.0),)), 700)]
+    for f in (0.25, 0.5, 0.75):
+        seq.append((Pose(**base, fx=(("book", *SLOT, f),)), 140))
+    return seq, True
+
+
+def writing():
+    base = dict(head=4.5, head_dy=5.0, head_dx=3.0, breath=0.2)
+    seq = []
+    tips = ((-18, -32), (6, -26), (28, -32), (-10, -8))
+    for i, tip in enumerate(tips):
+        seq.append((Pose(**base, fx=(("paper", SLOT[0], SLOT[1] + 36, 1.0 + i * 0.75, tip),)), 170))
+    return seq, True
+
+
+def running():
+    seq = []
+    for squash, dy, bright in ((0.96, 0, True), (1.03, -16, False), (1.01, -22, True), (0.98, -4, False)):
+        seq.append((Pose(squash=squash, dy=dy, breath=0.5, fx=(("bolt", SLOT[0], SLOT[1] + dy, 74, bright),)), 110))
+    return seq, True
+
+
+def waiting():
+    seq = []
+    for i, (lean, hop) in enumerate(((-1.5, 0), (0, -6), (1.5, 0), (0, -6))):
+        p = Pose(lean=lean, dy=hop, mouth="mid" if i % 2 else "open", breath=0.6)
+        hx, hy = head_point(p, 438, 120)
+        seq.append((replace(p, fx=(("exclaim", hx, hy - (10 if hop else 0), 120),)), 170))
+    return seq, True
+
+
+def done():
+    seq = []
+    for i, (lean, star_r) in enumerate(((-1.8, 40), (0, 50), (1.8, 40), (0, 30))):
+        small = (("star", 128, 214, (22, 16, 26, 30)[i], -lean * 5),)
+        seq.append((Pose(lean=lean, eyes="closed", mouth="open", breath=0.4,
+                         fx=(("star", 470, 140, star_r, lean * 5),) + small), 230))
+    return seq, True
+
+
+def celebrate():
+    sparks = (("star", 96, 236, 30, 10), ("star", 506, 170, 38, -12), ("heart", 486, 318, 30))
+    seq = [
+        (Pose(squash=0.94, eyes="closed", mouth="small"), 120),
+        (Pose(squash=1.05, dy=-30, mouth="open"), 80),
+        (Pose(squash=1.02, dy=-56, mouth="open", fx=sparks[:2]), 120),
+        (Pose(squash=1.0, dy=-46, eyes="closed", mouth="open", fx=sparks), 100),
+        (Pose(squash=1.02, dy=-16, eyes="closed", mouth="open", fx=sparks), 70),
+        (Pose(squash=0.95, eyes="closed", mouth="open", fx=sparks), 110),
+        (Pose(eyes="closed", mouth="open", breath=0.5,
+              fx=(("star", 90, 220, 26, 25), ("star", 512, 160, 34, 0), ("heart", 486, 306, 26))), 600),
+    ]
+    return seq, False
+
+
+def error():
+    seq = []
+    for i, shake in enumerate((-4, 3, -2, 4)):
+        p = Pose(dx=shake, head=-2.5, head_dy=2, squash=0.985, eyes="preoccupati", mouth="worried", breath=0.2)
+        seq.append((replace(p, fx=(("drop", 150 + shake, 292 + i * 7, 24),)), 90))
+    seq[-1] = (seq[-1][0], 520)
+    return seq, True
+
+
+def talk():
+    # vocali disegnate da Codex, piccoli cenni del capo, un battito a metà frase
+    seq = []
+    pattern = (("sorriso", "open", 0, 140), ("a", "open", -1.5, 120), ("o", "open", -1, 110), ("e", "open", -1, 110),
+               ("a", "open", -1.5, 130), ("sorriso", "open", 0, 90), ("sorriso", "half", 0, 45), ("sorriso", "closed", 0, 90),
+               ("sorriso", "half", 0, 45), ("felice", "open", -1.5, 150), ("o", "open", -1, 100), ("e", "open", -1, 110),
+               ("", "open", 0, 320))
+    for mouth, eyes, bob, ms in pattern:
+        seq.append((Pose(mouth=mouth, eyes=eyes, head_dy=bob, head=0.8 if bob else 0, breath=0.4), ms))
+    return seq, True
+
+
+def look():
+    l_eye, r_eye = EYES
+    path = ((l_eye, 650), ((273, 404), 220), (r_eye, 650), ((273, 404), 220))
+    seq = []
+    for (x, y), ms in path:
+        side = "sinistra" if x < 273 else ("destra" if x > 273 else "open")
+        seq.append((Pose(head=-1.0 if x < 273 else (1.0 if x > 273 else 0), eyes=side, lens=(x, y), breath=0.3), ms))
+    return seq, True
+
+
+def drag():
+    seq = []
+    for swing in (-4.0, -1.5, 2.5, 4.0, 1.5, -2.5):
+        fx = (("drop", 160, 266, 20),) if abs(swing) > 3 else ()
+        seq.append((Pose(dy=-34, swing=swing, eyes="sorpresi", mouth="sorpresa", fx=fx), 160))
+    return seq, True
+
+
+STATES = {"idle": idle, "sleep": sleep, "listening": listening, "thinking": thinking, "working": working,
+          "reading": reading, "writing": writing, "running": running, "waiting": waiting, "done": done,
+          "celebrate": celebrate, "error": error, "talk": talk, "look": look, "drag": drag}
+
+
+# ---------------------------------------------------------------- pacchetto
+
+def build(out_root, preview_root) -> dict:
+    out = Path(out_root) / "People" / "luma"
+    previews = Path(preview_root) / "luma"
+    out.mkdir(parents=True, exist_ok=True)
+    previews.mkdir(parents=True, exist_ok=True)
+
+    tiles: list[Image.Image] = []
+    index: dict[Pose, int] = {}
+    timelines = {}
+    for state, make in STATES.items():
+        seq, loop = make()
+        cells = []
+        for pose, _ in seq:
+            if pose not in index:
+                index[pose] = len(tiles)
+                tiles.append(render(pose))
+            cells.append(index[pose])
+        timelines[state] = (seq, cells, loop)
+
+    rows = math.ceil(len(tiles) / COLS)
+    sheet = Image.new("RGBA", (COLS * TILE[0], rows * TILE[1]), (0, 0, 0, 0))
+    for i, tile in enumerate(tiles):
+        sheet.paste(tile, ((i % COLS) * TILE[0], (i // COLS) * TILE[1]))
+    sheet.save(out / "sprites.png", optimize=True)
+    tiles[0].save(HERE / "preview.png")
+
+    animations = {}
+    for state, (seq, cells, loop) in timelines.items():
+        anim = {"row": 0, "frames": [c % COLS for c in cells], "frameRows": [c // COLS for c in cells],
+                "fps": 20, "durations": [ms for _, ms in seq]}
+        if not loop:
+            anim["loop"] = False
+        animations[state] = anim
+    pack = {"format": "mascotte-pack/1", "id": "luma", "name": "Luma", "author": "Mascotte", "sheet": "sprites.png",
+            "frame": {"width": TILE[0], "height": TILE[1]}, "pixelRatio": 7, "scale": 3,
+            "bubble": {"x": TILE[0] // 2, "y": 80}, "animations": animations}
+    (out / "character.json").write_text(json.dumps(pack, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+
+    _previews(tiles, timelines, previews)
+    return pack
+
+
+def _previews(tiles, timelines, folder: Path) -> None:
+    bg = (244, 241, 234, 255)
+    thumb = (TILE[0] // 2, TILE[1] // 2)
+    for state, (seq, cells, loop) in timelines.items():
+        frames = []
+        for c in cells:
+            f = Image.new("RGBA", thumb, bg)
+            f.alpha_composite(tiles[c].resize(thumb, Image.LANCZOS))
+            frames.append(f.convert("RGB"))
+        frames[0].save(folder / f"{state}.gif", save_all=True, append_images=frames[1:],
+                       duration=[max(20, ms) for _, ms in seq], loop=0 if loop else 1, disposal=2)
+    states = list(timelines)
+    width = max(len(set(c)) for _, c, _ in timelines.values())
+    contact = Image.new("RGBA", (width * thumb[0], len(states) * thumb[1]), bg)
+    for r, state in enumerate(states):
+        for i, c in enumerate(dict.fromkeys(timelines[state][1])):
+            contact.alpha_composite(tiles[c].resize(thumb, Image.LANCZOS), (i * thumb[0], r * thumb[1]))
+    contact.save(folder / "contact.png")
+
+
+if __name__ == "__main__":
+    pack = build(ROOT / "characters", ROOT / "work" / "previews")
+    used = {(r, c) for a in pack["animations"].values() for c, r in zip(a["frames"], a["frameRows"])}
+    print(f"ok: characters/People/luma ({len(used)} celle) e work/previews/luma")
