@@ -1,4 +1,4 @@
-# Dati e limiti della versione 0.8.0
+# Dati e limiti della versione 0.9.0
 
 Questa pagina vale per l'app Electron attuale, su Windows x64 e su Mac Apple Silicon. Le differenze tra i due sistemi sono indicate dove ci sono. La vecchia app Swift per Mac (cartella `app/`) non è più distribuita e non è descritta qui.
 
@@ -12,15 +12,25 @@ Questa pagina vale per l'app Electron attuale, su Windows x64 e su Mac Apple Sil
 
 ## Chat con Codex e Claude
 
+Questa sezione descrive la modalità **Chat**. La modalità **Agente** ha capacità e dati aggiuntivi, descritti sotto.
+
 - Inviare nella micro chat chiama la CLI scelta e trasmette al suo servizio il messaggio e il contesto della conversazione (al massimo gli ultimi 20 messaggi). **Il primo invio a ciascun servizio dopo l'avvio di Mascotte chiede conferma**; i messaggi di testo successivi allo stesso servizio partono senza nuova conferma finché Mascotte resta aperta, mentre fotogrammi e secondo parere chiedono sempre conferma. La finestra di conferma mostra cosa partirebbe. Le conversazioni delle due IA sono separate.
 - La mascotte usa il login delle CLI del destinatario; non chiede password nella propria finestra, non copia le credenziali e non aggiunge chiavi API (le variabili con chiavi API sono tolte dall'ambiente della CLI). Serve un account abilitato alla CLI scelta e vengono usati i suoi limiti.
 - Le politiche di conservazione, telemetria e trattamento del servizio/CLI sono quelle del fornitore e dell'account utilizzato; la mascotte non le cambia.
 - La cronologia locale conserva al massimo 60 messaggi per IA. Le CLI conservano separatamente le proprie sessioni, se lo fanno. **Nuova** azzera la conversazione della mascotte per l'IA selezionata, non cancella le cronologie del fornitore.
-- **Claude** è avviato senza strumenti, senza MCP, senza comandi slash, senza impostazioni utente e senza sessione persistente.
-- **Codex** è avviato in sessione non persistente, ignorando la configurazione utente e le regole, con sandbox read-only, nessuna approvazione, ricerca web e visualizzazione di immagini disattivate e le altre integrazioni (browser, app, plugin, sotto-agenti) disabilitate. Il sandbox read-only non vieta tecnicamente la lettura dei file, e queste opzioni sono state verificate con una versione specifica della CLI e un servizio simulato: **non sono una garanzia di isolamento dai dati locali per ogni versione futura di Codex.** Aggiorna le CLI con cautela e non considerare la chat «solo chat» a prova di errore.
+- **Claude in Chat** ha soltanto WebSearch e WebFetch, senza MCP, senza comandi slash, senza impostazioni utente e senza sessione persistente.
+- **Codex in Chat** è avviato in sessione non persistente, ignorando la configurazione utente e le regole, con sandbox read-only, nessuna approvazione e ricerca web live. Le altre integrazioni (browser, app, plugin, sotto-agenti) sono disabilitate. Il sandbox read-only non vieta tecnicamente la lettura dei file: queste opzioni **non sono una garanzia di isolamento dai dati locali per ogni versione futura di Codex.** Le immagini confermate dall'utente possono essere allegate alle richieste.
 - Le CLI Codex e Claude sono cercate nei percorsi usuali; su Mac anche in Homebrew, nvm e nella app ChatGPT. Non viene mai eseguito un comando costruito dal testo della chat.
 
+## Modalità Agente (anteprima)
+
+- È facoltativa, separata da Chat e disponibile soltanto con Codex e Claude. Dopo aver scelto una cartella, l'agente può leggere file, modificarli ed eseguire comandi. I file letti e gli output degli strumenti possono essere inviati al fornitore. La conferma della Chat non vale automaticamente per il primo invio in Agente.
+- Codex usa App Server con sandbox `workspace-write` e approvazioni dell'utente; carica la configurazione della CLI e le istruzioni del progetto. Claude usa il SDK ufficiale e la CLI installata, permessi `default`, senza caricare automaticamente le impostazioni utente/progetto. Le approvazioni e i chiarimenti vengono presentati nell'interfaccia. La cartella di lavoro non garantisce isolamento completo del computer.
+- Le sessioni agente vengono conservate dalle CLI e riprese nei turni successivi. Mascotte salva cartelle e identificativi in `agents/state.json` e le cronologie separate in `agents/history.json` nella propria cartella dati, con le stesse protezioni degli altri JSON. Le attività dettagliate mostrate da Mascotte restano in memoria; la CLI può conservarle nella propria sessione. `Nuova` non elimina i file modificati o le sessioni del fornitore. `Interrompi` ferma l'esecuzione, senza annullare gli effetti già prodotti.
+- Nessuna chiave API viene aggiunta o ereditata dalle variabili dei tre servizi. Login, accesso e limiti dipendono dalle CLI e dal fornitore; Mascotte non offre autenticazione propria. Il percorso Claude reale e la modalità Agente su Mac non sono ancora collaudati. La guida [AGENTI.md](AGENTI.md) specifica capacità e limiti dell'anteprima.
+
 ## Chat locale
+
 
 - La chat locale usa solo modelli che girano sul computer, tramite Ollama su `127.0.0.1`: i modelli cloud di Ollama (che girano sui server di Ollama) sono esclusi e non vengono mai usati. Se scegli un modello già presente in Ollama, Mascotte legge dall'elenco locale di Ollama solo nome, dimensione e capacità, senza inviare nulla a servizi remoti; il nome del modello scelto è salvato in `settings.json`.
 - Altri motori locali (LM Studio, server di llama.cpp, Jan): solo se li scegli tu nelle Impostazioni e solo se il loro server è già avviato da te sul computer. Mascotte si collega esclusivamente a `127.0.0.1` sulle porte predefinite (nessun indirizzo remoto o della rete locale, nessun URL libero, nessun redirect), non li avvia, non scarica modelli e non usa chiavi API. Legge dall'elenco locale del server solo i nomi dei modelli (e, se esposte, dimensione e capacità) e invia al server la conversazione; i modelli che sembrano remoti o proxy verso servizi online sono esclusi con un controllo euristico sul nome. Il motore e il modello scelti sono salvati in `settings.json`; cosa fa poi quel programma con i dati dipende da lui.

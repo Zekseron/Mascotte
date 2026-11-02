@@ -6,9 +6,24 @@ const { spawn, execFileSync } = require('node:child_process');
 test('Windows: mascotte topmost sopra una finestra normale anche dopo Mostra e cambio hitbox', { skip: process.platform !== 'win32' && 'ordine nativo solo Windows', timeout: 30000 }, async t => {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte-topmost-'));
   const env = { ...process.env, MASCOTTE_TOPMOST_TEST_PROFILE: profile }; delete env.ELECTRON_RUN_AS_NODE;
-  const child = spawn(require('electron'), [path.join(__dirname, 'fixtures/topmost.cjs')], { env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+  // Su Windows un blocco temporaneo dell'eseguibile può far fallire spawn con EBUSY.
+  // Ritentare solo l'avvio; le verifiche native successive restano obbligatorie.
+  let child;
+  t.after(async () => { if (child?.pid) { child.kill(); await new Promise(resolve => { if (child.exitCode !== null) resolve(); else child.once('exit', resolve); }); } fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); });
+  for (let attempt = 0; ; attempt++) {
+    try {
+      child = await new Promise((resolve, reject) => {
+        const candidate = spawn(require('electron'), [path.join(__dirname, 'fixtures/topmost.cjs')], { env, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+        candidate.once('error', reject);
+        candidate.once('spawn', () => resolve(candidate));
+      });
+      break;
+    } catch (error) {
+      if (error.code !== 'EBUSY' || attempt >= 4) throw error;
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+  }
   let output = '', diagnostic = ''; child.stdout.on('data', data => { output += data; }); child.stderr.on('data', data => { diagnostic += data; });
-  t.after(async () => { child.kill(); await new Promise(resolve => { if (child.exitCode !== null) resolve(); else child.once('exit', resolve); }); fs.rmSync(profile, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 }); });
   const until = async text => { const end = Date.now() + 12000; while (!output.includes(text) && Date.now() < end && child.exitCode === null) await new Promise(r => setTimeout(r, 50)); assert.ok(output.includes(text), diagnostic || 'Fixture non pronta'); };
   const inspect = () => {
     const script = `Add-Type @'

@@ -1,6 +1,6 @@
 {
   "name": "mascotte-windows",
-  "version": "0.8.2",
+  "version": "0.9.0",
   "private": true,
   "description": "Mascotte desktop per Windows — anteprima",
   "author": "Zekseron",
@@ -18,6 +18,7 @@
     "update:win": "node scripts/install-update.cjs"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "0.3.316",
     "smol-toml": "1.9.1"
   },
   "devDependencies": {
@@ -31,7 +32,10 @@
     "productName": "Mascotte",
     "asar": true,
     "extraResources": [
-      { "from": "scripts/install-update.cjs", "to": "mascotte-updater.cjs" }
+      {
+        "from": "scripts/install-update.cjs",
+        "to": "mascotte-updater.cjs"
+      }
     ],
     "files": [
       "main.cjs",
@@ -40,7 +44,8 @@
       "renderer/**",
       "resources/**",
       "package.json",
-      "!resources/mac/**"
+      "!resources/mac/**",
+      "!node_modules/@anthropic-ai/claude-agent-sdk-*/**"
     ],
     "win": {
       "target": "zip",
@@ -48,14 +53,30 @@
       "signExecutable": false
     },
     "mac": {
-      "target": [{ "target": "zip", "arch": "arm64" }, { "target": "dir", "arch": "arm64" }],
+      "target": [
+        {
+          "target": "zip",
+          "arch": "arm64"
+        },
+        {
+          "target": "dir",
+          "arch": "arm64"
+        }
+      ],
       "category": "public.app-category.utilities",
       "identity": "-",
       "notarize": false,
       "hardenedRuntime": false,
       "artifactName": "Mascotte-Mac-${version}-${arch}.${ext}",
-      "extendInfo": { "LSUIElement": true },
-      "extraResources": [{ "from": "resources/mac/mascotte-window-helper", "to": "mascotte-window-helper" }]
+      "extendInfo": {
+        "LSUIElement": true
+      },
+      "extraResources": [
+        {
+          "from": "resources/mac/mascotte-window-helper",
+          "to": "mascotte-window-helper"
+        }
+      ]
     },
     "nsis": {
       "oneClick": false,

@@ -1,6 +1,8 @@
 # Mascotte su Windows
 
-Guida per chi riceve l'app Windows. È la stessa app Electron usata anche sul Mac (versione 0.8.2, sorgenti nella cartella `windows/` della repo). Per il Mac vedi [LEGGIMI.md](LEGGIMI.md). Il vecchio piano di porting di questa pagina è stato completato e sostituito da questa guida.
+Guida per chi riceve l'app Windows, anteprima 0.9.0 (sorgenti in `windows/`). La base Electron è condivisa con il Mac; la nuova modalità Agente non è ancora collaudata sul Mac. Per il Mac vedi [LEGGIMI.md](LEGGIMI.md).
+
+Con Codex e Claude puoi scegliere **Chat** oppure **Agente · file e comandi**. In Agente scegli prima una cartella e assegna un compito; attività, modifiche e richieste di permesso compaiono nella finestra. Cronologie e sessioni sono separate dalla chat normale. Guida e limiti dell'anteprima: [AGENTI.md](AGENTI.md). Codex provato realmente su Windows; Claude richiede ancora un collaudo con account reale.
 
 ## Requisiti
 

@@ -24,6 +24,7 @@ function startApplication() {
   if (can.hideDock) app.dock?.hide();
   const { prepareDirectory, readJSON, atomicJSON, ChatStore } = require('./lib/storage.cjs');
   const CLI = require('./lib/cli.cjs');
+  const { AgentManager } = require('./lib/agents.cjs');
   const LocalAI = require('./lib/local-ai.cjs'), LocalEngines = require('./lib/local-engines.cjs');
   const { StateController, clampPosition } = require('./lib/state.cjs');
   const { EventServer } = require('./lib/events.cjs');
@@ -38,6 +39,7 @@ function startApplication() {
   const { buildChatSnapshot } = require('./lib/snapshot.cjs');
   let mascot, chat, tray, controller, server, store, memory, pack, imageData, currentRun, hitMask, mouseTimer;
   let settings, engine = 'codex', engineTouched = false, notice = '', setupPreview, drag, quitting = false, mouseIgnored = true, localAvailable = false, managedOllama = null, installedCache = null, localScanning = false, engineStatus = null;
+  let agents;
   let characters = [], includedCharacters = [], characterWarnings = [], characterStatus = '', characterStatusFailed = false;
   let attachment = 'free', singing = false, follower, captureFollower, captureTimer, anchorTimer, anchorDisplay, anchorFraction = .8, targetBounds, concealed = false, userVisible = true;
   let watchSource = null, activeShareDirectory = null, pendingAction = null;
@@ -93,7 +95,12 @@ function startApplication() {
     managementAvailable: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), hooks: hooksState(), updateRunning, updateStatus, updateFailed,
     viewableFolders: FolderView.viewableFolders(), folderStatus, folderStatusFailed
   });
-  const chatSnapshot = () => buildChatSnapshot(chatState());
+  const chatSnapshot = () => {
+    const snapshot = buildChatSnapshot(chatState());
+    snapshot.agent = agents?.snapshot(engine);
+    if (snapshot.agent?.enabled) snapshot.messages = agents.store.get(engine);
+    return snapshot;
+  };
   // Immagini: Ollama le legge dal modello; gli altri motori solo se il server le dichiara (altrimenti allegati disattivati).
   const localVision = () => settings?.localEngine && settings.localEngine !== 'ollama' ? LocalEngines.supportsVision(settings.localEngine, settings.localModel) : LocalAI.supportsVision(settings?.localModel);
   const saveSettings = () => atomicJSON(stateFile, settings);
@@ -405,6 +412,7 @@ function startApplication() {
     setTimeout(clearReleaseDownloads, 15000).unref();
     const chatDirectory = path.join(dataDirectory, 'chat'); prepareDirectory(chatDirectory);
     store = new ChatStore(chatDirectory);
+    agents = new AgentManager(path.join(dataDirectory, 'agents'), broadcast);
     memory = new LocalAI.LocalMemory(chatDirectory);
     reminders = new Reminders.ReminderStore(path.join(dataDirectory, 'reminders.json'));
     reminderScheduler = createScheduler({ store: reminders, fire: fireReminder, onError: reminderFailed });
@@ -473,6 +481,19 @@ function startApplication() {
     }
     if (chatting) {
       if (action === 'snapshot') return chatSnapshot();
+      if (action === 'agent-mode' && !currentRun && !localDownload && !updateRunning && engine !== 'locale' && typeof data === 'boolean') {
+        agents.mode = data; engineTouched = true; notice = ''; return chatSnapshot();
+      }
+      if (action === 'agent-workspace' && !currentRun && !localDownload && !updateRunning && engine !== 'locale') {
+        const selectedEngine = engine;
+        const selected = await pickFolder('Cartella di lavoro per ' + engine, agents.entry(engine).cwd);
+        if (!selected.canceled && selected.filePaths[0] && !currentRun) {
+          try { agents.choose(selectedEngine, selected.filePaths[0]); notice = 'Cartella scelta. La nuova sessione agente userà questa cartella.'; }
+          catch (error) { notice = error.message; }
+        }
+        return chatSnapshot();
+      }
+      if (action === 'agent-answer' && currentRun) { agents.answer(data); return chatSnapshot(); }
       if (action === 'local-scan') {
         if (localDownload || currentRun || updateRunning || localScanning) return chatSnapshot();
         // Solo su richiesta dell'utente (apertura delle Impostazioni o pulsante): legge /api/tags e /api/show su 127.0.0.1 e ricorda il risultato.
@@ -719,7 +740,7 @@ function startApplication() {
         stopAlarm(); scheduleReminders();
         if (!currentRun) controller.set('idle'); notice = `Sveglia rimandata a ${Reminders.formatWhen(snoozed.item.when)}.`; return chatSnapshot();
       }
-      if (action === 'new' && !currentRun) { store.set(engine, []); if (engine === 'locale') clearLastFrame(); notice = ''; return chatSnapshot(); }
+      if (action === 'new' && !currentRun) { if (agents.snapshot(engine).enabled) agents.reset(engine); else store.set(engine, []); if (engine === 'locale') clearLastFrame(); notice = ''; return chatSnapshot(); }
       // Anteprima del fotogramma conservato, solo per la finestra di conferma del secondo parere.
       if (action === 'second-opinion-frame') return lastFrame ? 'data:image/jpeg;base64,' + lastFrame.bytes.toString('base64') : null;
       if (action === 'stop') { currentRun?.stop(); return; }
@@ -804,6 +825,16 @@ function startApplication() {
         if (engine !== 'locale' && !command) { notice = 'CLI non trovata. Installa e accedi a ' + engine + ' sul tuo ' + can.deviceName + '.'; broadcast(); return; }
         const selected = engine, prompt = text.trim(), history = store.get(selected);
         const imageNote = image ? `\n\n[Fotogramma condiviso: ${image.name}]` : '';
+        if (agents.snapshot(selected).enabled) {
+          try {
+            if (data?.noHistory === true) agents.reset(selected);
+            const run = agents.run(selected, command, prompt, image?.bytes.toString('base64'));
+            currentRun = run; notice = ''; controller.set('thinking', true); broadcast();
+            await run.promise; controller.set('talk');
+          } catch (error) { notice = error.message.slice(0, 1500); controller.set('error'); }
+          finally { currentRun = null; broadcast(); }
+          return;
+        }
         if (image && selected === 'codex') {
           try {
             imageDirectory = fs.mkdtempSync(path.join(dataDirectory, 'mascotte-share-'));

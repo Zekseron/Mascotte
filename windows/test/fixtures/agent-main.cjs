@@ -1,0 +1,24 @@
+'use strict';
+const path = require('node:path'), fs = require('node:fs');
+const { app, BrowserWindow, dialog } = require('electron');
+const root = path.resolve(__dirname, '../../../work/agent-main'); fs.mkdirSync(root, { recursive: true });
+process.env.MASCOTTE_DATA_DIR = path.join(root, 'dati'); process.env.MASCOTTE_WINDOWS_DATA_DIR = process.env.MASCOTTE_DATA_DIR;
+process.env.MASCOTTE_PREVIEW = '1'; process.env.MASCOTTE_CHAT_CODEX = path.join(__dirname, 'agent-codex.cjs');
+dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [root] });
+require('../../main.cjs');
+const until = async check => { const end = Date.now() + 15000; while (Date.now() < end) { const value = await check(); if (value) return value; await new Promise(r => setTimeout(r, 50)); } throw new Error('Interfaccia non pronta'); };
+app.whenReady().then(async () => {
+  const window = await until(() => BrowserWindow.getAllWindows().find(w => w.webContents.getURL().endsWith('/chat.html') && !w.webContents.isLoading()));
+  const invoke = (action, data) => window.webContents.executeJavaScript(`window.mascotte.invoke(${JSON.stringify(action)},${JSON.stringify(data)})`);
+  await invoke('engine', 'codex'); await invoke('agent-mode', true); await invoke('agent-workspace'); await invoke('new');
+  const before = await invoke('snapshot'); if (!before.agent.enabled || before.agent.workspace !== fs.realpathSync(root)) throw new Error('Modalità/cartella non collegate');
+  await window.webContents.executeJavaScript("window.agentQaSend = window.mascotte.invoke('send','prova IPC agente'); void 0;");
+  let snapshot = await until(async () => { const s = await invoke('snapshot'); return s.agent.requests[0]?.kind === 'approval' && s; });
+  await invoke('agent-answer', { id: snapshot.agent.requests[0].id, approved: false });
+  snapshot = await until(async () => { const s = await invoke('snapshot'); return s.agent.requests[0]?.kind === 'questions' && s; });
+  await invoke('agent-answer', { id: snapshot.agent.requests[0].id, answers: { name: 'prova.txt' } });
+  await window.webContents.executeJavaScript('window.agentQaSend'); snapshot = await invoke('snapshot');
+  if (snapshot.busy || snapshot.messages.length !== 2 || !snapshot.messages[1].text.includes('prova.txt')) throw new Error('Risultato agente non conservato');
+  await invoke('agent-mode', false); const chat = await invoke('snapshot'); if (chat.messages.length) throw new Error('Cronologie confuse');
+  console.log(JSON.stringify({ ipcAgente: true, permessi: true, chiarimenti: true, chatSeparata: true })); app.quit();
+}).catch(error => { console.error(error); app.exit(1); });

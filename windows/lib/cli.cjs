@@ -2,6 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
+const { createRequire } = require('node:module');
 const { spawn, execFile } = require('node:child_process');
 const INSTRUCTIONS = 'Sei l’assistente della micro chat Mascotte. Rispondi in modo chiaro e conciso nella lingua dell’utente. Per domande su fatti recenti, informazioni che possono cambiare o richieste di ricerca online, usa la ricerca web integrata e cita i link delle fonti consultate. Se la ricerca non è disponibile, dichiaralo e non fingere di aver cercato. Non eseguire comandi, non leggere o modificare file, non usare integrazioni o agenti.';
 const ENGINES = ['codex', 'claude'];
@@ -35,6 +36,16 @@ function commandFor(file, electronExecutable = process.execPath) {
   if (/\.cmd$/i.test(file)) {
     const js = path.join(path.dirname(file), 'node_modules', '@openai', 'codex', 'bin', 'codex.js');
     if (!fs.existsSync(js)) return null; // Non passare mai wrapper arbitrari alla shell.
+    if (process.platform === 'win32' && ['x64', 'arm64'].includes(process.arch)) {
+      // Il wrapper npm avvia codex.exe senza windowsHide: avviarlo direttamente
+      // evita la console vuota, conservando l'installazione CLI scelta dall'utente.
+      const triple = process.arch === 'arm64' ? 'aarch64-pc-windows-msvc' : 'x86_64-pc-windows-msvc';
+      const root = fs.realpathSync(path.join(path.dirname(js), '..'));
+      let vendor = path.join(root, 'vendor');
+      try { vendor = path.join(path.dirname(createRequire(js).resolve(`@openai/codex-win32-${process.arch}/package.json`)), 'vendor'); } catch {}
+      const native = path.join(vendor, triple, 'bin', 'codex.exe');
+      if (fs.existsSync(native) && fs.statSync(native).isFile()) return { file: native, prefix: [], env: { CODEX_MANAGED_BY_NPM: '1', CODEX_MANAGED_PACKAGE_ROOT: root } };
+    }
     return { file: electronExecutable, prefix: [js], env: { ELECTRON_RUN_AS_NODE: '1' } };
   }
   if (/\.(bat|ps1)$/i.test(file)) return null;
