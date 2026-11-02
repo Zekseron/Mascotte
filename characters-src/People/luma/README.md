@@ -1,16 +1,26 @@
 # Sorgenti Luma
 
-`source.png`: i due fotogrammi approvati, con fondo rimosso tramite imagegen integrato. `preview.png`: primo fotogramma esportato. La precedente anteprima in `previews/luma-idle/` resta il riferimento del movimento.
+`source.png`: i due disegni approvati (occhi aperti e chiusi), con fondo rimosso tramite imagegen integrato. `preview.png`: primo fotogramma esportato. L'anteprima in `previews/luma-idle/` resta il riferimento del respiro.
 
-Rigenerazione su Windows, dalla radice del progetto:
+Rigenerazione, su Mac o Windows, dalla radice del progetto (serve solo Pillow):
 
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File characters-src/People/luma/build.ps1
+```bash
+python3 characters-src/People/luma/build.py
 ```
 
-Il comando usa System.Drawing incluso in Windows, senza dipendenze scaricate, e scrive `characters/People/luma/`. La scelta di esecuzione vale solo per quel processo. Questo generatore è separato dai generatori Python dei gattini; `tools/build_all.py` conserva il pacchetto presente e lo include nell'indice.
+Scrive `characters/People/luma/` e, in `work/previews/luma/`, `contact.png` con tutte le pose e una GIF per stato. Anche `python3 tools/build_all.py luma` lo esegue. Sostituisce il vecchio `build.ps1`, di cui conserva il respiro.
 
-La deformazione replica l'anteprima: inviluppo sinusoidale solo fra le righe 380 e 650, massimo 4 px, inspirazione 1,6 s ed espirazione 2,4 s. Il secondo fotogramma è ritagliato a x=949 per conservare la correzione di allineamento approvata. Interpolazione dei colori premoltiplicati per l'alpha; nessuna variazione di scala globale. Il movimento viene campionato a 20 Hz e quantizzato in 17 livelli; i confini dei battiti vengono inseriti esattamente nella sequenza. Il foglio resta entro i limiti del caricatore Windows.
+## Come nascono le pose
+
+Ci sono solo due disegni, quindi ogni posa deforma quei pixel e aggiunge bocca ed effetti nello stesso stile, con il contorno scuro dell'illustrazione:
+
+- **Occhi chiusi:** solo la zona degli occhi chiusi viene innestata, sfumata, sul disegno aperto. I due disegni differiscono di poco anche nei contorni, e lo scambio intero faceva tremolare la sagoma a ogni battito.
+- **Respiro:** è quello approvato, cioè un inviluppo sinusoidale fra le righe 380 e 650, massimo 4 px, con inspirazione al 40% del ciclo. In più testa e spalle salgono di 1,5 px.
+- **Corpo:** la testa ruota attorno al collo, il corpo si inclina con i piedi fermi, c'è lo schiacciamento ancorato ai piedi, il salto, il tremolio e il pendolo quando la trascini. È una griglia di deformazione con colori premoltiplicati, senza aloni.
+- **Bocche e sguardi:** vengono dalle teste disegnate da Codex in `disegni/A5-espressioni/`. Di ogni testa si innesta solo la bocca o solo la zona degli occhi, con bordi sfumati e il tono della pelle pareggiato sul bordo. Scala e spostamento di ogni cella sono scritti in `EXPRESSIONS` dentro `build.py`; sono stati trovati confrontando pelle, naso e contorno attorno alla zona. L'innesto avviene prima della deformazione, così segue la testa. Il mezzo battito usa gli occhi socchiusi. Senza la cartella `disegni/` il generatore non parte.
+- **Effetti:** z, puntini, onde, ingranaggi, libro, foglio e matita, fulmine, punto esclamativo, stelline, cuore, goccia e lente che ingrandisce davvero l'occhio. Sono disegnati a 3x con contorno arrotondato, perlopiù nell'area in alto a destra.
+
+Le pose uguali diventano una sola cella. Lo spazio di lavoro di 600 × 1080 px sorgente viene ridotto a 8/17 nel fotogramma di 288 × 512, il massimo ammesso. Con `pixelRatio` 7 e `scale` 3 Luma è alta circa 189 punti come prima, con margine per salti ed effetti.
 
 Prompt di estrazione dello sfondo (imagegen integrato):
 

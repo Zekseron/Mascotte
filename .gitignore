@@ -44,3 +44,10 @@ events.json
 
 # Note private dell'autore (collegamento al Google Drive personale, non pubblicate)
 /WORK-IN-PROGRESS.md
+
+# Disegni di Luma: in Git solo gli scontornati che usa il generatore; originali
+# su bianco, scarti e note di passaggio restano sul disco di chi li ha prodotti.
+characters-src/People/luma/disegni/**/*-grezzo.png
+characters-src/People/luma/disegni/**/scarti/
+characters-src/People/luma/disegni/PASSAGGIO-disegni-luma.md
+characters-src/People/luma/disegni/HASH-DA-PRESERVARE.json
