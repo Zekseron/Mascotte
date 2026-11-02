@@ -1,11 +1,11 @@
 'use strict';
 const path = require('node:path'), fs = require('node:fs');
 const { app, BrowserWindow, dialog } = require('electron');
-const root = path.resolve(__dirname, '../../../work/agent-main'); fs.mkdirSync(root, { recursive: true });
+const root = process.env.MASCOTTE_TEST_ROOT || path.resolve(__dirname, '../../../work/agent-main'); fs.mkdirSync(root, { recursive: true });
 process.env.MASCOTTE_DATA_DIR = path.join(root, 'dati'); process.env.MASCOTTE_WINDOWS_DATA_DIR = process.env.MASCOTTE_DATA_DIR;
 process.env.MASCOTTE_PREVIEW = '1'; process.env.MASCOTTE_CHAT_CODEX = path.join(__dirname, 'agent-codex.cjs');
 dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [root] });
-require('../../main.cjs');
+require(process.env.MASCOTTE_TEST_MAIN || '../../main.cjs');
 const until = async check => { const end = Date.now() + 15000; while (Date.now() < end) { const value = await check(); if (value) return value; await new Promise(r => setTimeout(r, 50)); } throw new Error('Interfaccia non pronta'); };
 app.whenReady().then(async () => {
   const window = await until(() => BrowserWindow.getAllWindows().find(w => w.webContents.getURL().endsWith('/chat.html') && !w.webContents.isLoading()));
@@ -20,5 +20,15 @@ app.whenReady().then(async () => {
   await window.webContents.executeJavaScript('window.agentQaSend'); snapshot = await invoke('snapshot');
   if (snapshot.busy || snapshot.messages.length !== 2 || !snapshot.messages[1].text.includes('prova.txt')) throw new Error('Risultato agente non conservato');
   await invoke('agent-mode', false); const chat = await invoke('snapshot'); if (chat.messages.length) throw new Error('Cronologie confuse');
-  console.log(JSON.stringify({ ipcAgente: true, permessi: true, chiarimenti: true, chatSeparata: true })); app.quit();
+  await invoke('agent-mode', true); await invoke('new');
+  await window.webContents.executeJavaScript("window.agentQaClose = window.mascotte.invoke('send','prova chiusura chat'); void 0;");
+  await until(async () => (await invoke('snapshot')).agent.requests.length);
+  window.close();
+  const afterClose = await until(async () => { const s = await invoke('snapshot'); return !s.busy && s; });
+  if (!window.isMinimized() || afterClose.agent.requests.length) throw new Error('X non interrompe o non riduce a icona');
+  window.restore();
+  await invoke('new');
+  await window.webContents.executeJavaScript("window.agentQaQuit = window.mascotte.invoke('send','prova uscita app'); void 0;");
+  await until(async () => (await invoke('snapshot')).agent.requests.length);
+  console.log(JSON.stringify({ ipcAgente: true, permessi: true, chiarimenti: true, chatSeparata: true, xInterrompeERiduce: true, uscitaConRichiestaAttiva: true, sorgente: process.env.MASCOTTE_TEST_MAIN ? 'installato' : 'repo' })); app.quit();
 }).catch(error => { console.error(error); app.exit(1); });

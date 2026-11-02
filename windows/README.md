@@ -1,4 +1,6 @@
-# Mascotte 0.8.2 — app comune per Windows e Mac (anteprima da provare)
+# Mascotte 0.9.0 — app comune per Windows e Mac (anteprima Windows)
+
+La nuova [modalità Agente](../AGENTI.md) è verificata su Windows con Codex; Claude reale e le nuove funzioni comuni sul Mac restano da collaudare. La chat normale e quella locale restano disponibili separatamente.
 
 Questa cartella contiene l'app Electron usata su **Windows x64** e su **Mac Apple Silicon** (il nome `windows/` è rimasto da quando era solo Windows; rinominarla è rimandato). Le istruzioni per Windows sono in questa prima parte; quelle per il Mac nella sezione [Mac (Apple Silicon)](#mac-apple-silicon) più in basso. La vecchia app Swift per Mac è in `../app/` e non è più sviluppata. Guide per chi riceve l'app: [LEGGIMI.md](../LEGGIMI.md) e [WINDOWS.md](../WINDOWS.md); dati e privacy: [PRIVACY.md](../PRIVACY.md); release: [PUBBLICAZIONE.md](../PUBBLICAZIONE.md); esito del collaudo Mac: [COLLAUDO-MAC.md](COLLAUDO-MAC.md).
 
@@ -6,7 +8,7 @@ Prima app Windows: gattino Rosso trasparente e trascinabile, menu nell'area di n
 
 ## Installare su Windows
 
-Apri `Mascotte-Setup-0.8.0-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
+Apri `Mascotte-Setup-0.9.0-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
 
 In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Entrambi i pacchetti sono creati dalla build Windows; saranno disponibili nella pagina delle release solo dopo la pubblicazione della prima release.
 
@@ -26,14 +28,16 @@ Se manca spazio sopra una finestra massimizzata, la mascotte resta dentro l'area
 
 Il seguito della finestra usa un processo PowerShell locale con API User32/DWM e legge solo coordinate, PID e visibilità: l'aggancio non acquisisce immagini o testo. La chat offre separatamente l'osservazione locale di una finestra, che resta spenta finché non la attivi. Cattura, arresto e conferma del fotogramma sono stati verificati su Windows con una finestra sintetica e CLI simulate locali; le risposte visive dei servizi IA con account reali restano da provare.
 
-1. Per la versione portatile, estrai **tutto** `Mascotte-Windows-0.8.0-x64.zip` in una cartella stabile del tuo utente, per esempio `Mascotte` dentro la tua cartella utente. Non eseguire l'exe dentro lo ZIP. Mantieni accanto all'exe DLL, `resources/` e gli altri file.
+1. Per la versione portatile, estrai **tutto** `Mascotte-Windows-0.9.0-x64.zip` in una cartella stabile del tuo utente, per esempio `Mascotte` dentro la tua cartella utente. Non eseguire l'exe dentro lo ZIP. Mantieni accanto all'exe DLL, `resources/` e gli altri file.
 2. Apri `Mascotte.exe`. Non serve avviarlo come amministratore. È un'anteprima non firmata: Windows può mostrare SmartScreen. Verifica provenienza e pacchetto prima di decidere se autorizzarlo; non disattivare la protezione del sistema.
 3. Il gattino compare in basso a destra. Trascinalo per spostarlo. Clic sinistro apre la micro chat; clic destro e icona nell'area di notifica aprono il menu con grandezza, stati, mostra/nascondi ed Esci.
 4. Per la chat scegli Ollama locale oppure installa **Codex CLI e/o Claude Code nativi Windows** e accedi con il tuo account. Per i servizi remoti non basta il solo accesso nel browser; questa anteprima non collega automaticamente le CLI dentro WSL.
 
 ### Chat locale, memoria e azioni
 
-Installa [Ollama per Windows](https://ollama.com/download/windows), avvialo e scegli uno dei modelli in **Impostazioni > IA locale**. Premi **Scarica / aggiorna modello**: il predefinito Qwen3 4B instruct richiede circa 2,5 GB; il modello 1.7B circa 1,4 GB, ma e meno affidabile. Al termine della verifica scegli **Locale ? Ollama** nella chat. Le conversazioni locali sono separate da Codex e Claude. Se il modello e gia disponibile all'avvio, viene scelto automaticamente.
+Su Windows le nuove installazioni propongono **llama.cpp (Mascotte)** con Gemma 4 E4B: in **Impostazioni > IA locale** premi **Scarica llama.cpp e modello** e conferma il download verificato (circa 5,15 GB di modello e proiettore, più il runtime). Il motore resta sul computer e supporta testo e immagini. Chi aveva già scelto Ollama conserva la propria scelta; Ollama e gli altri motori restano disponibili. Le conversazioni locali sono separate da Codex e Claude.
+
+**Se scegli Ollama:** installa [Ollama per Windows](https://ollama.com/download/windows), avvialo e seleziona uno dei modelli in Impostazioni → IA locale. Premi **Scarica / aggiorna modello**: Qwen3 4B Instruct richiede circa 2,5 GB; il modello 1.7B circa 1,4 GB, ma è meno affidabile. Le indicazioni seguenti sulla porta 11434, il catalogo Qwen e lo scaricamento dalla RAM riguardano Ollama.
 
 La chat locale usa `127.0.0.1:11434` e richiede un modello GGUF presente sul PC; non passa automaticamente a un servizio remoto. Nessun modello cloud di Ollama viene usato dalla chat locale: i modelli già presenti nel tuo Ollama (**Impostazioni > IA locale > Cerca motori locali**) sono selezionabili solo se girano sul computer, generano testo e hanno un formato accettato; i modelli cloud o dubbi compaiono tra gli esclusi con il motivo. Mascotte non scarica né aggiorna modelli fuori catalogo. Per disabilitare anche le funzioni cloud di Ollama, segui la [configurazione local-only](https://docs.ollama.com/faq#how-can-i-disable-ollamas-cloud-features). Il download iniziale di Ollama e del modello richiede Internet. Il modello viene scaricato dalla RAM dopo ogni risposta, per liberare risorse; ricaricarlo può rendere più lenta la risposta successiva. Modelli piccoli possono dare risposte inesatte: verifica le informazioni importanti. I modelli Qwen3 testuali accettano solo testo; Qwen3-VL 2B e 4B Instruct accettano anche il fotogramma allegato e confermato.
 
@@ -134,14 +138,14 @@ Questa è la procedura per chi ha scaricato il sorgente da GitHub o come archivi
    npm.cmd run build:win
    ```
 
-   La build crea `dist\Mascotte-Windows-0.8.0-x64.zip` e `dist\Mascotte-Setup-0.8.0-x64.exe`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
+   La build crea `dist\Mascotte-Windows-0.9.0-x64.zip` e `dist\Mascotte-Setup-0.8.0-x64.exe`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
 
 2. Estrai **tutto** lo ZIP in una cartella che non sposterai, ad esempio `%LOCALAPPDATA%\Programs\Mascotte`. In PowerShell, dalla cartella `windows`:
 
    ```powershell
    $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Mascotte'
    New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-   Expand-Archive -LiteralPath '.\dist\Mascotte-Windows-0.8.0-x64.zip' -DestinationPath $installDir -Force
+   Expand-Archive -LiteralPath '.\dist\Mascotte-Windows-0.9.0-x64.zip' -DestinationPath $installDir -Force
    ```
 
    Avvia `Mascotte.exe` da quella cartella, non dallo ZIP. Mantieni lì anche DLL e `resources`. Scegli un percorso stabile; non deve contenere `%`, virgolette o ritorni a capo. Spostare o cancellare la cartella dopo aver collegato gli hook ne interrompe l'avvio: in quel caso estrai di nuovo in un percorso stabile e ripeti il collegamento.
@@ -169,7 +173,7 @@ Per sostituire una copia estratta con lo ZIP appena creato, prima esci da Mascot
 
 ```powershell
 Set-Location .\windows
-npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.8.0-x64.zip" --install-dir "$env:LOCALAPPDATA\Programs\Mascotte"
+npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.0-x64.zip" --install-dir "$env:LOCALAPPDATA\Programs\Mascotte"
 ```
 
 `--install-dir` deve indicare la cartella che contiene la vecchia `Mascotte.exe`; usa il percorso effettivo se l'hai estratta altrove. Il comando rifiuta di procedere se Mascotte è ancora aperta, prepara l'aggiornamento in una cartella temporanea e conserva la cartella precedente come `Mascotte.backup-<data>`. Non cancella i dati in `%LOCALAPPDATA%\Mascotte`.
@@ -182,7 +186,7 @@ Comandi rapidi PowerShell, sempre dalla cartella `windows`:
 | Avviare il sorgente | `npm.cmd start` |
 | Eseguire i test automatici | `npm.cmd test` |
 | Creare lo ZIP Windows x64 | `npm.cmd run build:win` |
-| Aggiornare una cartella estratta | `npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.8.0-x64.zip" --install-dir "<cartella-installazione>"` |
+| Aggiornare una cartella estratta | `npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.0-x64.zip" --install-dir "<cartella-installazione>"` |
 
 `resources` copia gli asset dalla radice della repo; non modificarli qui. Su Mac l'anteprima usa una cartella separata e `MASCOTTE_PREVIEW=1` sceglie una porta libera, preservando la mascotte nativa attiva. I test principali sono offline; `npm.cmd test` li esegue. `npm.cmd run test:codex-policy` usa opzionalmente la CLI Codex reale contro un mock locale con CODEX_HOME vuoto, senza login.
 
@@ -210,7 +214,7 @@ Riferimenti: [Electron sicurezza](https://www.electronjs.org/docs/latest/tutoria
 
 ### Scaricare o aggiornare il modello locale
 
-Su un nuovo PC apri **Impostazioni > IA locale**, usa **Installa Ollama** per scaricare il programma ufficiale e avvialo. Seleziona Qwen3 4B instruct (circa 2,5 GB) oppure 1.7B (circa 1,4 GB), poi premi **Scarica / aggiorna modello**. Vedi l'avanzamento e puoi annullare; ripetendo il download Ollama riutilizza le parti disponibili. Non servono terminale, Git o Node.js per scaricare il modello dall'app.
+Su un nuovo PC Windows apri **Impostazioni > IA locale**: con il predefinito **llama.cpp (Mascotte)** usa **Scarica llama.cpp e modello**. Se scegli invece Ollama, usa **Installa Ollama**, avvialo, seleziona il modello e premi **Scarica / aggiorna modello**. L'avanzamento e l'annullamento sono disponibili nell'app. Non servono terminale, Git o Node.js per questi download.
 
 Il pulsante aggiorna alla revisione disponibile dello stesso tag supportato, senza passare a una famiglia nuova automaticamente. Prima di rendere disponibile la chat, Mascotte verifica modello locale, formato GGUF e supporto al testo. La compatibilita tecnica non garantisce la qualita delle risposte o la velocita: il modello va scelto anche in base all'hardware. Il download non invia chat o note.
 
