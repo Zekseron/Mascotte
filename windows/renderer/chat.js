@@ -14,6 +14,7 @@ let current = null, drafts = { codex: '', claude: '', locale: '' }, watchStream 
 // Servizi remoti già confermati in questa esecuzione: dopo il primo invio i messaggi di testo partono senza nuova conferma.
 // La finestra della chat viene solo nascosta, quindi l'elenco dura finché Mascotte resta aperta. Immagini e secondo parere chiedono sempre.
 const remoteConfirmed = new Set();
+const remoteKey = engine => current?.agent?.enabled ? `${engine}|agent|${current.agent.workspace}` : engine;
 let selectedTab = 'chat';
 // Impostazioni al posto della chat: l'ingranaggio apre, «← Chat» (o l'ingranaggio di nuovo) torna indietro.
 function selectTab(tab) {
@@ -26,6 +27,7 @@ function selectTab(tab) {
   $('chat-controls').hidden = settingsOpen;
   document.querySelector('footer').hidden = settingsOpen;
   $('watch-panel').hidden = settingsOpen || !current?.watchAvailable;
+  $('agent-panel').hidden = settingsOpen || current?.engine === 'locale';
   $('settings-toggle').setAttribute('aria-pressed', String(settingsOpen));
 }
 // Sezioni aperte delle impostazioni: ricordate tra una apertura e l'altra (se il browser non permette di salvarle, si parte dalla prima).
@@ -255,11 +257,14 @@ function render(value) {
     if (message.role === 'assistant' && !appMessage) item.append(actions);
     $('messages').append(item);
   }
+  renderAgent(value, locked);
   $('messages').scrollTop = $('messages').scrollHeight;
   $('status').textContent = value.busy ? 'Sta pensando…' : value.notice || (value.available.includes(value.engine) ? 'Pronto · ' + (SERVICE_NAMES[value.engine] || localTitle(value, true)) : value.engine === 'locale' ? (value.localEngine !== 'ollama' ? `${value.localEngineLabel} o il modello non sono disponibili: controlla nelle Impostazioni (ingranaggio in alto).` : 'Installa Ollama e il modello nelle Impostazioni (ingranaggio in alto).') : 'Installa e accedi alla CLI ' + value.engine);
+  if (value.agent?.requests?.length) $('status').textContent = 'L’agente attende una tua risposta.';
   $('status').className = value.notice ? 'error' : '';
   $('send').textContent = value.busy ? 'Interrompi' : 'Invia ↗';
   $('send').disabled = management.running || (!value.busy && !$('input').value.trim());
+  if (value.agent?.enabled && !value.agent.workspace && !value.busy) $('send').disabled = true;
   $('watch-summary').textContent = value.watching
     ? (value.engine === 'locale' ? (value.localVision ? 'Osservazione attiva · immagine automatica locale' : 'Anteprima attiva · modello solo testo') : 'Anteprima attiva · allega un fotogramma')
     : 'Finestra da condividere';
@@ -282,6 +287,50 @@ function render(value) {
   else if ($('alarm-dialog').open) { stopAlarmSound(); $('alarm-dialog').close(); }
   if (value.pendingAction) { $('pc-action-description').textContent = value.pendingAction.description; if (!$('pc-action-dialog').open) $('pc-action-dialog').showModal(); }
   else if ($('pc-action-dialog').open) $('pc-action-dialog').close();
+}
+function renderAgent(value, locked) {
+  const agent = value.agent || {}, enabled = Boolean(agent.enabled);
+  $('agent-panel').hidden = selectedTab === 'settings' || value.engine === 'locale';
+  $('agent-mode').value = enabled ? 'agent' : 'chat'; $('agent-mode').disabled = locked;
+  $('agent-workspace').hidden = !enabled; $('agent-workspace').disabled = locked;
+  $('agent-workspace-path').hidden = $('agent-help').hidden = $('agent-session').hidden = !enabled;
+  $('agent-workspace-path').textContent = agent.workspace || 'Scegli la cartella prima di inviare un compito.';
+  $('agent-session').textContent = agent.session ? 'Sessione salvata · Nuova avvia una nuova sessione. Le modifiche ai file restano.' : 'Nuova sessione · cronologia separata dalla chat.';
+  $('agent-activity').hidden = !enabled || !agent.events?.length;
+  $('agent-events').replaceChildren(...(agent.events || []).map(event => {
+    const details = document.createElement('details'), title = document.createElement('summary'), text = document.createElement('pre');
+    title.textContent = event.title; text.textContent = event.detail; details.append(title, text); return details;
+  }));
+  const requests = agent.requests || [], signature = JSON.stringify(requests);
+  if ($('agent-requests').dataset.signature !== signature) {
+    $('agent-requests').dataset.signature = signature; $('agent-requests').replaceChildren();
+    for (const request of requests) {
+      const block = document.createElement('section'), title = document.createElement('h3');
+      block.className = 'agent-request'; title.textContent = request.title; block.append(title);
+      const respond = async data => { const next = await invoke('agent-answer', { id: request.id, ...data }); if (next) render(next); };
+      if (request.kind === 'approval') {
+        const detail = document.createElement('pre'); detail.textContent = request.detail; block.append(detail);
+        block.append(listButton('Rifiuta', () => respond({ approved: false })), listButton('Consenti questa volta', () => respond({ approved: true })));
+      } else {
+        const fields = [];
+        for (const question of request.questions || []) {
+          const label = document.createElement('label'), input = document.createElement('textarea');
+          label.textContent = question.question; input.rows = 2; input.maxLength = 8000;
+          input.setAttribute('aria-label', question.question); label.append(input); block.append(label); fields.push([question.id, input]);
+          if (question.options?.length) {
+            const options = document.createElement('p'); options.className = 'hint';
+            options.textContent = question.options.map(o => typeof o === 'string' ? o : o.label + (o.description ? ': ' + o.description : '')).join(' · '); block.append(options);
+          }
+        }
+        block.append(listButton('Annulla richiesta', () => respond({})), listButton('Rispondi', () => respond({ answers: Object.fromEntries(fields.map(([id, input]) => [id, input.value])) })));
+      }
+      $('agent-requests').append(block);
+      block.scrollIntoView({ block: 'nearest' });
+    }
+  }
+  if (enabled && agent.liveText) {
+    const preview = document.createElement('section'); preview.className = 'message assistant'; preview.textContent = agent.liveText; $('messages').append(preview);
+  }
 }
 // Sezione Mascotte: personaggio e grandezza (stessa logica del clic destro sulla mascotte) e mascotte personali.
 function renderCharacters(value, locked) {
@@ -351,6 +400,10 @@ function openRemote(text, engine, imageData = null, noHistory = false, preview =
   $('remote-image-status').textContent = preview && noHistory ? 'Fotogramma da inviare insieme al testo (togli la spunta per mandare solo il testo):' : imageData ? 'È incluso anche il fotogramma che hai appena approvato.' : 'Nessuna immagine allegata.';
   const name = SERVICE_NAMES[engine] || 'Claude';
   $('remote-once').textContent = imageData || noHistory ? '' : `Dopo questa conferma, i prossimi messaggi a ${name} partiranno senza chiedere finché non chiudi Mascotte. Immagini e secondo parere chiedono sempre conferma.`;
+  if (current.agent?.enabled) {
+    $('remote-context').textContent = current.agent.session ? 'La sessione agente salvata viene ripresa dal servizio. Può contenere file e risultati dei turni precedenti.' : 'Nuova sessione agente, separata dalla chat.';
+    $('remote-once').textContent = `Modalità Agente · ${current.agent.workspace || 'cartella non scelta'}. ${name} può leggere file, proporre modifiche ed eseguire comandi. Anche il contenuto letto e gli output possono essere inviati al servizio. Le richieste di permesso compariranno nella chat.`;
+  }
   $('remote-dialog').showModal();
 }
 async function submit(imageData = null, noHistory = false, confirmed = false, useLastFrame = false) {
@@ -361,7 +414,8 @@ async function submit(imageData = null, noHistory = false, confirmed = false, us
   // Chat locale con un modello che legge le immagini: mentre osservi una finestra, il fotogramma attuale parte con il messaggio.
   // Resta sul computer (solo il modello locale lo vede), quindi non serve conferma. Codex e Claude solo con «Allega fotogramma…».
   if (engine === 'locale' && !imageData && current.localVision && current.watching) imageData = captureFrame();
-  if (engine !== 'locale' && !confirmed && (imageData || noHistory || !remoteConfirmed.has(engine))) { openRemote(text, engine, imageData, noHistory); return; }
+  if (current.agent?.enabled && !current.agent.workspace) return;
+  if (engine !== 'locale' && !confirmed && (imageData || noHistory || !remoteConfirmed.has(remoteKey(engine)))) { openRemote(text, engine, imageData, noHistory); return; }
   $('input').value = ''; drafts[engine] = ''; $('send').disabled = true;
   await invoke('send', imageData || noHistory || useLastFrame ? { text, ...(imageData ? { imageData } : {}), ...(noHistory ? { noHistory: true } : {}), ...(useLastFrame ? { useLastFrame: true } : {}) } : text);
   const next = await invoke('snapshot');
@@ -404,6 +458,8 @@ $('composer').addEventListener('submit', event => { event.preventDefault(); subm
 $('input').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); submit(); } });
 $('input').addEventListener('input', () => { if (current) drafts[current.engine] = $('input').value; $('send').disabled = !current?.busy && !$('input').value.trim(); });
 $('engine').addEventListener('change', async () => { const next = await invoke('engine', $('engine').value); if (!next) { if (current) $('engine').value = current.engine; return; } $('input').value = drafts[next.engine] || ''; render(next); $('input').focus(); });
+$('agent-mode').addEventListener('change', async () => { remoteConfirmed.clear(); render(await invoke('agent-mode', $('agent-mode').value === 'agent')); });
+$('agent-workspace').addEventListener('click', async () => { remoteConfirmed.clear(); render(await invoke('agent-workspace')); });
 $('new').addEventListener('click', async () => { $('input').value = ''; drafts[current.engine] = ''; render(await invoke('new')); });
 $('settings-back').addEventListener('click', () => selectTab('chat'));
 $('settings-toggle').addEventListener('click', async () => { if (selectedTab === 'settings') { selectTab('chat'); $('input').focus(); return; } selectTab('settings'); render(await invoke('local-scan')); });
@@ -443,7 +499,7 @@ $('alarm-snooze').addEventListener('click', async () => { stopAlarmSound(); rend
 $('alarm-dialog').addEventListener('cancel', event => { event.preventDefault(); stopAlarmSound(); invoke('alarm-stop').then(render); });
 $('remote-cancel').addEventListener('click', () => { remotePending = null; $('remote-image').removeAttribute('src'); $('remote-dialog').close(); });
 $('remote-dialog').addEventListener('cancel', () => { remotePending = null; });
-$('remote-confirm').addEventListener('click', async () => { const text = $('remote-text').value.trim(); if (!text || !remotePending) return; const selected = $('remote-engine').value, pending = remotePending; remotePending = null; if (!pending.imageData && !pending.noHistory) remoteConfirmed.add(selected); const include = $('remote-image-choice').hidden || $('remote-include-image').checked; $('remote-dialog').close(); $('remote-image').removeAttribute('src'); const next = await invoke('engine', selected); $('input').value = text; render(next); await submit(include ? pending.imageData : null, pending.noHistory, true, include && pending.useLastFrame); });
+$('remote-confirm').addEventListener('click', async () => { const text = $('remote-text').value.trim(); if (!text || !remotePending) return; const selected = $('remote-engine').value, pending = remotePending; remotePending = null; if (!pending.imageData && !pending.noHistory) remoteConfirmed.add(remoteKey(selected)); const include = $('remote-image-choice').hidden || $('remote-include-image').checked; $('remote-dialog').close(); $('remote-image').removeAttribute('src'); const next = await invoke('engine', selected); $('input').value = text; render(next); await submit(include ? pending.imageData : null, pending.noHistory, true, include && pending.useLastFrame); });
 $('guide-git').addEventListener('click', () => invoke('cli-guide', 'git'));
 $('guide-node').addEventListener('click', () => invoke('cli-guide', 'node'));
 onClickRender('update-app', 'update-run');

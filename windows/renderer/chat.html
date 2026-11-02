@@ -26,6 +26,14 @@
     <details class="sec" id="sec-hook"><summary><span class="sec-title">Hook</span><span class="sec-sum" id="sum-hook"></span></summary><div class="sec-body"><p>Collega le sessioni di Codex e Claude Code alla mascotte, o aggiorna gli hook se l’app è stata spostata. Vedi l’anteprima e applichi con backup.</p><button id="manage-hooks" type="button">Crea / aggiorna hook</button><p id="hook-status" role="status" aria-live="polite"></p></div></details>
     <details class="sec" id="sec-aggiornamenti"><summary><span class="sec-title">Aggiornamenti</span><span class="sec-sum" id="sum-aggiornamenti"></span></summary><div class="sec-body"><span class="eyebrow" id="app-version">MASCOTTE</span><p id="update-intro"></p><button id="release-update" type="button">Controlla aggiornamenti</button><p id="update-status" role="status" aria-live="polite"></p><details class="inner"><summary>Aggiornamento da sorgenti</summary><p>Scegli un clone Git per compilare una versione dal progetto. Servono Git e Node.js 22+ con npm; salva prima le modifiche locali.</p><div class="management-actions"><button id="guide-git" type="button">Scarica Git</button><button id="guide-node" type="button">Scarica Node.js</button></div><p id="repo-path" class="local-path">Nessuna repo selezionata.</p><div class="management-actions"><button id="choose-repo" type="button">Scegli repo…</button><button id="update-app" type="button" disabled>Compila e aggiorna</button></div></details></div></details>
   </section>
+  <section id="agent-panel" aria-label="Modalità di lavoro" hidden>
+    <div class="agent-controls"><label for="agent-mode">Modalità</label><select id="agent-mode"><option value="chat">Chat</option><option value="agent">Agente · file e comandi</option></select><button id="agent-workspace" type="button" hidden>Scegli cartella…</button></div>
+    <p id="agent-workspace-path" class="hint" hidden></p>
+    <details id="agent-help" hidden><summary>Come funziona l’agente</summary><p class="hint">Lavora sui file del progetto e può eseguire comandi. I contenuti letti e gli output possono essere inviati al servizio. Le richieste di permesso compaiono qui; la cartella di lavoro non garantisce un isolamento completo del computer. Interrompi ferma il lavoro, ma non annulla le modifiche già applicate.</p></details>
+    <p id="agent-session" class="hint" hidden></p>
+    <details id="agent-activity" hidden><summary>Attività e modifiche</summary><div id="agent-events"></div></details>
+    <div id="agent-requests" aria-live="polite"></div>
+  </section>
   <main id="messages" aria-label="Conversazione" aria-live="polite"></main>
   <details id="watch-panel" aria-label="Anteprima della finestra">
     <summary id="watch-summary">Finestra da condividere</summary>

@@ -15,6 +15,7 @@ const source = fs.readFileSync(path.join(__dirname, '..', 'main.cjs'), 'utf8');
 const MASCOT = ['init', 'mask', 'chat', 'menu', 'drag-start', 'drag-move', 'drag-end'];
 // Solo la chat (gestore `if (chatting)`).
 const CHAT = [
+  'agent-mode', 'agent-workspace', 'agent-answer',
   'snapshot', 'local-scan', 'local-engine', 'local-model', 'local-download-cancel', 'local-managed-remove', 'local-download', 'local-check',
   'memory-add', 'memory-remove', 'pc-action-cancel', 'pc-action-confirm', 'cli-guide', 'release-update', 'character-select', 'character-scale',
   'character-add', 'character-remove', 'folders-add', 'folders-remove', 'repo-select', 'update-run', 'watch-sources', 'watch-permission-settings',
@@ -39,10 +40,10 @@ test('azioni della chat: elenco fisso', () => {
   assert.deepEqual(names(source.slice(chatStart, refusal)).sort(), [...CHAT].sort());
 });
 
-test('48 azioni distinte e nessuna in comune tra le due finestre', () => {
+test('51 azioni distinte e nessuna in comune tra le due finestre', () => {
   const all = names(source.slice(handlerStart));
-  assert.equal(all.length, 48);
-  assert.equal(MASCOT.length + CHAT.length, 48);
+  assert.equal(all.length, 51);
+  assert.equal(MASCOT.length + CHAT.length, 51);
   assert.deepEqual(all.sort(), [...MASCOT, ...CHAT].sort());
   assert.equal(MASCOT.filter(name => CHAT.includes(name)).length, 0);
 });

@@ -92,6 +92,21 @@ function loadChatDom() {
 
 const chatFixture = overrides => ({ engine: 'locale', busy: false, available: ['locale', 'codex', 'claude'], localEngine: 'ollama', localEngineLabel: 'Ollama', localModel: 'm', localCatalog: { models: [], default: 'm' }, localInstalled: [], localEngines: null, localManaged: {}, deviceName: 'PC', memories: [], reminders: [], alarmSettings: { sound: 'beep', volume: 0.8 }, setup: null, notice: '', management: {}, messages: [], ...overrides });
 
+test('Agente: cartella obbligatoria, anteprima esplicita e bozza del chiarimento preservata', () => {
+  const { render, element, evaluate, serialize } = loadChatDom();
+  const agent = { enabled: true, workspace: '', events: [], requests: [] };
+  render(chatFixture({ engine: 'codex', agent })); assert.equal(element('send').disabled, true);
+  agent.workspace = 'C:/progetto'; agent.session = true;
+  agent.requests = [{ id: 'a', kind: 'questions', title: 'Domanda', questions: [{ id: 'q', question: 'Quale file?' }] }];
+  render(chatFixture({ engine: 'codex', agent, busy: true }));
+  const request = element('agent-requests').__children[0];
+  render(chatFixture({ engine: 'codex', agent: { ...agent, liveText: '<script>test</script>' }, busy: true }));
+  assert.equal(element('agent-requests').__children[0], request, 'i campi non vengono ricreati durante lo streaming');
+  evaluate("openRemote('compito', 'codex')"); assert.match(element('remote-once').textContent, /Modalità Agente/);
+  assert.match(element('remote-context').textContent, /sessione agente salvata/);
+  assert.match(serialize(element('messages')), /<script>test<\/script>/, 'testo passato al DOM come textContent');
+});
+
 test('A2b: app compatta senza azioni; IA e legacy mantengono le azioni separate dal testo', () => {
   const { render, element, serialize } = loadChatDom();
   render(chatFixture({ messages: [{ role: 'assistant', text: 'Posso impostarlo', kind: 'app' }, { role: 'assistant', text: 'Risposta IA' }, { role: 'notice', text: 'Avviso' }] }));

@@ -28,3 +28,8 @@ header,#status,#composer,footer{flex-shrink:0}
 header>.controls{flex-shrink:0}.title-row{flex-wrap:wrap;gap:3px 8px}h1{white-space:nowrap}#engine{width:90px;max-width:90px}#account-hint{display:block;font-size:11px;color:#b3b7c5;margin:0 0 7px}footer{justify-content:flex-end}
 .message.app{padding:8px 12px;background:#20232b;border-left:2px solid #58505a;border-radius:5px}.message.app strong{margin-bottom:3px}.message-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;white-space:normal}.message-actions button{margin:0}.message-actions button+button{margin-left:0}
 #image-status{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 0 7px;color:#e4a964;font-size:11px}
+#agent-panel{padding:8px 14px;border-bottom:1px solid #3e424e;max-height:42vh;overflow:auto;flex-shrink:0}
+.agent-controls{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.agent-controls select{max-width:100%}
+#agent-workspace-path{overflow-wrap:anywhere}#agent-panel pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:200px;overflow:auto;font-size:11px}
+.agent-request{border:1px solid #b18b5a;border-radius:8px;padding:8px;margin-top:8px}.agent-request h3{margin:0 0 6px}.agent-request textarea{display:block;box-sizing:border-box;width:100%;margin:5px 0}.agent-request button{margin:4px 4px 0 0}#agent-panel summary{cursor:pointer}
+#agent-panel .hint{margin:5px 0;font-size:11px}#agent-panel .agent-request pre{max-height:100px}#agent-panel>details{font-size:11px;margin-top:5px}

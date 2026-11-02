@@ -79,7 +79,12 @@ async function downloadFile(file, dest, { signal, onBytes = () => {}, get = getR
     await pipeline(response, meter, fs.createWriteStream(partial, { flags: 'wx' }), { signal });
     if (size !== file.size || hash.digest('hex') !== file.sha256) throw new Error(`Verifica SHA-256 non riuscita per ${file.name}: file scartato.`);
     fs.renameSync(partial, dest); return dest;
-  } catch (error) { try { fs.unlinkSync(partial); } catch {} throw error; }
+  } catch (error) {
+    try { fs.unlinkSync(partial); } catch {}
+    // La risposta HTTP può chiudersi prima che pipeline propaghi AbortError.
+    if (signal?.aborted) throw Object.assign(new Error('Download annullato.', { cause: error }), { name: 'AbortError' });
+    throw error;
+  }
 }
 
 async function freeBytes(directory) {
