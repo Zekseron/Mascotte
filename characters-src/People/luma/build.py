@@ -87,7 +87,7 @@ class Pose:
     lens: tuple | None = None  # centro della lente che ingrandisce
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
-    hand: str = ""         # braccio destro: "" | chin (mano al mento, da B-thinking)
+    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -112,6 +112,10 @@ EXPRESSIONS = {
     "preoccupati": ("occhi-sorpresi-preoccupati-2-celle", (1075, 45, 1739, 789), "eyes", 0.6153, -4, 6),
     "destra": ("sguardi-destra-alto-2-celle", (86, 63, 827, 950), "eyes", 0.5486, -8, 7),
     "alto": ("sguardi-destra-alto-2-celle", (874, 63, 1605, 950), "eyes", 0.5516, -3, 6),
+    # sguardo sul libro, dalle teste di B-reading: pagina sinistra, destra, giro
+    "libro0": ("B-reading/reading-3-celle", (239, 8, 554, 709), "eyes", 1.3509, -7, -12),
+    "libro1": ("B-reading/reading-3-celle", (925, 8, 1240, 709), "eyes", 1.3385, -5, -10),
+    "libro2": ("B-reading/reading-3-celle", (1577, 9, 1895, 709), "eyes", 1.3289, -9, -3),
 }
 # nomi brevi usati negli stati, distinti per occhi e bocca ("open" vale per entrambi)
 EYE_ALIASES = {"half": "assonnati"}
@@ -155,7 +159,8 @@ def _expression(name: str) -> tuple[Image.Image, Image.Image]:
     if key in _CACHE:
         return _CACHE[key]
     sheet, box, zone, scale, dx, dy = EXPRESSIONS[name]
-    cell = Image.open(HERE / "disegni" / "A5-espressioni" / f"{sheet}-trasparente.png").convert("RGBA").crop(box)
+    folder = "" if "/" in sheet else "A5-espressioni/"   # gli occhi sul libro vengono da B-reading
+    cell = Image.open(HERE / "disegni" / f"{folder}{sheet}-trasparente.png").convert("RGBA").crop(box)
     small = cell.convert("RGBa").resize((round(cell.width * scale), round(cell.height * scale)), Image.LANCZOS).convert("RGBA")
     patch = Image.new("RGBA", (CROP_W, CROP_H), (0, 0, 0, 0))
     patch.alpha_composite(small, (34 + dx, 36 + dy))  # 34, 36: angolo della figura nel ritaglio
@@ -263,11 +268,7 @@ def _body(eyes: str, mouth: str, codex: bool) -> tuple[Image.Image, Image.Image]
     ImageDraw.Draw(zone).polygon(_canvas(SHOULDER_ZONE), fill=255)
     zone = zone.filter(ImageFilter.GaussianBlur(5))
     if codex:
-        sheet = Image.open(HERE / "disegni" / "A1-corpo" / "corpo-senza-braccia-trasparente.png").convert("RGBA")
-        x0 = CLOSED_X if eyes == "closed" else OPEN_X
-        armless = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
-        armless.paste(sheet.crop((x0, 0, x0 + CROP_W, CROP_H)), (ox + 1, oy))
-        body = Image.composite(armless, body, zone)
+        body = Image.composite(_armless(eyes), body, zone)
     # contorno lungo il taglio, fuori dalla zona già ridipinta
     ink = Image.new("L", CANVAS, 0)
     ImageDraw.Draw(ink).line([(_cut_x(y) + ox, y + oy) for y in range(418, 700, 4)
@@ -406,18 +407,114 @@ def _chin_arm() -> Image.Image:
     return _CACHE["chin"]
 
 
+def _armless(eyes: str) -> Image.Image:
+    """Il corpo senza braccia di A1 sulla tela, con gli occhi aperti o chiusi."""
+    key = ("armless", eyes == "closed")
+    if key not in _CACHE:
+        sheet = Image.open(HERE / "disegni" / "A1-corpo" / "corpo-senza-braccia-trasparente.png").convert("RGBA")
+        x0 = CLOSED_X if eyes == "closed" else OPEN_X
+        _CACHE[key] = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+        _CACHE[key].paste(sheet.crop((x0, 0, x0 + CROP_W, CROP_H)), (OFFSET[0] + 1, OFFSET[1]))
+    return _CACHE[key]
+
+
+def _zone(points, blur: float = 0) -> Image.Image:
+    m = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(m).polygon(_canvas(points), fill=255)
+    return m.filter(ImageFilter.GaussianBlur(blur)) if blur else m
+
+
 def _with_chin(img: Image.Image, eyes: str) -> Image.Image:
-    ox, oy = OFFSET
-    sheet = Image.open(HERE / "disegni" / "A1-corpo" / "corpo-senza-braccia-trasparente.png").convert("RGBA")
-    x0 = CLOSED_X if eyes == "closed" else OPEN_X
-    armless = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
-    armless.paste(sheet.crop((x0, 0, x0 + CROP_W, CROP_H)), (ox + 1, oy))
-    zone = Image.new("L", CANVAS, 0)
-    ImageDraw.Draw(zone).polygon(_canvas(CHIN_FLANK), fill=255)
-    img = Image.composite(armless, img, zone.filter(ImageFilter.GaussianBlur(3)))
+    img = Image.composite(_armless(eyes), img, _zone(CHIN_FLANK, 3))
     img.alpha_composite(_chin_arm())
     return img
 
+
+# Libro (reading): braccia, mani e libro di B-reading, registrati su colletto e
+# cintura (le figure intere hanno la testa più grande). La cella del giro di
+# pagina è allineata invece sul libro delle altre due e ruotata di 2,5°, così il
+# libro non salta; di lei si tengono sopra le pagine solo la mano e la pagina
+# alzata, senza la scia sfumata disegnata da Codex.
+BOOK_CELLS = (((239, 8, 554, 709), 1.2263, 36, 60, 0.0),
+              ((925, 8, 1240, 709), 1.2394, 32, 55, 0.0),
+              ((1577, 9, 1895, 709), 1.2296, 18, 41, -2.5))
+BOOK_FLANKS = (CHIN_FLANK, ((460, 400), (360, 380), (282, 392), (276, 470), (282, 560), (292, 720), (470, 720)))
+BOOK_SLEEVES = ((60, 392), (150, 380), (330, 380), (430, 392), (440, 500), (430, 600), (60, 600), (50, 500))
+BOOK_SHAPE = ((112, 400), (350, 396), (352, 540), (110, 544))
+TURN_HAND = ((60, 380), (150, 380), (172, 410), (150, 440), (60, 446))
+TURN_PAGE = ((146, 384), (162, 387), (176, 397), (186, 413), (194, 433), (200, 452), (176, 438), (160, 421), (150, 402))
+TURN_EDGE = TURN_PAGE[:6]   # bordo alto e destro della pagina, senza contorno nel disegno
+TURN_ABOVE = ((40, 330), (440, 330), (440, 412), (330, 416), (260, 428), (200, 444), (150, 424), (100, 420), (40, 420))
+
+
+def _book_arms(cell: int) -> Image.Image:
+    key = ("book", cell)
+    if key in _CACHE:
+        return _CACHE[key]
+    ox, oy = OFFSET
+    box, scale, x, y, rot = BOOK_CELLS[cell]
+    c = Image.open(HERE / "disegni" / "B-reading" / "reading-3-celle-trasparente.png").convert("RGBA").crop(box)
+    small = c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS)
+    if rot:
+        small = small.rotate(rot, resample=Image.BICUBIC, center=(small.width * 0.45, small.height * 0.62))
+    layer = Image.new("RGBa", CANVAS, (0, 0, 0, 0))
+    layer.paste(small, (ox + x, oy + y), small)
+    layer = layer.convert("RGBA")
+    zone = _zone(BOOK_SLEEVES)
+    # come per la mano al mento: aree chiare chiuse dal contorno con un seme di
+    # manica o di pelle, più il libro intero e il contorno attorno
+    lp = layer.load()
+    inside = Image.new("L", CANVAS, 0)
+    ip = inside.load()
+    for yy in range(oy + 370, oy + 610):
+        for xx in range(ox + 40, ox + 450):
+            r, g, b, a = lp[xx, yy]
+            if a > 40 and (r + g + b) / 3 > 95:
+                ip[xx, yy] = 255
+    inside = ImageChops.multiply(inside, zone)
+    ip = inside.load()
+    for yy in range(oy + 390, oy + 600, 3):
+        for xx in range(ox + 50, ox + 440, 3):
+            r, g, b, a = lp[xx, yy]
+            if ip[xx, yy] == 255 and ((r > 200 and 140 < g < 195 and b < 100) or (r > 215 and g > 165 and 135 < b < 200)):
+                ImageDraw.floodfill(inside, (xx, yy), 128)
+    filled = inside.point(lambda v: 255 if v == 128 else 0)
+    fill = ImageChops.lighter(filled, _zone(BOOK_SHAPE))
+    if cell == 2:
+        above = _zone(TURN_ABOVE)
+        white = layer.convert("L").point(lambda v: 255 if v > 236 else 0)
+        hand = ImageChops.multiply(ImageChops.multiply(_zone(TURN_HAND), filled), ImageChops.invert(white))
+        keep = ImageChops.lighter(hand, _zone(TURN_PAGE))
+        fill = ImageChops.lighter(ImageChops.multiply(fill, ImageChops.invert(above)), ImageChops.multiply(keep, above))
+    dark = layer.convert("L").point(lambda v: 255 if v <= 95 else 0)
+    ring = ImageChops.multiply(ImageChops.multiply(fill.filter(ImageFilter.MaxFilter(11)), dark), zone)
+    m = ImageChops.lighter(fill, ring).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(0.8))
+    # niente alone bianco dello scontorno (le pagine sono crema, non bianche)
+    white = Image.merge("RGB", layer.split()[:3]).convert("L").point(lambda v: 255 if v > 244 else 0)
+    grey = ImageChops.subtract(layer.getchannel("R"), layer.getchannel("B")).point(lambda v: 255 if v < 16 else 0)
+    halo = ImageChops.multiply(ImageChops.multiply(white, grey),
+                               ImageChops.invert(ImageChops.lighter(_zone(BOOK_SHAPE), _zone(TURN_PAGE))))
+    m = ImageChops.multiply(m, ImageChops.invert(halo))
+    if cell == 2:
+        m = ImageChops.multiply(m, ImageChops.invert(ImageChops.multiply(
+            _zone(TURN_ABOVE), ImageChops.invert(keep.filter(ImageFilter.MaxFilter(7))))))
+    out = _masked(layer, m)
+    if cell == 2:
+        W, H = CANVAS
+        line = Image.new("L", (W * 3, H * 3), 0)
+        ImageDraw.Draw(line).line([((px + ox) * 3, (py + oy) * 3) for px, py in TURN_EDGE], fill=255, width=10, joint="curve")
+        ink = Image.new("RGBA", CANVAS, INK + (0,))
+        ink.putalpha(line.resize(CANVAS, Image.LANCZOS))
+        out.alpha_composite(ink)
+    _CACHE[key] = out
+    return out
+
+
+def _with_book(img: Image.Image, eyes: str, cell: int) -> Image.Image:
+    flanks = ImageChops.lighter(_zone(BOOK_FLANKS[0]), _zone(BOOK_FLANKS[1])).filter(ImageFilter.GaussianBlur(3))
+    img = Image.composite(_armless(eyes), img, flanks)
+    img.alpha_composite(_book_arms(cell))
+    return img
 
 # ---------------------------------------------------------------- deformazione
 
@@ -607,30 +704,6 @@ def _arcs(n: int, zoom: float = 1.9):
     return paint
 
 
-def _book(flip: float, zoom: float = 1.7):
-    """Libro aperto visto di fronte; flip 0..1 gira la pagina destra a sinistra."""
-    def paint(d, c, ss):
-        s = ss * zoom
-        w, h = 34, 60
-        d.polygon([(c - w * 2 * s - 4 * s, c - h / 2 * s + 6 * s), (c, c - h / 2 * s + 10 * s), (c, c + h / 2 * s + 10 * s),
-                   (c - w * 2 * s - 4 * s, c + h / 2 * s + 6 * s)], fill=(150, 84, 52, 255))
-        d.polygon([(c + w * 2 * s + 4 * s, c - h / 2 * s + 6 * s), (c, c - h / 2 * s + 10 * s), (c, c + h / 2 * s + 10 * s),
-                   (c + w * 2 * s + 4 * s, c + h / 2 * s + 6 * s)], fill=(150, 84, 52, 255))
-        for side in (-1, 1):
-            d.polygon([(c, c - h / 2 * s + 4 * s), (c + side * w * 2 * s, c - h / 2 * s), (c + side * w * 2 * s, c + h / 2 * s),
-                       (c, c + h / 2 * s + 4 * s)], fill=CREAM + (255,))
-            for k in range(4):
-                y = c + (-12 + k * 9) * s
-                d.line([(c + side * 10 * s, y + 2 * s), (c + side * (w * 2 - 10) * s, y)], fill=(210, 176, 140, 255), width=int(3 * s))
-        if 0 < flip < 1:
-            x = c + math.cos(math.pi * flip) * w * 2 * s
-            lift = math.sin(math.pi * flip) * 14 * s
-            d.polygon([(c, c - h / 2 * s + 4 * s), (x, c - h / 2 * s - lift), (x, c + h / 2 * s - lift),
-                       (c, c + h / 2 * s + 4 * s)], fill=(255, 252, 240, 255), outline=(210, 176, 140, 255), width=int(2 * s))
-        d.line([(c, c - h / 2 * s + 4 * s), (c, c + h / 2 * s + 4 * s)], fill=INK + (255,), width=int(3 * s))
-    return paint
-
-
 def _paper(lines: float, tip: tuple[float, float], zoom: float = 1.45):
     def paint(d, c, ss):
         s = ss * zoom
@@ -683,9 +756,9 @@ def _lens_glass(img: Image.Image, center) -> None:
 
 
 PAINTERS = {"star": _star, "heart": _heart, "z": _zee, "drop": _drop, "exclaim": _exclaim,
-            "gear": _gear, "bolt": _bolt, "arcs": _arcs, "book": _book, "paper": _paper, "cloud": _cloud}
+            "gear": _gear, "bolt": _bolt, "arcs": _arcs, "paper": _paper, "cloud": _cloud}
 SIZES = {"star": 2.5, "heart": 2.6, "z": 2.8, "drop": 4.2, "exclaim": 1.3,
-         "gear": 2.6, "bolt": 2.6, "arcs": 250, "book": 280, "paper": 330, "cloud": 2.9}
+         "gear": 2.6, "bolt": 2.6, "arcs": 250, "paper": 330, "cloud": 2.9}
 
 
 def _effect(img: Image.Image, spec: tuple) -> None:
@@ -711,6 +784,8 @@ def render(p: Pose) -> Image.Image:
     img = _with_arm(p) if p.arm else _face(p.eyes, p.mouth).copy()
     if p.hand == "chin":
         img = _with_chin(img, p.eyes)
+    elif p.hand.startswith("book"):
+        img = _with_book(img, p.eyes, int(p.hand[-1]))
     img = _warp(img, p)
     for spec in p.fx:
         _effect(img, spec)
@@ -840,12 +915,11 @@ def working():
 
 
 def reading():
-    base = dict(head=4.0, head_dy=4.0, head_dx=2.0, breath=0.3)
-    seq = [(Pose(**base, fx=(("book", *SLOT, 0.0),)), 900),
-           (Pose(**base, eyes="closed", fx=(("book", *SLOT, 0.0),)), 110),
-           (Pose(**base, fx=(("book", *SLOT, 0.0),)), 700)]
-    for f in (0.25, 0.5, 0.75):
-        seq.append((Pose(**base, fx=(("book", *SLOT, f),)), 140))
+    # legge la pagina sinistra, sbatte le ciglia, passa alla destra e la gira
+    def pose(cell, breath, eyes=None):
+        return Pose(hand=f"book{cell}", eyes=eyes or f"libro{cell}", breath=breath)
+    seq = [(pose(0, 0.3), 900), (pose(0, 0.5), 500), (pose(0, 0.5, "closed"), 110), (pose(0, 0.4), 300),
+           (pose(1, 0.3), 900), (pose(1, 0.5), 600), (pose(2, 0.4), 160), (pose(2, 0.3), 200)]
     return seq, True
 
 
