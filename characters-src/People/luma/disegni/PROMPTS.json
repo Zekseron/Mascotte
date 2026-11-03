@@ -1,0 +1,625 @@
+{
+  "records": [
+    {
+      "id": "A1-corpo",
+      "folder": "A1-corpo",
+      "stem": "corpo-senza-braccia",
+      "raw": "lumaA1RawV2",
+      "alpha": "lumaA1Cutout",
+      "prompt": "Use case: precise-object-edit / identity-preserve. Edit attached sprite sheet LOCALLY. Keep original canvas 1678 x 937 and the original layout of TWO cells 839 x 937. Keep BOTH existing figures' precise original size, placement, feet baseline, all head pixels and hair contours and facial expressions, legs, shorts, clothing colors and every other detail. Change ONLY BOTH ARMS of each figure: remove the arms including hands and long puff sleeves; complete the underlying mustard jacket sides, teal overalls and moon tool pouch; leave small rounded sleeve attachment caps at each shoulder. Left figure eyes OPEN exactly as source, right figure eyes CLOSED exactly as source. Do not center the characters differently. Do not enlarge or shrink heads or bodies. Do not make a new illustration or reinterpret the character. Output the full original two-frame sheet with the two armless versions and pure white background, no labels, lines, borders, shadows or other objects. Absolute priority is identical original silhouette outside the small removed-arm regions.",
+      "cells": [
+        "Occhi aperti",
+        "Occhi chiusi"
+      ],
+      "status": "Controllo visivo positivo; pixel e contorni non identici al riferimento. Ritaglio e allineamento a Claude.",
+      "rawFile": "A1-corpo/corpo-senza-braccia-grezzo.png",
+      "alphaFile": "A1-corpo/corpo-senza-braccia-trasparente.png",
+      "extractionPrompt": "Use case: background-extraction. Edit ONLY the attached two-frame armless Luma sprite sheet. Remove ONLY the white background and make it truly transparent. Preserve the exact existing pixels of both armless figures, the canvas 1678 x 937, original two-frame layout, character position and scale, copper hair, amber eyes on left, closed eyes on right, clothing, moon pouch and tools, original outlines and all shading. Do not redraw, simplify, recolor, reposition or change anything. Keep every off-white cream shirt pixel opaque. No new outlines, no shadows, no checkerboard painted into image. Output real alpha transparency."
+    },
+    {
+      "id": "A2-sinistro-saluto",
+      "folder": "A2-braccia",
+      "stem": "braccio-sinistro-saluto-3-celle",
+      "raw": "lumaA2LeftWaveRaw",
+      "alpha": "lumaA2LeftWaveCutout",
+      "prompt": "Use case: cut-out animation part, precise identity-preserve. Reference is LEFT Luma on attached source. Make a sprite sheet of EXACTLY THREE equal cells side by side, each imagined 839 x 937, full sheet 2517 x 937. Draw ONLY HER LEFT ARM, which is on the RIGHT side from viewer's viewpoint, in a waving pose. Include the entire same mustard-yellow puffy sleeve from rounded shoulder attachment, cuff and forearm and open hand, original burgundy outline and original painted shading. NO torso, face, head, text, labels or extra arms. Scale each sleeve and hand exactly as in the reference: no giant hand. Place rounded shoulder end at approximately (568,425) relative to each cell. Upper arm points outward to viewer's RIGHT, elbow bent; forearm points vertically UP and open palm faces viewer at head height. Natural correct left-hand anatomy, exactly FIVE digits including thumb. Three consecutive wave frames: cell1 palm tilted LEFT, cell2 palm upright, cell3 palm tilted RIGHT; shoulder and elbow and sleeve remain identical and fixed. Keep all pieces within the cells, generous white margins, pure white background no shadows. Arm only, not a complete character. Preserve style, scale, sleeve length, puff fullness and cuffs from the reference; do not add bare upper arm.",
+      "cells": [
+        "Palmo inclinato a sinistra",
+        "Palmo diritto",
+        "Palmo inclinato a destra"
+      ],
+      "status": "Cinque dita visibili; asset ingranditi dal generatore, da ridimensionare e ancorare in Claude.",
+      "rawFile": "A2-braccia/braccio-sinistro-saluto-3-celle-grezzo.png",
+      "alphaFile": "A2-braccia/braccio-sinistro-saluto-3-celle-trasparente.png",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY the white background from this exact THREE-cell detached waving-arm sheet. Preserve the exact original dimensions, each existing arm pixel and every contour, colors, positions, size and three wave poses. Make background truly transparent including empty space between the five fingers. Do not draw, change or add anything; no checkerboard."
+    },
+    {
+      "id": "B-celebrate",
+      "folder": "B-celebrate",
+      "stem": "celebrate-4-celle",
+      "raw": "lumaBCelebrateRaw",
+      "prompt": "Use case: identity-preserve, animation key pose. Reference: ONLY the left eyes-open Luma in attached sheet. Create exactly FOUR equal full-body cells SIDE BY SIDE, no borders or labels, pure white background. Same Luma copper curly hair and silhouette, amber eyes/freckles/rosy cheeks, cream shirt, cropped puffy mustard jacket, teal short overalls with pocket/buttons, brown belt, crescent-moon pouch with screwdriver and wrench and brown boots; preserve every design detail and burgundy illustrated outlines, original chibi proportions. This is the CELEBRATE jump sequence: 1 knees deeply bent crouching ready to jump, arms low; 2 airborne with arms raised and legs open, joyful open mouth; 3 landing with bent knees and arms lowering; 4 standing, one fist raised and a wink. Maintain identical design, head/body scale and imaginary ground baseline between frames, allowing the feet to rise only in the jump. Whole figures fully inside each cell with generous whitespace, no clipped hair/fingers/boots, exactly five fingers per open hand. Character scale from reference, no redesign, no extra effects, no ground shadow, no text. Target sheet 3356 x 937 with 839 x 937 cells, and upright figure about 890px tall. Preserve the same original hair shape as far as pose allows.",
+      "cells": [
+        "Preparazione",
+        "In aria",
+        "Atterraggio",
+        "Pugno e occhiolino"
+      ],
+      "status": "Quattro pose controllate visivamente; ritaglio, normalizzazione di scala e baseline a Claude.",
+      "rawFile": "B-celebrate/celebrate-4-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-f85ce9c8-6562-44c2-bb7d-4257aa36899b.png",
+      "extractionPrompt": "Use case: background-extraction. Edit this EXACT FOUR-cell Luma celebrate sequence. Remove ONLY the white background, making genuine alpha transparency. Preserve the full original canvas dimensions, positions and scale of all four full-body figures, poses, all five fingers where hands open, every hair/face/clothing/moon pouch/tool/boot pixel and outline. Keep cream shirt opaque. Do not redraw, recolor, alter anatomy, resize, reposition or add anything. No checkerboard and no shadows.",
+      "alphaFile": "B-celebrate/celebrate-4-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-7b0d900f-6e09-4386-be75-41e4f140cf16.png"
+    },
+    {
+      "id": "A2-destro-saluto",
+      "folder": "A2-braccia",
+      "stem": "braccio-destro-saluto-3-celle",
+      "cells": [
+        "Palmo inclinato a sinistra",
+        "Palmo diritto",
+        "Palmo inclinato a destra"
+      ],
+      "spec": "Draw ONLY Luma's RIGHT ARM (on viewer LEFT), entire puffy mustard sleeve with rounded shoulder end, cuff, hand. THREE cells. Arm bent outward to viewer LEFT, elbow below hand, forearm raised vertically in a wave, open palm toward viewer. Three frames differ ONLY by palm tilt left/upright/right. Keep shoulder, elbow and sleeve identical. No head/body. Match reference arm scale. Thumb on the correct side for HER RIGHT hand.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. Draw ONLY Luma's RIGHT ARM (on viewer LEFT), entire puffy mustard sleeve with rounded shoulder end, cuff, hand. THREE cells. Arm bent outward to viewer LEFT, elbow below hand, forearm raised vertically in a wave, open palm toward viewer. Three frames differ ONLY by palm tilt left/upright/right. Keep shoulder, elbow and sleeve identical. No head/body. Match reference arm scale. Thumb on the correct side for HER RIGHT hand.",
+      "rawFile": "A2-braccia/braccio-destro-saluto-3-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-c44abc30-d5cc-49d4-a3b4-5378feca892a.png",
+      "status": "Corrette dita/lateralità; controllo visivo positivo. Ritaglio, scala e ancoraggio a Claude.",
+      "correctionPrompt": "Use case: precise-object-edit. Correct ONLY the THIRD (rightmost) HAND on this THREE-cell sheet. All three detached arms are Luma's RIGHT arm. The first and second hands correctly have their THUMB on the VIEWER RIGHT side of the palm. The third hand incorrectly switches handedness: redraw ONLY that third hand to also have its THUMB on VIEWER RIGHT, with FOUR fingers plus ONE thumb, palm facing viewer, wrist tilted for the third wave position. Keep first two cells EXACTLY untouched. Keep every sleeve, cuff, shoulder, canvas size, position, colors and shading unchanged. No body, labels or additional objects. Pure white background.",
+      "previousRawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-e71d34c2-c18c-4b3c-9719-33c89833e864.png",
+      "alphaFile": "A2-braccia/braccio-destro-saluto-3-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-d1c8b1ff-646b-4f74-b684-0f611cc1bfde.png",
+      "discarded": [
+        {
+          "file": "A2-braccia/scarti/braccio-destro-saluto-3-celle-prima-correzione.png",
+          "reason": "La terza mano aveva lateralità diversa dalle altre."
+        }
+      ],
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY the pure white background of this exact sprite sheet, making real alpha transparency. Preserve original canvas dimensions, all cells and their order, each existing pixel of sleeves and FIVE-digit hands, outlines, colors, scale and positions. Keep gaps between fingers transparent. Do not redraw, add, remove, mirror, recolor, resize or reposition any part. No checkerboard, no shadows."
+    },
+    {
+      "id": "A2-riposo",
+      "folder": "A2-braccia",
+      "stem": "braccia-riposo-2-celle",
+      "cells": [
+        "Braccio destro di Luma (lato sinistro per chi guarda)",
+        "Braccio sinistro di Luma (lato destro per chi guarda)"
+      ],
+      "spec": "Draw ONLY the detached arms in TWO cells: cell1 HER LEFT arm, cell2 HER RIGHT arm. Each is the exact relaxed arm from the reference, hanging down slightly outward, puffy mustard sleeve, cuff and relaxed open hand. Whole arm from rounded shoulder end to fingers. No head/body. Distinguish the two sides anatomically, do not duplicate the same arm.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. Draw ONLY the detached arms in TWO cells: cell1 HER LEFT arm, cell2 HER RIGHT arm. Each is the exact relaxed arm from the reference, hanging down slightly outward, puffy mustard sleeve, cuff and relaxed open hand. Whole arm from rounded shoulder end to fingers. No head/body. Distinguish the two sides anatomically, do not duplicate the same arm.",
+      "rawFile": "A2-braccia/braccia-riposo-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-53c8d525-3754-4ef3-81fb-6947b8fa92d9.png",
+      "status": "Corrette dita/lateralità; controllo visivo positivo. Ritaglio, scala e ancoraggio a Claude.",
+      "correctionPrompt": "Use case: precise-object-edit. Correct ONLY the two HANDS at bottom of this TWO-cell detached-arm sheet: each must have exactly FIVE anatomical digits, FOUR distinct relaxed downward fingers plus ONE thumb. Current illustrations appear to have only three long fingers: add the missing fourth finger naturally in each hand. Left cell is Luma's LEFT hand, thumb toward viewer RIGHT; right cell is her RIGHT hand, thumb toward viewer LEFT. Keep entire mustard sleeves, cuffs, shoulder shape, colors, size, poses, canvas dimensions and all other pixels unchanged. White background, no labels, no extra objects.",
+      "previousRawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-328a533b-508e-4027-92e3-5f0b8b028c9e.png",
+      "alphaFile": "A2-braccia/braccia-riposo-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-3ee9df1f-8c03-4ccf-8353-c4c9c5ef2632.png",
+      "discarded": [
+        {
+          "file": "A2-braccia/scarti/braccia-riposo-2-celle-prima-correzione.png",
+          "reason": "Dito mancante nelle mani rilassate."
+        }
+      ],
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY the pure white background of this exact sprite sheet, making real alpha transparency. Preserve original canvas dimensions, all cells and their order, each existing pixel of sleeves and FIVE-digit hands, outlines, colors, scale and positions. Keep gaps between fingers transparent. Do not redraw, add, remove, mirror, recolor, resize or reposition any part. No checkerboard, no shadows."
+    },
+    {
+      "id": "A2-esulta",
+      "folder": "A2-braccia",
+      "stem": "braccia-esulta-2-celle",
+      "cells": [
+        "Braccio destro alzato",
+        "Braccio sinistro alzato"
+      ],
+      "spec": "Draw ONLY detached arms in TWO cells: cell1 HER LEFT, cell2 HER RIGHT, raised high diagonally outward in celebration. Complete puffy mustard sleeve from rounded shoulder to cuff, hand with five digits. Keep hand open, fingers spread naturally. No head/body. These are two matching opposite arms for the same overhead celebration.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. Draw ONLY detached arms in TWO cells: cell1 HER LEFT, cell2 HER RIGHT, raised high diagonally outward in celebration. Complete puffy mustard sleeve from rounded shoulder to cuff, hand with five digits. Keep hand open, fingers spread naturally. No head/body. These are two matching opposite arms for the same overhead celebration.",
+      "rawFile": "A2-braccia/braccia-esulta-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-816e5c62-a23b-47cf-b6d4-90deecc2e247.png",
+      "status": "Controllo visivo positivo; lateralità etichettata secondo la posa prodotta. Ritaglio/scala/ancoraggio a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY the white background from the attached two-cell arm sheet, with real transparency. Preserve exact canvas, original pixels, colors, positions, arm shapes, hands and anatomy. No redrawing, additions, recoloring, mirroring or resizing. Do not add fingers or remove hidden fingers; keep original drawing unchanged. No checkerboard.",
+      "alphaFile": "A2-braccia/braccia-esulta-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-ca7f842b-1677-45fe-b08f-53303b83afed.png"
+    },
+    {
+      "id": "A2-avanti",
+      "folder": "A2-braccia",
+      "stem": "braccia-avanti-2-celle",
+      "cells": [
+        "Braccio destro piegato avanti",
+        "Braccio sinistro piegato avanti"
+      ],
+      "spec": "Draw ONLY detached arms in TWO cells: cell1 HER LEFT, cell2 HER RIGHT. Elbow bent, forearm points forward inward, hands at belly height as if holding a small object or typing. Complete rounded shoulder, puffy mustard sleeve, cuff and empty curved hand. No objects, head or body. Arms should attach at the original shoulders.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. Draw ONLY detached arms in TWO cells: cell1 HER LEFT, cell2 HER RIGHT. Elbow bent, forearm points forward inward, hands at belly height as if holding a small object or typing. Complete rounded shoulder, puffy mustard sleeve, cuff and empty curved hand. No objects, head or body. Arms should attach at the original shoulders.",
+      "rawFile": "A2-braccia/braccia-avanti-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-2c074c15-2bf9-4e51-b0c8-3443d166e983.png",
+      "status": "Controllo visivo positivo; lateralità etichettata secondo la posa prodotta. Ritaglio/scala/ancoraggio a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY the white background from the attached two-cell arm sheet, with real transparency. Preserve exact canvas, original pixels, colors, positions, arm shapes, hands and anatomy. No redrawing, additions, recoloring, mirroring or resizing. Do not add fingers or remove hidden fingers; keep original drawing unchanged. No checkerboard.",
+      "alphaFile": "A2-braccia/braccia-avanti-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-216f7e7d-f90a-4160-b2c4-2db7f776a5d6.png"
+    },
+    {
+      "id": "A2-mento",
+      "folder": "A2-braccia",
+      "stem": "braccio-destro-mento",
+      "cells": [
+        "Braccio destro con mano al mento"
+      ],
+      "spec": "ONE cell: ONLY HER RIGHT ARM (viewer LEFT), bent upward and inward with hand at chin level in a thinking gesture, index curled near chin and thumb under it. Include rounded shoulder end, full puffy mustard sleeve, cuff and hand. Do not include chin, face, hair or body. Arm posture must connect from the shoulder to original chin position.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. ONE cell: ONLY HER RIGHT ARM (viewer LEFT), bent upward and inward with hand at chin level in a thinking gesture, index curled near chin and thumb under it. Include rounded shoulder end, full puffy mustard sleeve, cuff and hand. Do not include chin, face, hair or body. Arm posture must connect from the shoulder to original chin position.",
+      "rawFile": "A2-braccia/braccio-destro-mento-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-b4cd6781-208c-4047-955f-fd6fc8c38ced.png",
+      "status": "Controllo visivo positivo; ritaglio/scala/allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY the white background from this exact animation artwork. Preserve original canvas dimensions, cell layout, positions, scale, ALL existing character/arm pixels, outlines, colors and facial/clothing/tool details. Keep cream fabric opaque. Do not redraw, add, remove or reinterpret anything. Output true alpha transparency, no painted checkerboard or shadows.",
+      "alphaFile": "A2-braccia/braccio-destro-mento-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-9b78d0eb-48c7-4128-b7fc-9082ae5bc50c.png"
+    },
+    {
+      "id": "B-sleep",
+      "folder": "B-sleep",
+      "stem": "sleep-2-celle",
+      "cells": [
+        "Respiro dentro",
+        "Respiro fuori"
+      ],
+      "spec": "TWO full-body keyframes of SLEEP. Luma is seated on the ground curled up, knees drawn up, head resting on crossed forearms on her knees, eyes closed peacefully. Same exact pose in both cells, ONLY shoulder rises subtly on inhale in cell1 and lowers on exhale in cell2. Boots and complete curled figure visible. Preserve hair volume, moon pouch and tools. No bed, pillow, Z letters or extra effects.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. TWO full-body keyframes of SLEEP. Luma is seated on the ground curled up, knees drawn up, head resting on crossed forearms on her knees, eyes closed peacefully. Same exact pose in both cells, ONLY shoulder rises subtly on inhale in cell1 and lowers on exhale in cell2. Boots and complete curled figure visible. Preserve hair volume, moon pouch and tools. No bed, pillow, Z letters or extra effects.",
+      "rawFile": "B-sleep/sleep-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-930a7c71-70f2-42d1-9a6c-69f026b288e8.png",
+      "status": "Controllo visivo positivo; ritaglio/scala/allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY the white background from this exact animation artwork. Preserve original canvas dimensions, cell layout, positions, scale, ALL existing character/arm pixels, outlines, colors and facial/clothing/tool details. Keep cream fabric opaque. Do not redraw, add, remove or reinterpret anything. Output true alpha transparency, no painted checkerboard or shadows.",
+      "alphaFile": "B-sleep/sleep-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-93d1ed77-4c75-4553-81c4-dc3a6f18d376.png"
+    },
+    {
+      "id": "A5-bocche-1",
+      "folder": "A5-espressioni",
+      "stem": "bocche-sorriso-o-2-celle",
+      "cells": [
+        "Bocca chiusa sorridente",
+        "Bocca piccola o"
+      ],
+      "spec": "ONLY front-facing HEADS cut at collar, TWO cells. Match the ORIGINAL LEFT Luma face exactly, same amber open eyes looking ahead and unchanged curls/face/collar. Change ONLY mouth: cell1 original small CLOSED SMILE, cell2 small round O mouth. Identical head scale/position, hair outline, eyes, nose and freckles in both cells.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. ONLY front-facing HEADS cut at collar, TWO cells. Match the ORIGINAL LEFT Luma face exactly, same amber open eyes looking ahead and unchanged curls/face/collar. Change ONLY mouth: cell1 original small CLOSED SMILE, cell2 small round O mouth. Identical head scale/position, hair outline, eyes, nose and freckles in both cells.",
+      "rawFile": "A5-espressioni/bocche-sorriso-o-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-bd1af46f-b81d-42c3-9386-caac621f29ab.png",
+      "status": "Espressioni controllate visivamente; estrazione e riallineamento delle sole zone viso a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background from attached two-cell Luma expression sheet. Preserve all existing face, eye, mouth, hair, collar and clothing pixels exactly, original dimensions, cell order, head scale and placement. Keep cream collar opaque. True transparent alpha, no redrawing, no new details, no added shadows or checkerboard.",
+      "alphaFile": "A5-espressioni/bocche-sorriso-o-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-0f3a1216-1c7a-41cd-90f1-316ccc5b2f8c.png"
+    },
+    {
+      "id": "A5-bocche-2",
+      "folder": "A5-espressioni",
+      "stem": "bocche-a-felice-2-celle",
+      "cells": [
+        "Bocca aperta a",
+        "Bocca larga felice"
+      ],
+      "spec": "ONLY front-facing HEADS cut at collar, TWO cells. Same exact original left Luma head and open amber eyes looking ahead. Change ONLY mouth: cell1 open A speaking vowel, cell2 WIDE HAPPY SMILE with open mouth. Original curls, freckles, facial proportions and coloring identical in both cells, no other changes.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. ONLY front-facing HEADS cut at collar, TWO cells. Same exact original left Luma head and open amber eyes looking ahead. Change ONLY mouth: cell1 open A speaking vowel, cell2 WIDE HAPPY SMILE with open mouth. Original curls, freckles, facial proportions and coloring identical in both cells, no other changes.",
+      "rawFile": "A5-espressioni/bocche-a-felice-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-bd1c9281-a009-407b-97f2-feb94c5e1d12.png",
+      "status": "Espressioni controllate visivamente; estrazione e riallineamento delle sole zone viso a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background from attached two-cell Luma expression sheet. Preserve all existing face, eye, mouth, hair, collar and clothing pixels exactly, original dimensions, cell order, head scale and placement. Keep cream collar opaque. True transparent alpha, no redrawing, no new details, no added shadows or checkerboard.",
+      "alphaFile": "A5-espressioni/bocche-a-felice-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-c0758f33-6a9a-446e-bf59-9831d03c28c0.png"
+    },
+    {
+      "id": "A5-bocche-3",
+      "folder": "A5-espressioni",
+      "stem": "bocche-e-preoccupata-2-celle",
+      "cells": [
+        "Bocca e fra i denti",
+        "Bocca ondulata preoccupata"
+      ],
+      "spec": "ONLY front-facing HEADS cut at collar, TWO cells. Same exact original left Luma head and amber open eyes looking ahead. Change ONLY mouth: cell1 E speaking shape, lips spread with small visible teeth; cell2 small worried WAVY mouth line. Keep eyes/nose/eyebrows/curls/freckles/pose identical, do not add tears or effects.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. ONLY front-facing HEADS cut at collar, TWO cells. Same exact original left Luma head and amber open eyes looking ahead. Change ONLY mouth: cell1 E speaking shape, lips spread with small visible teeth; cell2 small worried WAVY mouth line. Keep eyes/nose/eyebrows/curls/freckles/pose identical, do not add tears or effects.",
+      "rawFile": "A5-espressioni/bocche-e-preoccupata-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-d3cb8b67-2fc5-4a00-bee3-9ab11bd25ade.png",
+      "status": "Espressioni controllate visivamente; ritaglio e riallineamento viso a Claude.",
+      "correctionPrompt": "Use case: precise-object-edit. On this two-head sprite sheet, edit ONLY the LEFT HEAD'S MOUTH. It must be the Italian speaking vowel E: lips stretched sideways into a NARROW HORIZONTAL opening, a THIN strip of NEARLY CLOSED WHITE TEETH visible, NO big dark open cavity and NO visible tongue. This is a speaking E, not a happy laughing smile. Keep ALL hair, eyes, face, freckles, collar, colors, dimensions and positions unchanged. Keep the entire right head and its wavy worried mouth exactly unchanged. Pure white background.",
+      "previousRawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-9b4b353f-ea82-4987-a476-2eed8704806e.png",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY pure white background from this exact two-expression sheet, output genuine transparent alpha. Keep original dimensions, cell order, head placement and scale, every existing face/hair/eyes/mouth/collar pixel, contours, colors and details. Cream clothing stays opaque. No redrawing, recoloring, repositioning or checkerboard.",
+      "alphaFile": "A5-espressioni/bocche-e-preoccupata-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-5b45d2d8-249f-4ae9-a42d-5e6563cf136c.png",
+      "discarded": [
+        {
+          "file": "A5-espressioni/scarti/bocche-e-preoccupata-2-celle-prima-correzione.png",
+          "reason": "La e era troppo aperta, simile al sorriso."
+        }
+      ]
+    },
+    {
+      "id": "A5-sorpresa-sinistra",
+      "folder": "A5-espressioni",
+      "stem": "bocca-sorpresa-sguardo-sinistra-2-celle",
+      "cells": [
+        "Bocca sorpresa, occhi normali",
+        "Bocca chiusa, sguardo a sinistra"
+      ],
+      "spec": "ONLY front-facing HEADS cut at collar, TWO cells. Original left Luma identity and identical hair/scale/position. Cell1 a surprised open rounded mouth with otherwise NORMAL original eyes; cell2 original closed smile, EYES LOOK VIEWER LEFT while head remains front-facing. Change only the specified face details.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. ONLY front-facing HEADS cut at collar, TWO cells. Original left Luma identity and identical hair/scale/position. Cell1 a surprised open rounded mouth with otherwise NORMAL original eyes; cell2 original closed smile, EYES LOOK VIEWER LEFT while head remains front-facing. Change only the specified face details.",
+      "rawFile": "A5-espressioni/bocca-sorpresa-sguardo-sinistra-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-f36d9fcc-4e24-4018-b544-921df67e7ad7.png",
+      "status": "Espressioni controllate visivamente; ritaglio e riallineamento viso a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY pure white background from this exact two-expression sheet, output genuine transparent alpha. Keep original dimensions, cell order, head placement and scale, every existing face/hair/eyes/mouth/collar pixel, contours, colors and details. Cream clothing stays opaque. No redrawing, recoloring, repositioning or checkerboard.",
+      "alphaFile": "A5-espressioni/bocca-sorpresa-sguardo-sinistra-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-ea94605e-1212-469d-841f-13b0b55b36a5.png"
+    },
+    {
+      "id": "A5-sguardi-destra-alto",
+      "folder": "A5-espressioni",
+      "stem": "sguardi-destra-alto-2-celle",
+      "cells": [
+        "Sguardo a destra",
+        "Sguardo in alto"
+      ],
+      "spec": "ONLY front-facing HEADS cut at collar, TWO cells. Original left Luma head with same closed smile. Cell1 EYES LOOK VIEWER RIGHT, cell2 EYES LOOK UP. Head itself never turns or tilts. Keep original hair outline, size, placement, facial proportions, freckles and collar identical; only pupils/eyelids move.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. ONLY front-facing HEADS cut at collar, TWO cells. Original left Luma head with same closed smile. Cell1 EYES LOOK VIEWER RIGHT, cell2 EYES LOOK UP. Head itself never turns or tilts. Keep original hair outline, size, placement, facial proportions, freckles and collar identical; only pupils/eyelids move.",
+      "rawFile": "A5-espressioni/sguardi-destra-alto-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-a97a4340-b2be-491f-86ce-c45f1a5c2fd5.png",
+      "status": "Sguardi controllati visivamente; ritaglio e riallineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background, preserve original sheet dimensions and every face/hair/eye/collar pixel, colors, outlines, placement and proportions. Real alpha transparency, no redrawing, no checkerboard. Cream shirt stays opaque.",
+      "alphaFile": "A5-espressioni/sguardi-destra-alto-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-e3dcac39-de83-4d66-bb0d-14268cf08eb5.png"
+    },
+    {
+      "id": "A5-occhi-sorpresi-preoccupati",
+      "folder": "A5-espressioni",
+      "stem": "occhi-sorpresi-preoccupati-2-celle",
+      "cells": [
+        "Occhi spalancati sorpresa",
+        "Occhi preoccupati, sopracciglia alzate"
+      ],
+      "spec": "ONLY front-facing HEADS cut at collar, TWO cells. Same original Luma head, same small closed mouth and all curls/scale/placement. Cell1 eyes WIDE OPEN in surprise, cell2 worried eyes with raised inner EYEBROWS. Keep nose/mouth/freckles/collar unchanged, no tears or symbols.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. ONLY front-facing HEADS cut at collar, TWO cells. Same original Luma head, same small closed mouth and all curls/scale/placement. Cell1 eyes WIDE OPEN in surprise, cell2 worried eyes with raised inner EYEBROWS. Keep nose/mouth/freckles/collar unchanged, no tears or symbols.",
+      "rawFile": "A5-espressioni/occhi-sorpresi-preoccupati-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-0e40f41f-c901-4357-b9b1-f9b8f6f2ce6e.png",
+      "status": "Occhi controllati visivamente; ritaglio e riallineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background, true transparency. Keep exact original two-head image dimensions, face/hair/eyebrow/eye/mouth/collar pixels, cell order, size and position. No redrawing or changes, no checkerboard. Preserve cream clothing as opaque.",
+      "alphaFile": "A5-espressioni/occhi-sorpresi-preoccupati-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-2e16b21f-8546-4380-8855-1a35fa01f4a4.png"
+    },
+    {
+      "id": "A5-assonnata",
+      "folder": "A5-espressioni",
+      "stem": "occhi-assonnati",
+      "cells": [
+        "Occhi mezzi chiusi assonnati"
+      ],
+      "spec": "ONE front-facing HEAD, cut at collar. Exact original Luma head silhouette, copper curls, freckles, closed smile. Change ONLY eyes to HALF-CLOSED SLEEPY eyelids, amber irises partly visible and relaxed eyebrows. No Z letters, no tear, no pillow. Same size and proportions as source head.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. ONE front-facing HEAD, cut at collar. Exact original Luma head silhouette, copper curls, freckles, closed smile. Change ONLY eyes to HALF-CLOSED SLEEPY eyelids, amber irises partly visible and relaxed eyebrows. No Z letters, no tear, no pillow. Same size and proportions as source head.",
+      "rawFile": "A5-espressioni/occhi-assonnati-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-17f4d6e5-0287-4426-baef-e22c073b418a.png",
+      "status": "Espressione assonnata controllata visivamente; ritaglio e allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY the white background from this Luma sleepy-expression artwork and make it truly transparent. Preserve exact original dimensions, every face/hair/eye/mouth/collar pixel, original shape, color and position, cream collar opaque. Do not redraw, simplify or change anything. No checkerboard.",
+      "alphaFile": "A5-espressioni/occhi-assonnati-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-413adffa-2b6e-430e-8fb0-961de5d71479.png"
+    },
+    {
+      "id": "B-reading",
+      "folder": "B-reading",
+      "stem": "reading-3-celle",
+      "cells": [
+        "Legge pagina sinistra",
+        "Legge pagina destra",
+        "Gira pagina"
+      ],
+      "spec": "THREE full-body frames, standing with same ground baseline. Holds a small brown OPEN BOOK at chest height in both hands, gaze downward. Cell1 eyes looking at left page, cell2 eyes at right page, cell3 one hand turning a page while other supports book. Keep head, body, hair, clothing identical between cells apart from eye/hand/page changes. No text on pages.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. THREE full-body frames, standing with same ground baseline. Holds a small brown OPEN BOOK at chest height in both hands, gaze downward. Cell1 eyes looking at left page, cell2 eyes at right page, cell3 one hand turning a page while other supports book. Keep head, body, hair, clothing identical between cells apart from eye/hand/page changes. No text on pages.",
+      "rawFile": "B-reading/reading-3-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-9731c82e-6547-4e29-b632-f754195d5d1c.png",
+      "status": "Tre pose controllate visivamente; ritaglio, scala e allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background from this exact THREE-cell full-body Luma reading sheet. Preserve original canvas size, cell order, scale, placement, all existing figure/book/face/hair/clothing/tools/boots pixels and contours. Keep cream book pages and shirt opaque. No redrawing, recoloring, repositioning or cropping. Output true alpha transparency, no checkerboard, no shadows.",
+      "alphaFile": "B-reading/reading-3-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-55a4d909-0ca1-4a1d-8d98-f0388664ae6b.png"
+    },
+    {
+      "id": "B-writing",
+      "folder": "B-writing",
+      "stem": "writing-3-celle",
+      "cells": [
+        "Matita in alto sul foglio",
+        "Matita al centro",
+        "Matita in basso"
+      ],
+      "spec": "THREE full-body frames standing on same baseline. A little notebook in HER LEFT hand and a pencil in HER RIGHT, gaze at notebook. Same exact posture in all frames; pencil touches notebook at three different places (upper line, middle line, lower line), wrist changes subtly. Notebook and pencil visible, no readable lettering.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. THREE full-body frames standing on same baseline. A little notebook in HER LEFT hand and a pencil in HER RIGHT, gaze at notebook. Same exact posture in all frames; pencil touches notebook at three different places (upper line, middle line, lower line), wrist changes subtly. Notebook and pencil visible, no readable lettering.",
+      "rawFile": "B-writing/writing-3-celle-v3-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-2e714d9e-71fd-47fb-8a57-f84ea0b28d31.png",
+      "status": "Scrittura corretta: pagina visibile, sguardo sul foglio, due attrezzi nel borsello. Controllo visivo positivo; allineamento a Claude.",
+      "correctionPrompt": "Use case: precise-object-edit. Fix the WRITING ACTION in this three-cell Luma sheet, preserving the character's exact hair, face identity, outfit, body pose, scale and all three cell positions. In all cells, the notebook must present an OPEN BLANK CREAM PAPER PAGE visible to viewer, not its brown cover. Luma must LOOK DOWN at that page. The pencil tip must TOUCH THE VISIBLE PAPER, at upper page in cell1, middle in cell2, lower in cell3, as three consecutive writing frames. Her left hand supports the notebook, her right hand writes. Exactly one silver wrench and one orange screwdriver in the moon pouch: REMOVE the extra duplicate tool. Keep all fingers anatomically correct. Change only notebook/page, gaze, pencil contact and extra tool, keep everything else. Pure white background, no text on paper, full figures and boots remain uncropped.",
+      "discarded": [
+        {
+          "file": "B-writing/writing-3-celle-grezzo.png",
+          "reason": "Scriveva sulla copertina, sguardo non sul foglio e attrezzo duplicato."
+        },
+        {
+          "file": "B-writing/writing-3-celle-v2-grezzo.png",
+          "reason": "Pagina corretta ma attrezzo aggiuntivo ancora presente nel borsello."
+        }
+      ],
+      "revision": 3,
+      "corrections": [
+        "Use case: precise-object-edit. Fix the WRITING ACTION in this three-cell Luma sheet, preserving the character's exact hair, face identity, outfit, body pose, scale and all three cell positions. In all cells, the notebook must present an OPEN BLANK CREAM PAPER PAGE visible to viewer, not its brown cover. Luma must LOOK DOWN at that page. The pencil tip must TOUCH THE VISIBLE PAPER, at upper page in cell1, middle in cell2, lower in cell3, as three consecutive writing frames. Her left hand supports the notebook, her right hand writes. Exactly one silver wrench and one orange screwdriver in the moon pouch: REMOVE the extra duplicate tool. Keep all fingers anatomically correct. Change only notebook/page, gaze, pencil contact and extra tool, keep everything else. Pure white background, no text on paper, full figures and boots remain uncropped.",
+        "Use case: precise-object-edit. In ALL THREE figures of this exact sheet, remove ONLY the EXTRA FAR-RIGHT ORANGE TOOL from the moon pouch. Each pouch currently contains a silver wrench plus TWO orange/red handled tools. It must contain exactly TWO tools TOTAL: ONE silver wrench at the left and ONE orange screwdriver immediately beside it. Erase the second orange tool furthest to viewer RIGHT and fill with the existing pouch/background behind it. Do not remove the pencil in the hand. Keep every other existing pixel and every pose, page, hand, face, hair, color and canvas layout unchanged. White background."
+      ],
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY the white background of this exact three-cell Luma writing sequence. Preserve original dimensions, positions, scale, all figure/pencil/notebook/page/hair/face/boot/tool pixels unchanged. Keep the cream page and shirt opaque. No redrawing, no extra tools, no alterations, no checkerboard. True alpha transparency.",
+      "alphaFile": "B-writing/writing-3-celle-v3-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-8beee592-ff8e-449c-a3fa-8fffe85bb48b.png"
+    },
+    {
+      "id": "B-working",
+      "folder": "B-working",
+      "stem": "working-4-celle",
+      "cells": [
+        "Chiave angolo 1",
+        "Chiave angolo 2",
+        "Chiave angolo 3",
+        "Chiave angolo 4"
+      ],
+      "spec": "FOUR full-body frames standing on same baseline. Luma holds a SMALL BRASS MECHANISM at belly height with one hand, tightens its visible bolt with the silver wrench from her pouch using the other. Wrench at four consecutive angles around SAME BOLT. Keep head, body, device and supporting hand fixed. Silver wrench is in active hand and thus absent from pouch, screwdriver stays in pouch. No extra tools, no sparks or added effects.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. FOUR full-body frames standing on same baseline. Luma holds a SMALL BRASS MECHANISM at belly height with one hand, tightens its visible bolt with the silver wrench from her pouch using the other. Wrench at four consecutive angles around SAME BOLT. Keep head, body, device and supporting hand fixed. Silver wrench is in active hand and thus absent from pouch, screwdriver stays in pouch. No extra tools, no sparks or added effects. IMPORTANT prop accounting: only ONE wrench total, in her active hand. Her pouch contains ONLY ONE orange screwdriver; no duplicate tools. Show the wrench jaw engaged with the bolt, not floating.",
+      "rawFile": "B-working/working-4-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-f6b3bb07-14ec-4b1b-a49c-6117f78839fb.png",
+      "status": "Quattro angoli della chiave sul bullone, un solo cacciavite nel borsello; controllo visivo positivo. Allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background from this exact FOUR-cell Luma wrench-work sequence. Preserve original canvas dimensions, all poses and cell order, placement, scale, every existing character, hands, engaged wrench, brass device, screwdriver, moon pouch, hair, face, clothing and boots. Keep cream shirt and light reflections opaque. Do not redraw or add tools. True alpha transparency, no checkerboard.",
+      "alphaFile": "B-working/working-4-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-f3d66e35-e4cf-4028-bebc-889aea53cbb9.png"
+    },
+    {
+      "id": "B-waiting",
+      "folder": "B-waiting",
+      "stem": "waiting-3-celle",
+      "cells": [
+        "Saluto inclinato a sinistra",
+        "Saluto verticale",
+        "Saluto inclinato a destra"
+      ],
+      "spec": "THREE full-body frames standing with feet on same baseline. HER LEFT arm (viewer RIGHT) raised to wave beside head, open palm with FIVE digits. Mouth open a little as if calling hello. Other arm relaxed. Only raised hand tilts left/upright/right across the three frames; same head, body, hair, shoulder and elbow. No text, sound symbols or effects.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. THREE full-body frames standing with feet on same baseline. HER LEFT arm (viewer RIGHT) raised to wave beside head, open palm with FIVE digits. Mouth open a little as if calling hello. Other arm relaxed. Only raised hand tilts left/upright/right across the three frames; same head, body, hair, shoulder and elbow. No text, sound symbols or effects. Ensure the waved left hand is consistently HER LEFT (thumb toward viewer LEFT for a front-facing palm), never switch handedness between cells. Pouch contains exactly one wrench and one screwdriver.",
+      "rawFile": "B-waiting/waiting-3-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-e3096b7d-3305-4f53-9605-07ece657d329.png",
+      "status": "Saluto completo con mano sinistra coerente nelle tre celle; controllo visivo positivo. Allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background from this exact THREE-cell full-body waving Luma sheet. Preserve all original pixels, canvas dimensions, scale, positions, five-digit hands, poses, face, hair, clothing, moon pouch, wrench, screwdriver and boots. Keep cream shirt opaque. No redrawing, mirroring, changing, resizing, extra objects or checkerboard. Real transparent alpha.",
+      "alphaFile": "B-waiting/waiting-3-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-135594d7-d0f5-45bc-a62d-9922922608d4.png"
+    },
+    {
+      "id": "B-error",
+      "folder": "B-error",
+      "stem": "error-2-celle",
+      "cells": [
+        "Spaventata",
+        "Spalle leggermente più alzate"
+      ],
+      "spec": "TWO full-body frames standing, startled with both hands near mouth, shoulders raised, eyes wide. Keep hands separate and anatomical, five digits per hand; do not merge fingers or cover both eyes. Cell2 shoulders a little higher and surprised expression slightly stronger, otherwise same pose. No symbols or effects.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. TWO full-body frames standing, startled with both hands near mouth, shoulders raised, eyes wide. Keep hands separate and anatomical, five digits per hand; do not merge fingers or cover both eyes. Cell2 shoulders a little higher and surprised expression slightly stronger, otherwise same pose. No symbols or effects. Pouch contains exactly one silver wrench and one orange screwdriver. Five-digit hands; fingers may overlap naturally but do not fuse or add digits.",
+      "rawFile": "B-error/error-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-1fc339bf-a9f3-4681-a735-10933643057a.png",
+      "status": "Due espressioni spaventate controllate visivamente; allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY the white background of this exact TWO-cell startled Luma sheet. Preserve original canvas size and every existing face/eyes/hair/hand/finger/clothing/tool/boot pixel, both poses and positions. Keep cream fabric opaque. No redrawing, extra fingers, recoloring, resizing or checkerboard. Output true transparent alpha.",
+      "alphaFile": "B-error/error-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-45889a54-7629-4731-8bdf-8111bbcb3f68.png"
+    },
+    {
+      "id": "B-thinking",
+      "folder": "B-thinking",
+      "stem": "thinking-2-celle",
+      "cells": [
+        "Sguardo in alto a destra",
+        "Sguardo di lato"
+      ],
+      "spec": "TWO full-body frames standing, HER RIGHT hand (viewer LEFT) at chin, one arm bent in a thoughtful gesture; other arm relaxed. Cell1 eyes look upward to viewer RIGHT, cell2 sideways to viewer RIGHT. Only eye direction changes, same calm closed mouth and all other pixels/design as close as possible. No thought bubbles or effects.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. TWO full-body frames standing, HER RIGHT hand (viewer LEFT) at chin, one arm bent in a thoughtful gesture; other arm relaxed. Cell1 eyes look upward to viewer RIGHT, cell2 sideways to viewer RIGHT. Only eye direction changes, same calm closed mouth and all other pixels/design as close as possible. No thought bubbles or effects. Exactly one wrench and one screwdriver in her moon pouch; no other props.",
+      "rawFile": "B-thinking/thinking-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-cd8a3912-041c-468b-a0b5-22b582963c45.png",
+      "status": "Mano al mento, due direzioni degli occhi; controllo visivo positivo. Allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background of this exact two-cell thoughtful Luma sheet. Preserve original canvas dimensions, poses, positions, scale, gaze directions, chin hand, hair, face, clothing, moon pouch, tools and boots exactly. Cream shirt remains opaque. Do not redraw or change anything; no checkerboard. Real alpha transparency.",
+      "alphaFile": "B-thinking/thinking-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-ad13fc08-1172-47b2-8529-35a99b45fdb2.png"
+    },
+    {
+      "id": "B-look",
+      "folder": "B-look",
+      "stem": "look-2-celle",
+      "cells": [
+        "Lente davanti a un occhio",
+        "Lente leggermente spostata"
+      ],
+      "spec": "TWO full-body frames standing. Holds a simple brass-rimmed magnifying glass in front of ONE eye, other eye closed, curious expression. Lens changes position slightly between frames while the rest stays identical. The visible eye is naturally magnified through transparent glass. Correct hand grip with five digits. No duplicated eyes, no extra limbs, no text.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. TWO full-body frames standing. Holds a simple brass-rimmed magnifying glass in front of ONE eye, other eye closed, curious expression. Lens changes position slightly between frames while the rest stays identical. The visible eye is naturally magnified through transparent glass. Correct hand grip with five digits. No duplicated eyes, no extra limbs, no text. Exactly one wrench and one screwdriver in the moon pouch. Hold magnifier with HER RIGHT hand (viewer LEFT), her other arm relaxed. No duplicate eye or duplicate tools.",
+      "rawFile": "B-look/look-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-ffa133a0-bd6c-4ebc-a0c1-da1d8c4494a8.png",
+      "status": "Lente davanti a un occhio, altro occhio chiuso, due posizioni; controllo visivo positivo. Allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background of this exact two-cell Luma magnifying-glass sheet. Preserve exact canvas, positions, all character, face, eyes, hair, lens, magnified eye, hands, costume, pouch, tools and boots. Keep glass contents and cream shirt unchanged. True alpha in background only, no redraw, change, resize or checkerboard.",
+      "alphaFile": "B-look/look-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-26fa8c46-ad1f-4c7e-86e3-f604c3cbb0fd.png"
+    },
+    {
+      "id": "B-drag",
+      "folder": "B-drag",
+      "stem": "drag-3-celle",
+      "cells": [
+        "Gambe pendono a sinistra",
+        "Gambe al centro",
+        "Gambe a destra"
+      ],
+      "spec": "THREE full-body keyframes. Luma looks gently lifted by the back of her jacket collar (no lifting hand or hook is visible), surprised face, shoulders up, arms hanging DOWN and legs dangling. Three frames have legs swinging left / center / right, upper body remains fixed. Full boots visible, no ground shadow. Do not change costume or add ropes/objects.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. THREE full-body keyframes. Luma looks gently lifted by the back of her jacket collar (no lifting hand or hook is visible), surprised face, shoulders up, arms hanging DOWN and legs dangling. Three frames have legs swinging left / center / right, upper body remains fixed. Full boots visible, no ground shadow. Do not change costume or add ropes/objects. Exactly one wrench and one screwdriver in the crescent-moon pouch. Keep the sleeves hanging under the lifted shoulders. Do not show a supporting hand, hook or line.",
+      "rawFile": "B-drag/drag-3-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-5aab2538-7409-4498-8fb9-9e7e57fa0e99.png",
+      "status": "Tre posizioni delle gambe appese; controllo visivo positivo. Ritaglio e allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background of this exact THREE-cell dangling Luma sequence. Preserve original dimensions, positions, scale and every existing character pixel, raised collar, arms, swinging legs, face, hair, clothes, tools and boots. Keep cream collar opaque. No redraw, no objects, no resize or checkerboard. True transparent alpha.",
+      "alphaFile": "B-drag/drag-3-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-10eb9fb5-20c4-44eb-a622-ec0cc4adb8b5.png"
+    },
+    {
+      "id": "A3-mani-aperte-pugni",
+      "folder": "A3-mani",
+      "stem": "mani-aperte-pugni-4-celle",
+      "cells": [
+        "Sinistra aperta",
+        "Destra aperta",
+        "Pugno sinistro",
+        "Pugno destro"
+      ],
+      "spec": "Draw ONLY detached HANDS with tiny wrist ends, NO sleeves or other body parts, at reference hand scale and skin color. FOUR cells: HER LEFT open palm front, HER RIGHT open palm front, HER LEFT closed fist, HER RIGHT closed fist. Correct handedness, open palms exactly FIVE digits (four fingers + thumb); closed fists natural five-digit anatomy. Original dark burgundy contour and skin shading.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. Draw ONLY detached HANDS with tiny wrist ends, NO sleeves or other body parts, at reference hand scale and skin color. FOUR cells: HER LEFT open palm front, HER RIGHT open palm front, HER LEFT closed fist, HER RIGHT closed fist. Correct handedness, open palms exactly FIVE digits (four fingers + thumb); closed fists natural five-digit anatomy. Original dark burgundy contour and skin shading. In cell1 open HER LEFT palm: thumb on VIEWER LEFT. In cell2 open HER RIGHT palm: thumb on VIEWER RIGHT. Open hands must visibly show FOUR fingers PLUS ONE thumb, exactly FIVE separated tips. No jewelry, nails or gloves added.",
+      "rawFile": "A3-mani/mani-aperte-pugni-4-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-0cfe1118-64a1-4a89-af77-535ca8b8bab4.png",
+      "status": "Palmi con cinque dita e pugni opposti controllati visivamente; scala e ancoraggio a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background from this exact FOUR-cell hand sheet. Preserve original canvas dimensions, positions, scale, all FIVE-digit anatomy of palms and fists, contours, skin colors, wrist ends and shading. Make gaps between fingers transparent, no redrawing or other alterations. True alpha transparency, no checkerboard.",
+      "alphaFile": "A3-mani/mani-aperte-pugni-4-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-6732a947-413c-41f3-9133-8b24d17083b0.png"
+    },
+    {
+      "id": "A3-indici-pollici",
+      "folder": "A3-mani",
+      "stem": "mani-indici-pollici-4-celle",
+      "cells": [
+        "Indice sinistro",
+        "Indice destro",
+        "Pollice sinistro su",
+        "Pollice destro su"
+      ],
+      "spec": "Draw ONLY detached hands with tiny wrists, no sleeves/body. FOUR cells: HER LEFT hand index finger pointing up, HER RIGHT index pointing up, HER LEFT thumbs-up, HER RIGHT thumbs-up. Remaining fingers naturally curled. Exactly five anatomical digits total per hand, correct opposite handedness, reference skin/color/style.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. Draw ONLY detached hands with tiny wrists, no sleeves/body. FOUR cells: HER LEFT hand index finger pointing up, HER RIGHT index pointing up, HER LEFT thumbs-up, HER RIGHT thumbs-up. Remaining fingers naturally curled. Exactly five anatomical digits total per hand, correct opposite handedness, reference skin/color/style. For HER LEFT hand use thumb on viewer LEFT when palm faces viewer; HER RIGHT thumb on viewer RIGHT. Clearly opposite hands, not four duplicates. Pointing index is one extended index with remaining three fingers curled plus thumb, no sixth finger.",
+      "rawFile": "A3-mani/mani-indici-pollici-4-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-a76512a0-8901-4042-b717-dd905c81346f.png",
+      "status": "Indici e pollici opposti con anatomia controllata visivamente; scala e ancoraggio a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background of this exact FOUR-cell pointing-index and thumbs-up hand sheet. Preserve every existing hand/finger/wrist pixel, five-digit anatomy, handedness, contours, colors, original dimensions, size and placement. No redrawing, flipping, extra digits or checkerboard. Output real alpha transparency.",
+      "alphaFile": "A3-mani/mani-indici-pollici-4-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-ab7f61dd-a95c-47ba-a920-3a8191dfe4ae.png"
+    },
+    {
+      "id": "A3-matite-libro",
+      "folder": "A3-mani",
+      "stem": "mani-matita-libro-4-celle",
+      "cells": [
+        "Sinistra con matita",
+        "Destra con matita",
+        "Sinistra sostiene libro",
+        "Destra sostiene libro"
+      ],
+      "spec": "Draw ONLY detached hands, no sleeves/body. FOUR cells: HER LEFT hand holding a simple wooden pencil in writing grip, HER RIGHT hand holding pencil in writing grip, HER LEFT hand curled to support bottom-left corner of an open book, HER RIGHT hand curled to support bottom-right corner. For last TWO cells omit the book itself so the hands are usable separate layers, but preserve realistic gripping geometry. Correct five-digit anatomy, original skin and burgundy outlines.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. Draw ONLY detached hands, no sleeves/body. FOUR cells: HER LEFT hand holding a simple wooden pencil in writing grip, HER RIGHT hand holding pencil in writing grip, HER LEFT hand curled to support bottom-left corner of an open book, HER RIGHT hand curled to support bottom-right corner. For last TWO cells omit the book itself so the hands are usable separate layers, but preserve realistic gripping geometry. Correct five-digit anatomy, original skin and burgundy outlines. Exactly FOUR cells. First two hands each grip ONE wooden pencil with a sharp dark tip and small eraser; left and right opposite hands. Last two hands are EMPTY, palm curved upward with a visible thumb for supporting the two opposite corners of a book; no book drawn in these cells. Maintain five-digit anatomy with naturally occluded fingers.",
+      "rawFile": "A3-mani/mani-matita-libro-4-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-a9629692-a65d-4998-a851-6c50544d9b61.png",
+      "status": "Due prese per matita e due mani vuote per sostenere il libro, controllate visivamente; allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background of this exact FOUR-cell hand/prop sheet. Preserve every original hand/finger/pencil/wrist pixel, opposite handedness, skin color, outline, canvas size, positions and scale. Empty cupped hands remain empty. No redrawing, new fingers, added books or checkerboard. True alpha transparency.",
+      "alphaFile": "A3-mani/mani-matita-libro-4-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-ec4a1c34-2eb9-4338-8983-b189fe59f625.png"
+    },
+    {
+      "id": "A3-libro",
+      "folder": "A3-mani",
+      "stem": "libro-aperto",
+      "cells": [
+        "Libro marrone aperto"
+      ],
+      "spec": "ONE cell: ONLY a small complete open brown-covered book seen from front and slightly above as if held at Luma's chest, with cream blank pages, a little spine fold and burgundy illustrated contour, matching Luma's style. No hands, body or text. A separate prop asset, whole book not cropped.",
+      "prompt": "Use case: identity-preserve, cut-out animation illustration. Use ONLY the LEFT eyes-open Luma of attached reference as the immutable character design. Preserve copper-orange curls and their silhouette, amber eyes, freckles, rosy cheeks, cream collared shirt, cropped mustard puffy jacket, teal short overalls with pocket and brass buttons, brown belt, crescent-moon pouch containing wrench and screwdriver, brown boots, dark burgundy outlines and original illustrated chibi proportions. Pure white background. No text, labels, grid lines, ground shadows or checkerboard. Each sheet has equal cells in a SINGLE HORIZONTAL ROW, 2–4 cells maximum. Full body or part entirely inside each cell, generous margins, nothing cropped. Within a sheet maintain the SAME size, camera and attachment points between poses. Exactly five anatomical digits per hand (some can be hidden in closed grips). Match the reference's style and color closely, do not make a different character. ONE cell: ONLY a small complete open brown-covered book seen from front and slightly above as if held at Luma's chest, with cream blank pages, a little spine fold and burgundy illustrated contour, matching Luma's style. No hands, body or text. A separate prop asset, whole book not cropped.",
+      "rawFile": "A3-mani/libro-aperto-v2-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-1e2cea84-8a5e-4601-976f-46d89e775e44.png",
+      "status": "Libro separato completo, pagine opache e nessuna figura aggiunta; allineamento e scala a Claude.",
+      "correctionPrompt": "Use case: precise-object-edit. Remove ONLY the full-body Luma character on the LEFT side of this image. Replace her entire figure with pure white empty background. Keep the OPEN BROWN BOOK on the right EXACTLY unchanged: same original pixels, position, scale, blank cream pages, brown/gold cover, outlines and shadows within the book. Do not redraw or reposition the book. The final image must contain ONLY ONE OPEN BOOK and nothing else, with pure white background. No character, hands, text or labels.",
+      "discarded": [
+        {
+          "file": "A3-mani/libro-aperto-grezzo.png",
+          "reason": "Figura di Luma aggiunta al foglio che doveva contenere solo il libro."
+        }
+      ],
+      "revision": 2,
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background from this exact image containing one small OPEN BROWN BOOK. Preserve the book's exact original position, scale, pixels, brown/gold cover, blank cream pages and burgundy outline, and full original canvas dimensions. Pages stay fully opaque. Do not redraw or move or resize the book, do not add anything. True alpha transparency, no checkerboard.",
+      "alphaFile": "A3-mani/libro-aperto-v2-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-82bd5296-5979-499c-a800-1539148b0908.png"
+    },
+    {
+      "id": "A4-testa-sinistra",
+      "folder": "A4-teste",
+      "stem": "testa-trequarti-sinistra-2-celle",
+      "cells": [
+        "Trequarti verso sinistra, occhi aperti",
+        "Stessa testa, occhi chiusi"
+      ],
+      "spec": "Draw ONLY Luma's HEAD and hair, clean cut at cream COLLAR, no torso or arms. TWO cells, identical head turned THREE-QUARTERS toward VIEWER LEFT: cell1 amber eyes open, cell2 same eyes closed. Preserve copper curls and original hair volume/shape, freckles and rosy cheeks, same small closed smile. Match original head size; do not zoom or alter head proportions.",
+      "prompt": "Use case: identity-preserve, cut-out animation HEAD part. Use ONLY the LEFT character in attached sheet as the exact Luma identity reference. Preserve her copper-orange curls, original hair volume and recognizable asymmetrical silhouette, amber eyes, freckles, rosy cheeks, small nose and smile, cream collar and dark burgundy painted contours. DO NOT DRAW A TORSO, OVERALLS, ARMS OR HANDS. Only head/hair/neck with a tiny collar edge. Pure white background, exactly TWO equal cells side by side, no text/labels/grid/shadows. Whole hair fits with generous margins. Draw ONLY Luma's HEAD and hair, clean cut at cream COLLAR, no torso or arms. TWO cells, identical head turned THREE-QUARTERS toward VIEWER LEFT: cell1 amber eyes open, cell2 same eyes closed. Preserve copper curls and original hair volume/shape, freckles and rosy cheeks, same small closed smile. Match original head size; do not zoom or alter head proportions.",
+      "rawFile": "A4-teste/testa-trequarti-sinistra-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-ef26f2ef-6a98-43cb-88a3-63cd3860a462.png",
+      "status": "Teste orientate verso sinistra, occhi aperti/chiusi; controllo visivo positivo. Ritaglio e allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background of this exact TWO-head Luma sheet. Preserve exact original dimensions, all hair/face/ear/eye/freckle/collar pixels, open and closed expression, head positions, scale and colors. Cream collar remains opaque. Do not redraw or alter anything; no checkerboard. Real transparent alpha.",
+      "alphaFile": "A4-teste/testa-trequarti-sinistra-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-6f8ee64f-1358-49e9-8b4c-83a5265404ec.png"
+    },
+    {
+      "id": "A4-testa-destra",
+      "folder": "A4-teste",
+      "stem": "testa-trequarti-destra-2-celle",
+      "cells": [
+        "Trequarti verso destra, occhi aperti",
+        "Stessa testa, occhi chiusi"
+      ],
+      "spec": "ONLY Luma's HEAD and hair, clean cut at cream COLLAR, no torso/arms. TWO cells, identical head turned THREE-QUARTERS toward VIEWER RIGHT: cell1 amber eyes open, cell2 same eyes closed. Preserve original copper curls and head shape, freckles, rosy cheeks and closed smile. Same head size in both cells.",
+      "prompt": "Use case: identity-preserve, cut-out animation HEAD part. Reference is ONLY the LEFT Luma in attached sprite sheet. Preserve copper-orange curls and recognizable original hair volume, amber eyes, freckles, rosy cheeks, small nose/smile, cream collar and burgundy painted outline. Draw ONLY head/hair/neck and a small collar edge, NO torso/arms/overalls. Pure white background, exactly TWO equal cells side by side, no labels/grid/shadows. Whole hair fits with generous margins. ONLY Luma's HEAD and hair, clean cut at cream COLLAR, no torso/arms. TWO cells, identical head turned THREE-QUARTERS toward VIEWER RIGHT: cell1 amber eyes open, cell2 same eyes closed. Preserve original copper curls and head shape, freckles, rosy cheeks and closed smile. Same head size in both cells. Make the head genuinely turn toward viewer RIGHT: the nose and gaze point right, viewer-left ear visible; do not leave it in the original leftward orientation.",
+      "rawFile": "A4-teste/testa-trequarti-destra-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-f269d40b-4d0a-4c04-9e93-5ca34e645e73.png",
+      "status": "Teste verso destra aperta/chiusa; controllo visivo positivo. Coerenza dei ricci e raccordi da ricontrollare nel montaggio.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background from this exact TWO-cell right-facing Luma head sheet. Keep original dimensions and all existing hair/face/ears/eyes/freckles/collar pixels, colors, head orientation, scale and placement unchanged. Cream collar opaque. No redrawing, flipping, recoloring, resizing or checkerboard; real alpha transparency.",
+      "alphaFile": "A4-teste/testa-trequarti-destra-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-f3e63ea7-413c-444c-a896-345c03829dff.png"
+    },
+    {
+      "id": "A4-testa-alto",
+      "folder": "A4-teste",
+      "stem": "testa-alto-2-celle",
+      "cells": [
+        "Testa verso alto, occhi aperti",
+        "Stessa testa, occhi chiusi"
+      ],
+      "spec": "ONLY Luma's HEAD and hair, cut at cream collar. TWO cells of the same head tilted to LOOK UP slightly, cell1 eyes open looking upward, cell2 eyes closed. Preserve hair silhouette/volume and original face identity; show subtle chin tilt without distorting. Same size, collar baseline and position in both cells.",
+      "prompt": "Use case: identity-preserve, cut-out animation HEAD part. Use ONLY original LEFT Luma on reference sheet. Keep exact character identity: copper-orange curly hair and recognizable curl silhouette/volume, amber eyes, freckles, rosy cheeks, original face proportions, small smile, cream collar, burgundy painted outlines. Draw ONLY head, hair, neck and tiny collar edge, no torso or arms. Exactly TWO equal cells side by side on pure white, no text or shadows, generous margins and no clipped curls. ONLY Luma's HEAD and hair, cut at cream collar. TWO cells of the same head tilted to LOOK UP slightly, cell1 eyes open looking upward, cell2 eyes closed. Preserve hair silhouette/volume and original face identity; show subtle chin tilt without distorting. Same size, collar baseline and position in both cells. Show a real gentle upward chin/head tilt, not just pupils moving up. Second cell is that exact tilted pose with eyes closed.",
+      "rawFile": "A4-teste/testa-alto-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-e9612133-42cc-4e01-9266-8f3db0d08bc9.png",
+      "status": "Testa inclinata verso l’alto con occhi aperti e chiusi; controllo visivo positivo. Allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background from this exact TWO-cell upward-tilted Luma head sheet. Preserve original canvas dimensions, head shapes, all existing hair, face, eyes, freckles and collar pixels, open/closed eyes, scale and positions. Cream collar stays opaque. No redrawing, resizing, recoloring, repositioning or checkerboard; true alpha transparency.",
+      "alphaFile": "A4-teste/testa-alto-2-celle-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-c59ecce7-b26d-4c61-83fd-0f408c8c5a64.png"
+    },
+    {
+      "id": "A4-testa-basso",
+      "folder": "A4-teste",
+      "stem": "testa-basso-2-celle",
+      "cells": [
+        "Testa verso basso, occhi aperti",
+        "Stessa testa, occhi chiusi"
+      ],
+      "spec": "ONLY Luma's HEAD and hair, cut at cream collar. TWO cells of the same head tilted to LOOK DOWN slightly, cell1 eyes open downward, cell2 eyes closed. Preserve copper hair silhouette/volume and original face proportions and freckles. Same head size, collar baseline and position.",
+      "prompt": "Use case: identity-preserve, cut-out animation HEAD part. Use ONLY original LEFT Luma in the attached reference. Preserve her copper-orange curly hair and recognizable silhouette/volume, amber eyes, freckles, rosy cheeks, original facial proportions, small smile, cream collar and burgundy illustrated contours. ONLY HEAD, hair, neck, tiny collar edge: no torso, arms or overalls. Exactly TWO equal cells side by side on white, full hair with generous margins, no labels or shadows. ONLY Luma's HEAD and hair, cut at cream collar. TWO cells of the same head tilted to LOOK DOWN slightly, cell1 eyes open downward, cell2 eyes closed. Preserve copper hair silhouette/volume and original face proportions and freckles. Same head size, collar baseline and position. Make a genuine gentle DOWNWARD HEAD/CHIN TILT, forehead slightly forward and chin toward collar, not simply pupils pointing down. Second cell same exact downward-tilted head with eyes closed. No extra props.",
+      "rawFile": "A4-teste/testa-basso-2-celle-grezzo.png",
+      "rawSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-05deff4b-5586-4d5d-baa2-9d179282fb01.png",
+      "status": "Teste verso il basso aperta/chiusa, scontorno rifinito al colletto; allineamento a Claude.",
+      "extractionPrompt": "Use case: background-extraction. Remove ONLY white background from this exact TWO-cell downward-tilted Luma head sheet. Preserve exact original dimensions, every hair/face/eye/freckle/collar pixel, head shapes, open and closed eyes, colors, positions and scale. Keep cream collar opaque. No redrawing, alterations, resizing, repositioning or checkerboard. True alpha transparency.",
+      "alphaFile": "A4-teste/testa-basso-2-celle-v2-trasparente.png",
+      "alphaSource": "/Users/matteoiaconeta/.codex/generated_images/01a19cef-03a7-75f3-bd9e-4e02025a6cf7/exec-3c85d10d-23aa-4978-a6b8-1a87f664cc52.png",
+      "discarded": [
+        {
+          "file": "A4-teste/testa-basso-2-celle-trasparente.png",
+          "reason": "Leggero alone esterno sotto il colletto; scontorno rifinito."
+        }
+      ],
+      "extractionCorrections": [
+        "Use case: background-extraction, precise cleanup. This image ALREADY has alpha transparency. Remove ONLY the faint gray/white halo and stray colored speckles BELOW and OUTSIDE the two cream collars and outside the hair silhouettes. Stop the opaque artwork cleanly at its dark burgundy contour. Keep every existing actual face, hair, eyes, neck and cream collar pixel inside the outlines completely unchanged and opaque. Preserve original dimensions, positions, scale, both poses and alpha elsewhere. Do not repaint, resize, redraw, add or change details. Output a clean true-transparent cutout with NO floating haze/shadow underneath either collar, and no checkerboard."
+      ],
+      "revision": 2
+    }
+  ],
+  "remaining": [],
+  "discarded": [
+    {
+      "file": "characters-src/People/luma/disegni/A1-corpo/scarti/corpo-prima-prova-grezzo.png",
+      "prompt": "Use case: identity-preserve. Edit target/reference: attached Luma sprite sheet, use ONLY the LEFT eyes-open character as the exact immutable model. Produce ONE full-body Luma, on a pure white background, BOTH ARMS REMOVED for cut-out animation. Preserve the original LEFT character's exact face, eyes, freckles, nose, mouth, hair silhouette and individual copper-orange curls, head/body proportions, every color and burgundy contour, cream shirt and collar, cropped mustard jacket, teal short overalls and pocket/buttons, brown belt, full moon tool pouch with wrench and screwdriver, bare legs and brown boots. Repaint only where the arms were: complete jacket sides and fully visible tool pouch. Keep small rounded jacket shoulder caps, but NO sleeves, arms or hands. Match pose, framing, scale and foot baseline from the original left cell; target one 839 x 937 cell, full-body height about 890 px, generous margin, centered, feet near the bottom. Output a single character, not two, no lettering or shadows, no checkerboard. This is a precise local asset edit, not a redesign.",
+      "reason": "Scala e contorni cambiati"
+    }
+  ]
+}

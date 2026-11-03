@@ -1,0 +1,1352 @@
+{
+  "sheets": 32,
+  "drawings": 77,
+  "files": 64,
+  "remaining": 0,
+  "records": [
+    {
+      "id": "A1-corpo",
+      "cells": 2,
+      "rawFile": {
+        "path": "A1-corpo/corpo-senza-braccia-grezzo.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGB",
+        "sha256": "bbb8bb3a0dcf092ccacf7d3fa48642e929da3f7af94a8bdfb0c6b86793f133ca",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A1-corpo/corpo-senza-braccia-trasparente.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGBA",
+        "sha256": "27fb67e0921062c34e24b1bc30a120af08d55efc4a2c07a7d83813f3c063116c",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          51,
+          31,
+          1618,
+          937
+        ]
+      },
+      "opaqueBounds": [
+        282,
+        33,
+        1398,
+        928
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A2-sinistro-saluto",
+      "cells": 3,
+      "rawFile": {
+        "path": "A2-braccia/braccio-sinistro-saluto-3-celle-grezzo.png",
+        "size": [
+          2054,
+          766
+        ],
+        "mode": "RGB",
+        "sha256": "e54b0dea31f8a6296385372e4957930b137cda3c0adca21d96e227319c6933ef",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A2-braccia/braccio-sinistro-saluto-3-celle-trasparente.png",
+        "size": [
+          2053,
+          766
+        ],
+        "mode": "RGBA",
+        "sha256": "3a033ca33e92eb551418ed11b3e6221a456f2e7cc343077b8cde1f6283cccfa5",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          105,
+          72,
+          1982,
+          729
+        ]
+      },
+      "opaqueBounds": [
+        145,
+        90,
+        1977,
+        622
+      ],
+      "sameCanvas": false
+    },
+    {
+      "id": "B-celebrate",
+      "cells": 4,
+      "rawFile": {
+        "path": "B-celebrate/celebrate-4-celle-grezzo.png",
+        "size": [
+          2123,
+          741
+        ],
+        "mode": "RGB",
+        "sha256": "87defc52116db0b827ed1d15d4282bfd8620153c71d017f2aea6664e484edfeb",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "B-celebrate/celebrate-4-celle-trasparente.png",
+        "size": [
+          2123,
+          741
+        ],
+        "mode": "RGBA",
+        "sha256": "92ff1d0fdf9372d715a336ad1e61c6708e9e021f9240521e216bf9747733dd31",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          59,
+          10,
+          2081,
+          741
+        ]
+      },
+      "opaqueBounds": [
+        100,
+        12,
+        2067,
+        727
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A2-destro-saluto",
+      "cells": 3,
+      "rawFile": {
+        "path": "A2-braccia/braccio-destro-saluto-3-celle-grezzo.png",
+        "size": [
+          1977,
+          795
+        ],
+        "mode": "RGB",
+        "sha256": "163d811f5aa5d30fdda94406d1fa85c39b4436d1b9f7d0b761d5b3dfedb45733",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A2-braccia/braccio-destro-saluto-3-celle-trasparente.png",
+        "size": [
+          1976,
+          796
+        ],
+        "mode": "RGBA",
+        "sha256": "db9496c9d285dc50faefd4b372f7afc935ffa0b33c6e89f39d407dca52c46c7e",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          89,
+          40,
+          1956,
+          753
+        ]
+      },
+      "opaqueBounds": [
+        154,
+        96,
+        1879,
+        663
+      ],
+      "sameCanvas": false
+    },
+    {
+      "id": "A2-riposo",
+      "cells": 2,
+      "rawFile": {
+        "path": "A2-braccia/braccia-riposo-2-celle-grezzo.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGB",
+        "sha256": "ddbd1e86453008a405346c90ee0a94b3714e99118e78bcaf6adfea2a4745cf81",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A2-braccia/braccia-riposo-2-celle-trasparente.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGBA",
+        "sha256": "5a324d4440b8906390cddcfdcc30ce3097eef5052c7a057124112167d4aa7f87",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          154,
+          25,
+          1471,
+          800
+        ]
+      },
+      "opaqueBounds": [
+        210,
+        127,
+        1467,
+        796
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A2-esulta",
+      "cells": 2,
+      "rawFile": {
+        "path": "A2-braccia/braccia-esulta-2-celle-grezzo.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGB",
+        "sha256": "a5794e334cb2fd5ad37fe0bef2dc633f40cfac61b9521a6068c11ad61b50cc1f",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A2-braccia/braccia-esulta-2-celle-trasparente.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGBA",
+        "sha256": "1645f27b32a74fd9a08056e5f901a276ddd2d21e864869cdf2d12b00b457641f",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          75,
+          127,
+          1658,
+          911
+        ]
+      },
+      "opaqueBounds": [
+        79,
+        129,
+        1600,
+        795
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A2-avanti",
+      "cells": 2,
+      "rawFile": {
+        "path": "A2-braccia/braccia-avanti-2-celle-grezzo.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGB",
+        "sha256": "cdb20cbc0dde1dc5fd6fb855f2afdb19d8e9c2f1270b71aa2e6833bb09b33443",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A2-braccia/braccia-avanti-2-celle-trasparente.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGBA",
+        "sha256": "5209ad771f0c3721790d9f34235fad73568fb9a8b54b619596f7532687b84693",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          33,
+          80,
+          1626,
+          897
+        ]
+      },
+      "opaqueBounds": [
+        172,
+        218,
+        1502,
+        719
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A2-mento",
+      "cells": 1,
+      "rawFile": {
+        "path": "A2-braccia/braccio-destro-mento-grezzo.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGB",
+        "sha256": "63e4720bce46431b915cc73e328d41acb5194f44048d8861f72b30e8c52fa345",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A2-braccia/braccio-destro-mento-trasparente.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGBA",
+        "sha256": "25ea243af773c58c36d50abcac540c58fb307001ca52523b922cc3b5f9f727aa",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          49,
+          39,
+          1642,
+          937
+        ]
+      },
+      "opaqueBounds": [
+        607,
+        201,
+        1072,
+        735
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "B-sleep",
+      "cells": 2,
+      "rawFile": {
+        "path": "B-sleep/sleep-2-celle-grezzo.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGB",
+        "sha256": "317e21bd35feac83fcaa6e2afde8be760b0b64df583d79621a184d8612f588d7",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "B-sleep/sleep-2-celle-trasparente.png",
+        "size": [
+          1678,
+          937
+        ],
+        "mode": "RGBA",
+        "sha256": "9cf558d1d52fb01e017f275478a22988e4d3177c2bb9b83cdba9f00e78d85112",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          33,
+          46,
+          1652,
+          895
+        ]
+      },
+      "opaqueBounds": [
+        223,
+        49,
+        1487,
+        881
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A5-bocche-1",
+      "cells": 2,
+      "rawFile": {
+        "path": "A5-espressioni/bocche-sorriso-o-2-celle-grezzo.png",
+        "size": [
+          1677,
+          938
+        ],
+        "mode": "RGB",
+        "sha256": "de570f024d44782779a89b14f659701174644db1dcd405d8fe39e836e36d4edd",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A5-espressioni/bocche-sorriso-o-2-celle-trasparente.png",
+        "size": [
+          1677,
+          938
+        ],
+        "mode": "RGBA",
+        "sha256": "742505e07f0aa6677c33fc302819ff880ee8eda0f0442acbe8177e03fad88f81",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          17,
+          33,
+          1613,
+          867
+        ]
+      },
+      "opaqueBounds": [
+        124,
+        63,
+        1593,
+        805
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A5-bocche-2",
+      "cells": 2,
+      "rawFile": {
+        "path": "A5-espressioni/bocche-a-felice-2-celle-grezzo.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGB",
+        "sha256": "7028b956ebb998b5425d6b4bd78e51e68c4213b27eb68ed37251e382e90f1451",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A5-espressioni/bocche-a-felice-2-celle-trasparente.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGBA",
+        "sha256": "a8002ee666b6251f5099cc2777338965c23590f1bbb023a3f6efeb8decb6ca22",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          27,
+          36,
+          1756,
+          853
+        ]
+      },
+      "opaqueBounds": [
+        126,
+        41,
+        1664,
+        814
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A5-bocche-3",
+      "cells": 2,
+      "rawFile": {
+        "path": "A5-espressioni/bocche-e-preoccupata-2-celle-grezzo.png",
+        "size": [
+          1848,
+          851
+        ],
+        "mode": "RGB",
+        "sha256": "f38b4a37d1d931adbab300b8fbab10ca66d8b292411baa0eda4cfffac7da2dc2",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A5-espressioni/bocche-e-preoccupata-2-celle-trasparente.png",
+        "size": [
+          1847,
+          851
+        ],
+        "mode": "RGBA",
+        "sha256": "02eed8c7f3f60a6d6a5b5e01ba015aa3c7b50dc3d01ae2257de57a7b5b063197",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          0,
+          19,
+          1791,
+          811
+        ]
+      },
+      "opaqueBounds": [
+        169,
+        56,
+        1680,
+        750
+      ],
+      "sameCanvas": false
+    },
+    {
+      "id": "A5-sorpresa-sinistra",
+      "cells": 2,
+      "rawFile": {
+        "path": "A5-espressioni/bocca-sorpresa-sguardo-sinistra-2-celle-grezzo.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGB",
+        "sha256": "3ceb4007f0e98731dd0e4bedd1f4edb341c0586cf1583e6346fc77b1b7cf442f",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A5-espressioni/bocca-sorpresa-sguardo-sinistra-2-celle-trasparente.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGBA",
+        "sha256": "9fab900037428ff0cae700f9d906fb9e8785dc3ea26e18846e35e22a4d261cf4",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          73,
+          52,
+          1706,
+          837
+        ]
+      },
+      "opaqueBounds": [
+        133,
+        55,
+        1674,
+        809
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A5-sguardi-destra-alto",
+      "cells": 2,
+      "rawFile": {
+        "path": "A5-espressioni/sguardi-destra-alto-2-celle-grezzo.png",
+        "size": [
+          1655,
+          950
+        ],
+        "mode": "RGB",
+        "sha256": "91bbc2016fdbb5dce2dc2b036c4635b78ffe4c9161e9abf73e72841f82c968fd",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A5-espressioni/sguardi-destra-alto-2-celle-trasparente.png",
+        "size": [
+          1655,
+          950
+        ],
+        "mode": "RGBA",
+        "sha256": "b7052b374f8f22c6ec31dfbb863598a2b28b3f0e0bf02a8967dff0a9cda5198a",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          83,
+          57,
+          1608,
+          926
+        ]
+      },
+      "opaqueBounds": [
+        86,
+        63,
+        1605,
+        849
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A5-occhi-sorpresi-preoccupati",
+      "cells": 2,
+      "rawFile": {
+        "path": "A5-espressioni/occhi-sorpresi-preoccupati-2-celle-grezzo.png",
+        "size": [
+          1991,
+          789
+        ],
+        "mode": "RGB",
+        "sha256": "fc4857b4c25ab78b0d73487d899847a98ab310c2fd2a9169528f3b906479d807",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A5-espressioni/occhi-sorpresi-preoccupati-2-celle-trasparente.png",
+        "size": [
+          1991,
+          789
+        ],
+        "mode": "RGBA",
+        "sha256": "43cb9c0a5096033ee907a11ce050860c012699730ee174c1daca62ae5f13a35f",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          49,
+          39,
+          1971,
+          765
+        ]
+      },
+      "opaqueBounds": [
+        254,
+        46,
+        1739,
+        747
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A5-assonnata",
+      "cells": 1,
+      "rawFile": {
+        "path": "A5-espressioni/occhi-assonnati-grezzo.png",
+        "size": [
+          1448,
+          1086
+        ],
+        "mode": "RGB",
+        "sha256": "1ea8f01f9afe9c5d5a90c4ffd2d54ba1f780bc6e1e30b96ddca6a6b6a65146ff",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A5-espressioni/occhi-assonnati-trasparente.png",
+        "size": [
+          1448,
+          1086
+        ],
+        "mode": "RGBA",
+        "sha256": "4ad760fb31eb599c243f96790d7301686c13f080da65991f7fdc13ac3bf275cd",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          53,
+          48,
+          1402,
+          1052
+        ]
+      },
+      "opaqueBounds": [
+        259,
+        51,
+        1182,
+        994
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "B-reading",
+      "cells": 3,
+      "rawFile": {
+        "path": "B-reading/reading-3-celle-grezzo.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGB",
+        "sha256": "40983841461cca54e191b95c276d24758fec30fbf233364f45fdc7d46c882d42",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "B-reading/reading-3-celle-trasparente.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGBA",
+        "sha256": "8c29affc57f450cf50940fff4b36455a8e96172c39c9b8fcec1b07a2d8a2c19f",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          25,
+          0,
+          2136,
+          711
+        ]
+      },
+      "opaqueBounds": [
+        239,
+        8,
+        1894,
+        708
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "B-writing",
+      "cells": 3,
+      "rawFile": {
+        "path": "B-writing/writing-3-celle-v3-grezzo.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGB",
+        "sha256": "65329002d4cb2783c8b236720206342b739c91bacab4f894c9989a59d0ad713d",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "B-writing/writing-3-celle-v3-trasparente.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGBA",
+        "sha256": "8329f0114ac5a7e7757384505d1fe905fb2a499f32be5124d56c4ea08bf0fc15",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          21,
+          19,
+          2126,
+          711
+        ]
+      },
+      "opaqueBounds": [
+        203,
+        22,
+        1967,
+        709
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "B-working",
+      "cells": 4,
+      "rawFile": {
+        "path": "B-working/working-4-celle-grezzo.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGB",
+        "sha256": "edf9bafd800e9c22c0adc9d60137024a5937be2cc0b0a61aa290055cbaa032de",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "B-working/working-4-celle-trasparente.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGBA",
+        "sha256": "85111f37dc13aabd16c81c4002bfd1a44afa93f035c05b355ae7ad2a126733b2",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          0,
+          18,
+          2148,
+          710
+        ]
+      },
+      "opaqueBounds": [
+        123,
+        22,
+        2079,
+        707
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "B-waiting",
+      "cells": 3,
+      "rawFile": {
+        "path": "B-waiting/waiting-3-celle-grezzo.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGB",
+        "sha256": "4d26c0f6c53eb71b1731db5d42e9f05f31c1b0ae4d0e06fc8b4a5b61551343c5",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "B-waiting/waiting-3-celle-trasparente.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGBA",
+        "sha256": "4cfb10f36141d5d2a6a794f2fc0d9fe72cde6ca0cc4228a9d4d9a935f8c330b9",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          91,
+          14,
+          2100,
+          707
+        ]
+      },
+      "opaqueBounds": [
+        240,
+        17,
+        1909,
+        704
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "B-error",
+      "cells": 2,
+      "rawFile": {
+        "path": "B-error/error-2-celle-grezzo.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGB",
+        "sha256": "245027f7a70600f20d2d6f7e37f07b37fa8b3c06384a9b2fe33b175767a3c45f",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "B-error/error-2-celle-trasparente.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGBA",
+        "sha256": "0adff139644f240981ae826d83185bfb43fed1f39c2de9507d3af0e71ef619ba",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          148,
+          13,
+          1710,
+          875
+        ]
+      },
+      "opaqueBounds": [
+        267,
+        16,
+        1494,
+        872
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "B-thinking",
+      "cells": 2,
+      "rawFile": {
+        "path": "B-thinking/thinking-2-celle-grezzo.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGB",
+        "sha256": "3237c739cdbfeff26513a5e8fc67be248007810ad71854aa351f37a738fb1b5d",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "B-thinking/thinking-2-celle-trasparente.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGBA",
+        "sha256": "8d2b8c887983f1aa2c0cddafd1325317cdce7db0c706eadec18fb664b25d7996",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          0,
+          19,
+          1756,
+          887
+        ]
+      },
+      "opaqueBounds": [
+        292,
+        23,
+        1476,
+        867
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "B-look",
+      "cells": 2,
+      "rawFile": {
+        "path": "B-look/look-2-celle-grezzo.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGB",
+        "sha256": "9e6c8104072e923858057b9b3e013defaafe6353183d813de03dae834be96ef2",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "B-look/look-2-celle-trasparente.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGBA",
+        "sha256": "73fd961cc14a66bc5ead5175945a08fa43de6643c7a53708503637d7359671b2",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          0,
+          18,
+          1752,
+          887
+        ]
+      },
+      "opaqueBounds": [
+        292,
+        22,
+        1458,
+        873
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "B-drag",
+      "cells": 3,
+      "rawFile": {
+        "path": "B-drag/drag-3-celle-grezzo.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGB",
+        "sha256": "59a363857d098bc58d690d6fc98c2f93a987b873aeec204e71b5b05c9e6c4a38",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "B-drag/drag-3-celle-trasparente.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGBA",
+        "sha256": "9dbedb73a1747bedf69042cd16247dfcb8e347f14da666d6a895a532355a1998",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          0,
+          15,
+          2069,
+          708
+        ]
+      },
+      "opaqueBounds": [
+        264,
+        18,
+        1913,
+        703
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A3-mani-aperte-pugni",
+      "cells": 4,
+      "rawFile": {
+        "path": "A3-mani/mani-aperte-pugni-4-celle-grezzo.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGB",
+        "sha256": "0bf090a14264ea01767e615949475d5edd5113126b536b2e6628e1a442770439",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A3-mani/mani-aperte-pugni-4-celle-trasparente.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGBA",
+        "sha256": "07cf0dce02154026a47f4effe3f179f2c2fdba2e97bfed00375f744c087a0faa",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          87,
+          17,
+          2136,
+          724
+        ]
+      },
+      "opaqueBounds": [
+        91,
+        129,
+        2031,
+        570
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A3-indici-pollici",
+      "cells": 4,
+      "rawFile": {
+        "path": "A3-mani/mani-indici-pollici-4-celle-grezzo.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGB",
+        "sha256": "c43eb8cd8dcd44ca78a9795b0806cb696e160df307f6feafc2585d26aeb471ea",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A3-mani/mani-indici-pollici-4-celle-trasparente.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGBA",
+        "sha256": "24f5b266d9d3ec5d057f666446a0b68ce9357e9fe828b6ee83170364cba2757d",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          25,
+          9,
+          2164,
+          724
+        ]
+      },
+      "opaqueBounds": [
+        148,
+        136,
+        2042,
+        573
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A3-matite-libro",
+      "cells": 4,
+      "rawFile": {
+        "path": "A3-mani/mani-matita-libro-4-celle-grezzo.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGB",
+        "sha256": "8cf775dfd2ae75788278fba1129e8e79901e951bfe2da409c614def52701d7a0",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A3-mani/mani-matita-libro-4-celle-trasparente.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGBA",
+        "sha256": "ae141837efc523a3d1b3dd4859f7f36609c4e88ba46bf443f0c25f328eadac4e",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          0,
+          23,
+          2152,
+          724
+        ]
+      },
+      "opaqueBounds": [
+        110,
+        165,
+        2092,
+        540
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A3-libro",
+      "cells": 1,
+      "rawFile": {
+        "path": "A3-mani/libro-aperto-v2-grezzo.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGB",
+        "sha256": "c1c213129fc092962263f0e29e9d651df5905f34bfc36329069b64537d4ee697",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A3-mani/libro-aperto-v2-trasparente.png",
+        "size": [
+          2172,
+          724
+        ],
+        "mode": "RGBA",
+        "sha256": "a9eab260d568114382486ac28650932af3ca01856473ed195f107ab0a4f98a31",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          1047,
+          161,
+          1778,
+          676
+        ]
+      },
+      "opaqueBounds": [
+        1222,
+        266,
+        1512,
+        473
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A4-testa-sinistra",
+      "cells": 2,
+      "rawFile": {
+        "path": "A4-teste/testa-trequarti-sinistra-2-celle-grezzo.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGB",
+        "sha256": "1e938461df3af3a513f22c9b97a3bfdd54df7089acea78009664865634191311",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A4-teste/testa-trequarti-sinistra-2-celle-trasparente.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGBA",
+        "sha256": "b704f4f19149f0345dd10920b8de2d426d94035cfea555acbb6020e1c36a9e5d",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          0,
+          33,
+          1754,
+          871
+        ]
+      },
+      "opaqueBounds": [
+        141,
+        77,
+        1653,
+        747
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A4-testa-destra",
+      "cells": 2,
+      "rawFile": {
+        "path": "A4-teste/testa-trequarti-destra-2-celle-grezzo.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGB",
+        "sha256": "3cc2983d1b1007aca15709d7f9cb8f83feaa600bdb239fe15dc37ca8a9b4d6c6",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A4-teste/testa-trequarti-destra-2-celle-trasparente.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGBA",
+        "sha256": "97e2404d4ef453bd600266f2a2d7f8f689ea2949be3f4bbe044c793fb3a20cb3",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          76,
+          31,
+          1742,
+          861
+        ]
+      },
+      "opaqueBounds": [
+        93,
+        34,
+        1658,
+        776
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A4-testa-alto",
+      "cells": 2,
+      "rawFile": {
+        "path": "A4-teste/testa-alto-2-celle-grezzo.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGB",
+        "sha256": "e93f9020d98275232ffd29a078066e4cdb27847825fbed96d85698ae705912ab",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A4-teste/testa-alto-2-celle-trasparente.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGBA",
+        "sha256": "7bb9560b96cbbb3230af246f34478302a750217a0fa4f50ba85ae1e53abe553f",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          88,
+          45,
+          1752,
+          871
+        ]
+      },
+      "opaqueBounds": [
+        115,
+        63,
+        1693,
+        786
+      ],
+      "sameCanvas": true
+    },
+    {
+      "id": "A4-testa-basso",
+      "cells": 2,
+      "rawFile": {
+        "path": "A4-teste/testa-basso-2-celle-grezzo.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGB",
+        "sha256": "5930b418779fe97e010d1849c5cf359b3138562b07c2b5c129771cc9f1c3eff3",
+        "alpha_extrema": null,
+        "bbox": null
+      },
+      "alphaFile": {
+        "path": "A4-teste/testa-basso-2-celle-v2-trasparente.png",
+        "size": [
+          1774,
+          887
+        ],
+        "mode": "RGBA",
+        "sha256": "96a9c221c7fd5195d7eed3e5591ef4e87b7a1eef54c1a48e41fdc871e09ce8b7",
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "bbox": [
+          0,
+          34,
+          1764,
+          862
+        ]
+      },
+      "opaqueBounds": [
+        124,
+        63,
+        1648,
+        803
+      ],
+      "sameCanvas": true
+    }
+  ],
+  "protectedChangesSinceInitialCheckpoint": [
+    {
+      "file": "characters-src/People/luma/build.py",
+      "previous": "1b8417563cea39eac9e61145922ca1d32e40ce431155a6820dcbbcd0e2621232",
+      "current": "7737421394cec8ea7cf6ec069f8aa9fa9cf5d01db33521645471f42626832a30",
+      "note": "Variazione concorrente rispetto alla prima consegna; non sovrascrivere."
+    },
+    {
+      "file": "characters-src/People/luma/README.md",
+      "previous": "48f83a72de2560bf6bfdf1900ca9e89aad53bf61acd347c72d17ff5880e887a1",
+      "current": "a2d5f5dfe83a0d6f3b191c9873efa030e829ecf0f7fd0387c4da2c53ce37de32",
+      "note": "Variazione concorrente rispetto alla prima consegna; non sovrascrivere."
+    },
+    {
+      "file": "characters/People/luma/character.json",
+      "previous": "c71f79cba5640351e7a4860f26150aba6ac69f82068fa2b76c53eb843d38d064",
+      "current": "02c2918bf157bd6107d91b709faafeff3e40055e855b142fe0e3541fb21252f6",
+      "note": "Variazione concorrente rispetto alla prima consegna; non sovrascrivere."
+    },
+    {
+      "file": "characters/People/luma/sprites.png",
+      "previous": "088abbf3df10f577a99177f99fb3e6266736a290f2c1595ff13a6c8f03398049",
+      "current": "200fb998ddc917de4f55a4a8bc46d223807349c6a878593e7834b5a4acef36aa",
+      "note": "Variazione concorrente rispetto alla prima consegna; non sovrascrivere."
+    },
+    {
+      "file": "characters/People/luma/README.md",
+      "previous": "d5f64ade306be84c5ddd9f16289cc96cbf13e84c6cd53f07a4ddbf65ef321675",
+      "current": "5e9815f9afff937fc1914aa6fb2fd4f91a5857d13f91f5a7ebbbb497a93c168e",
+      "note": "Variazione concorrente rispetto alla prima consegna; non sovrascrivere."
+    }
+  ]
+}

@@ -9,8 +9,9 @@ preview_root). Serve solo Pillow.
 
 Luma parte dai due disegni approvati (occhi aperti e chiusi, in source.png):
 ogni posa nasce deformando quei pixel (respiro, testa, inclinazione, salti),
-innestando bocche e sguardi disegnati da Codex (disegni/A5-espressioni/) e
-aggiungendo effetti con lo stesso contorno scuro. Le pose uguali diventano
+innestando bocche e sguardi disegnati da Codex (disegni/A5-espressioni/),
+sostituendo il braccio sinistro con quello alzato delle sue pose di saluto
+(disegni/B-waiting/) e aggiungendo effetti con lo stesso contorno scuro. Le pose uguali diventano
 una sola cella del foglio.
 """
 from __future__ import annotations
@@ -84,6 +85,8 @@ class Pose:
     eyes: str = "open"    # open | closed | half | uno sguardo di EXPRESSIONS
     mouth: str = ""       # "" (sorriso originale) | small | mid | open | worried | una bocca di EXPRESSIONS
     lens: tuple | None = None  # centro della lente che ingrandisce
+    arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
+    arm_angle: float = 0.0  # gradi attorno alla spalla
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -190,6 +193,166 @@ def _face(eyes: str, mouth: str) -> Image.Image:
         canvas.paste(img, OFFSET)
         _CACHE[key] = canvas
     return _CACHE[key]
+
+
+# ---------------------------------------------------------------- braccio che saluta
+
+# Taglio che separa il braccio sinistro di Luma (a destra per chi guarda) dal
+# busto: punti (y, x) nel ritaglio 480 × 937, interpolati riga per riga.
+ARM_CUT = ((400, 340), (430, 346), (470, 334), (520, 334), (560, 344), (600, 362), (640, 368), (720, 368))
+SHOULDER_PIVOT = (366, 452)
+# Spalla e fianco ridipinti da Codex per un braccio staccato (disegni/A1-corpo/):
+# combaciano con l'originale spostati di 1 px e coprono il moncone.
+SHOULDER_ZONE = ((326, 384), (392, 378), (452, 420), (470, 520), (450, 600), (420, 660), (330, 660),
+                 (296, 600), (296, 520), (318, 470))
+# Braccio alzato dalle pose disegnate da Codex (disegni/B-waiting/), una per
+# inclinazione della mano. Le figure intere sono ridisegnate più grandi, quindi
+# se ne prende solo braccio e spalla, registrati su colletto, bretella e fianco
+# originali: riquadro della cella, scala e posizione nel ritaglio.
+WAVE_CELLS = (((240, 17, 568, 705), 1.237, 43, 58),
+              ((904, 17, 1230, 705), 1.2597, 38, 48),
+              ((1560, 17, 1910, 705), 1.2629, 37, 48))
+WAVE_ZONE = ((300, 372), (360, 330), (420, 250), (470, 200), (560, 200), (600, 300), (560, 420), (470, 540),
+             (380, 575), (338, 560), (318, 470), (300, 410))
+CUFF_Y = 388        # sopra questa riga del ritaglio, nelle pose di Codex, c'è solo la mano
+PALM = (395, 362)   # centro del palmo, da cui si riempie la mano
+
+
+def _canvas(points) -> list[tuple[int, int]]:
+    return [(x + OFFSET[0], y + OFFSET[1]) for x, y in points]
+
+
+def _cut_x(y: float) -> float:
+    for (y0, x0), (y1, x1) in zip(ARM_CUT, ARM_CUT[1:]):
+        if y0 <= y <= y1:
+            return x0 + (x1 - x0) * (y - y0) / (y1 - y0)
+    raise ValueError(y)
+
+
+def _masked(img: Image.Image, mask: Image.Image) -> Image.Image:
+    out = img.copy()
+    out.putalpha(ImageChops.multiply(img.getchannel("A"), mask))
+    return out
+
+
+def _pivot() -> tuple[int, int]:
+    return SHOULDER_PIVOT[0] + OFFSET[0], SHOULDER_PIVOT[1] + OFFSET[1]
+
+
+def _arm_mask(img: Image.Image) -> Image.Image:
+    ox, oy = OFFSET
+    m = Image.new("L", img.size, 0)
+    px, a = m.load(), img.getchannel("A").load()
+    for y in range(400, 720):
+        for x in range(int(_cut_x(y)) + ox, img.size[0]):
+            if a[x, y + oy] > 0:
+                px[x, y + oy] = 255
+    return m.filter(ImageFilter.GaussianBlur(0.8))
+
+
+def _body(eyes: str, mouth: str, codex: bool) -> tuple[Image.Image, Image.Image]:
+    """Busto senza il braccio sinistro e figura intera, con l'espressione data."""
+    key = ("body", eyes, mouth, codex)
+    if key in _CACHE:
+        return _CACHE[key]
+    ox, oy = OFFSET
+    whole = _face(eyes, mouth)
+    body = _masked(whole, ImageChops.invert(_arm_mask(whole)))
+    zone = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(zone).polygon(_canvas(SHOULDER_ZONE), fill=255)
+    zone = zone.filter(ImageFilter.GaussianBlur(5))
+    if codex:
+        sheet = Image.open(HERE / "disegni" / "A1-corpo" / "corpo-senza-braccia-trasparente.png").convert("RGBA")
+        x0 = CLOSED_X if eyes == "closed" else OPEN_X
+        armless = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+        armless.paste(sheet.crop((x0, 0, x0 + CROP_W, CROP_H)), (ox + 1, oy))
+        body = Image.composite(armless, body, zone)
+    # contorno lungo il taglio, fuori dalla zona già ridipinta
+    ink = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(ink).line([(_cut_x(y) + ox, y + oy) for y in range(418, 700, 4)
+                              if whole.getpixel((int(_cut_x(y) + ox) - 3, y + oy))[3] > 200],
+                             fill=255, width=6, joint="curve")
+    keep = body.getchannel("A").point(lambda v: 255 if v else 0).filter(ImageFilter.MaxFilter(9))
+    if codex:
+        keep = ImageChops.multiply(keep, ImageChops.invert(zone))
+    line = Image.new("RGBA", CANVAS, INK + (0,))
+    line.putalpha(ImageChops.multiply(ink, keep))
+    body.alpha_composite(line)
+    _CACHE[key] = (body, whole)
+    return _CACHE[key]
+
+
+def _wave_arm(cell: int) -> Image.Image:
+    """Braccio e spalla di una posa B-waiting, già al loro posto sulla tela."""
+    key = ("wave", cell)
+    if key in _CACHE:
+        return _CACHE[key]
+    ox, oy = OFFSET
+    W, H = CANVAS
+    box, scale, x, y = WAVE_CELLS[cell]
+    sheet = Image.open(HERE / "disegni" / "B-waiting" / "waiting-3-celle-trasparente.png").convert("RGBA")
+    c = sheet.crop(box)
+    small = c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS).convert("RGBA")
+    layer = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    layer.alpha_composite(small, (ox + x, oy + y))
+    m = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(m).polygon(_canvas(WAVE_ZONE), fill=255)
+    m = m.filter(ImageFilter.GaussianBlur(6))
+    # Sopra il polsino tieni solo la mano: l'area chiusa dal suo contorno che
+    # contiene il centro del palmo, più il contorno stesso. Così restano fuori i
+    # capelli della posa di Codex che si vedono fra le dita.
+    lp = layer.load()
+    inside = Image.new("L", CANVAS, 0)
+    ip = inside.load()
+    for yy in range(oy + 120, oy + CUFF_Y + 30):
+        for xx in range(ox + 280, min(W, ox + 640)):
+            r, g, b, a = lp[xx, yy]
+            if a > 40 and (r + g + b) / 3 > 95:
+                ip[xx, yy] = 255
+    cx, cy = ox + PALM[0], oy + PALM[1]
+    seed = min(((xx, yy) for yy in range(cy - 30, cy + 31) for xx in range(cx - 30, cx + 31)
+                if ip[xx, yy] and lp[xx, yy][1] > 170), key=lambda q: (q[0] - cx) ** 2 + (q[1] - cy) ** 2)
+    ImageDraw.floodfill(inside, seed, 128)
+    hand = inside.point(lambda v: 255 if v == 128 else 0)
+    dark = layer.convert("L").point(lambda v: 255 if v <= 95 else 0)
+    hand = ImageChops.lighter(hand, ImageChops.multiply(hand.filter(ImageFilter.MaxFilter(9)), dark))
+    top = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(top).rectangle((0, 0, W, oy + CUFF_Y), fill=255)
+    top = top.filter(ImageFilter.GaussianBlur(2))
+    m = ImageChops.add(ImageChops.multiply(m, ImageChops.invert(top)),
+                       ImageChops.multiply(hand.filter(ImageFilter.GaussianBlur(0.7)), top))
+    _CACHE[key] = _masked(layer, m)
+    return _CACHE[key]
+
+
+def _with_arm(p: Pose) -> Image.Image:
+    """La figura col braccio sinistro nella posa data, prima della deformazione."""
+    px, py = _pivot()
+    if p.arm == "lift":
+        # Braccio originale che si scosta dal fianco piegandosi: fermo alla spalla,
+        # sempre più ruotato verso la mano, così l'attacco resta quello disegnato.
+        body, whole = _body(p.eyes, p.mouth, codex=False)
+        arm = _masked(whole, _arm_mask(whole))
+        ox, oy = OFFSET
+        W = CANVAS[0]
+
+        def f(x, y):
+            return rotate(x, y, px, py, -p.arm_angle * smooth(py - 20, py + 110, y))
+        step = 6
+        mesh = []
+        for y in range(oy + 380, oy + 720, step):
+            for x in range(ox + 300, W, step):
+                x1, y1 = min(x + step, W), y + step
+                mesh.append(((x, y, x1, y1), (*f(x, y), *f(x, y1), *f(x1, y1), *f(x1, y))))
+        arm = arm.convert("RGBa").transform(CANVAS, Image.MESH, mesh, Image.BICUBIC).convert("RGBA")
+    else:
+        body, _ = _body(p.eyes, p.mouth, codex=True)
+        arm = _wave_arm(int(p.arm[-1]))
+        if p.arm_angle:
+            arm = arm.rotate(-p.arm_angle, center=(px, py), resample=Image.BICUBIC)
+    img = body.copy()
+    img.alpha_composite(arm)
+    return img
 
 
 # ---------------------------------------------------------------- deformazione
@@ -456,7 +619,7 @@ def _effect(img: Image.Image, spec: tuple) -> None:
 # ---------------------------------------------------------------- resa
 
 def render(p: Pose) -> Image.Image:
-    img = _face(p.eyes, p.mouth).copy()
+    img = _with_arm(p) if p.arm else _face(p.eyes, p.mouth).copy()
     img = _warp(img, p)
     for spec in p.fx:
         _effect(img, spec)
@@ -602,11 +765,26 @@ def running():
 
 
 def waiting():
-    seq = []
-    for i, (lean, hop) in enumerate(((-1.5, 0), (0, -6), (1.5, 0), (0, -6))):
-        p = Pose(lean=lean, dy=hop, mouth="mid" if i % 2 else "open", breath=0.6)
-        hx, hy = head_point(p, 438, 120)
-        seq.append((replace(p, fx=(("exclaim", hx, hy - (10 if hop else 0), 120),)), 170))
+    # Ti saluta: il braccio si scosta dal fianco, poi entra il braccio alzato
+    # disegnato da Codex, che si raddrizza e saluta con le tre inclinazioni
+    # della mano, con un piccolo dondolio, e riscende.
+    rise = [(Pose(arm="lift", arm_angle=-12, mouth="o", breath=0.3, head=0.2, lean=0.2), 55),
+            (Pose(arm="lift", arm_angle=-26, mouth="a", breath=0.35, head=0.5, lean=0.5, dy=-1), 55),
+            (Pose(arm="wave1", arm_angle=30, mouth="a", breath=0.45, head=1.0, lean=0.8, dy=-2), 55),
+            (Pose(arm="wave1", arm_angle=14, mouth="felice", breath=0.5, head=1.6, lean=1.1, dy=-3), 60),
+            (Pose(arm="wave1", arm_angle=-4, mouth="felice", breath=0.6, head=2.2, lean=1.3, dy=-3), 75),
+            (Pose(arm="wave1", arm_angle=2, mouth="felice", breath=0.6, head=2.4, lean=1.3, dy=-1), 90)]
+    seq = [(Pose(breath=0.2), 450)] + rise
+    for k in range(3):
+        for j, (cell, ang, lean) in enumerate(((0, -2, 1.6), (1, 0, 1.3), (2, 2, 1.0), (1, 0, 1.3))):
+            eyes = "closed" if k == 1 and j in (1, 2) else "open"
+            seq.append((Pose(arm=f"wave{cell}", arm_angle=ang, eyes=eyes, mouth="felice" if j % 2 == 0 else "a",
+                             breath=0.6, head=2.4, lean=lean), 150 if eyes == "open" else 90))
+    seq += [(Pose(arm="wave1", arm_angle=14, mouth="a", breath=0.5, head=1.6, lean=1.1), 60),
+            (Pose(arm="wave1", arm_angle=30, mouth="sorriso", breath=0.45, head=1.0, lean=0.8), 55),
+            (Pose(arm="lift", arm_angle=-26, mouth="sorriso", breath=0.35, head=0.5, lean=0.5), 55),
+            (Pose(arm="lift", arm_angle=-12, breath=0.3, head=0.2, lean=0.2), 55),
+            (Pose(breath=0.2), 800)]
     return seq, True
 
 
