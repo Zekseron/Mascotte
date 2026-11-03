@@ -6,12 +6,12 @@ Tutti gli stati (diciassette), ricavati dai due disegni approvati e dalle espres
 | --- | --- |
 | `idle` | Respiro di 4 s con testa e spalle che salgono appena. Battiti irregolari passando per gli occhi socchiusi, uno doppio, ciclo di 24 s. |
 | `sleep` | Seduta a terra con la testa sulle braccia: respiro lento e profondo, z che salgono e svaniscono. |
-| `listening` | Testa piegata e sguardo verso chi parla, onde che arrivano all'orecchio. |
+| `listening` | Mano dietro l'orecchio e testa piegata verso chi parla: le onde arrivano alla mano, poi socchiude gli occhi per concentrarsi. |
 | `thinking` | Mano al mento e occhi in alto; salgono due sbuffi e una nuvola che si riempie di puntini, poi uno sguardo di lato. |
 | `working` | Stringe un bullone di un meccanismo con la chiave inglese, a scatti come un cricchetto; poi una pausa con un battito di ciglia. |
 | `reading` | Tiene il libro con due mani e lo legge: pagina sinistra, battito di ciglia, pagina destra, poi la gira con la mano. |
 | `writing` | Scrive su un blocco a spirale: la matita va su e giù per tre passate, poi una pausa con un battito di ciglia. |
-| `running` | Saltelli con fulmine che lampeggia. |
+| `running` | Corre sul posto, a braccia piegate, rimbalzando nelle fasi di volo; un fulmine accanto mentre esegue un comando. |
 | `waiting` | Ti saluta: il braccio si alza dal fianco e la mano saluta con tre inclinazioni, con un dondolio e un battito, poi riscende. |
 | `done` | Occhi felici, sorriso aperto, dondolio e stelline. |
 | `celebrate` | Si carica, salta a braccia e gambe aperte, atterra e chiude col pugno alzato e l'occhiolino, tra stelline e cuore (una volta sola). |
@@ -22,7 +22,7 @@ Tutti gli stati (diciassette), ricavati dai due disegni approvati e dalle espres
 | `drag-left` | Trascinata verso sinistra: le gambe restano indietro e pendono a destra, finché ti muovi. |
 | `drag-right` | Trascinata verso destra: le gambe pendono a sinistra, finché ti muovi. |
 
-- Formato `mascotte-pack/1`, PNG trasparente, fotogrammi 320 × 512, 151 celle.
+- Formato `mascotte-pack/1`, PNG trasparente, fotogrammi 320 × 512, 152 celle.
 - Grandezza iniziale circa 137 × 219 punti (`scale: 3`, `pixelRatio: 7`). La figura è alta circa 189 punti; lo spazio in più serve a salti ed effetti e resta trasparente ai clic.
 
 Nell'app: **Personaggio → People → Luma**. Puoi anche importare la cartella da **Impostazioni → Mascotte → Aggiungi mascotte…**, se Luma non è già inclusa nella build. Nel visore si può trascinare direttamente questa cartella.

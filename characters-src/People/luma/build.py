@@ -45,7 +45,6 @@ COLS = 10
 FEET = (300, 1063)
 NECK = (300, 538)
 HEAD_TOP = (300, 174)
-EAR = (432, 440)
 HAND_R = (478, 760)
 HOLD = (300, 60)  # dove la si tiene mentre la trascini
 
@@ -86,7 +85,7 @@ class Pose:
     mouth: str = ""       # "" (sorriso originale) | small | mid | open | worried | una bocca di EXPRESSIONS
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
-    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance) | jump0..jump3, nap0, dangle0..dangle2 (pose intere di celebrate, sleep, drag)
+    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance) | jump0..3, nap0, dangle0..2, ear0..1, jog0..3 (pose intere di Codex)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -1001,12 +1000,14 @@ def _bolt(r: float, bright: bool):
     return paint
 
 
-def _arcs(n: int, zoom: float = 1.9):
+def _arcs(n: int, zoom: float = 1.9, left: bool = False):
+    # onde sonore; left: aperte verso sinistra, arrivano da sinistra
     def paint(d, c, ss):
         ss *= zoom
+        cx, a0, a1 = (c + 40 * ss, 130, 230) if left else (c - 40 * ss, -50, 50)
         for i in range(n):
             r = (14 + i * 13) * ss
-            d.arc((c - 40 * ss - r, c - r, c - 40 * ss + r, c + r), -50, 50, fill=YELLOW + (255,), width=int(8 * ss))
+            d.arc((cx - r, c - r, cx + r, c + r), a0, a1, fill=YELLOW + (255,), width=int(8 * ss))
     return paint
 
 
@@ -1050,7 +1051,16 @@ NAP_CELLS = (((223, 49, 744, 881), 0.864, 22),)
 DANGLE_CELLS = (((264, 18, 614, 701), 1.3365, 10, 32), ((909, 18, 1250, 703), 1.326, 27, 32),
                 ((1543, 18, 1914, 699), 1.339, 28, 32))
 DANGLE_PIVOT = (300, 150)   # nella tela: in cima alla testa
+# Ascolto (listening): le due pose di B-listening (mano dietro l'orecchio, occhi
+# aperti e socchiusi), alla scala dell'altezza originale, piedi sulla linea.
+EAR_CELLS = (((152, 29, 624, 1039), 0.8822, 42), ((824, 29, 1296, 1039), 0.8822, 42))
+# Corsa (running): le quattro pose di B-running, corsa sul posto, alla scala della
+# testa originale e con la testa al suo posto (quarto valore); il corpo rimbalza.
+JOG_CELLS = (((92, 29, 442, 769), 1.2375, 35, 32), ((575, 29, 918, 764), 1.236, 23, 32),
+             ((1072, 29, 1414, 769), 1.236, 26, 32), ((1574, 29, 1918, 747), 1.236, 34, 32))
 WHOLE = {"jump": ("B-celebrate/celebrate-4-celle-trasparente.png", JUMP_CELLS),
+         "ear": ("B-listening/ascolto-2-celle-trasparente.png", EAR_CELLS),
+         "jog": ("B-running/corsa-4-celle-trasparente.png", JOG_CELLS),
          "nap": ("B-sleep/sleep-2-celle-trasparente.png", NAP_CELLS),
          "dangle": ("B-drag/drag-3-celle-trasparente.png", DANGLE_CELLS)}
 NAP_BREATH = (0.40, 0.70)   # da questa frazione d'altezza (dall'alto) il respiro sfuma a zero
@@ -1103,7 +1113,7 @@ def _nap_breath(img: Image.Image, b: float) -> Image.Image:
 
 
 def render(p: Pose) -> Image.Image:
-    if p.hand.startswith(("jump", "nap", "dangle")):
+    if p.hand.startswith(("jump", "nap", "dangle", "ear", "jog")):
         return _whole_frame(p)
     img = _with_arm(p) if p.arm else _face(p.eyes, p.mouth).copy()
     if p.hand == "chin":
@@ -1227,10 +1237,10 @@ def thinking():
 
 
 def listening():
-    # testa piegata verso chi parla, onde che arrivano all'orecchio
-    base = dict(head=5.0, head_dx=3.0, lean=1.2, breath=0.4)
-    seq = [(Pose(**base, eyes="destra", fx=(("arcs", EAR[0] + 112, EAR[1] - 6, n),)), 260) for n in (1, 2, 3)]
-    seq.append((Pose(**base, eyes="destra"), 340))
+    # mano dietro l'orecchio, sguardo verso chi parla; le onde arrivano alla mano,
+    # e a metà si concentra socchiudendo gli occhi
+    seq = [(Pose(hand="ear0", fx=(("arcs", 92, 448, n, 1.9, True),)), 260) for n in (1, 2, 3)]
+    seq += [(Pose(hand="ear1", fx=(("arcs", 92, 448, 3, 1.9, True),)), 420), (Pose(hand="ear0"), 340)]
     return seq, True
 
 
@@ -1265,9 +1275,11 @@ def writing():
 
 
 def running():
+    # corsa sul posto: quattro pose di Codex, il corpo rimbalza nelle fasi di volo
     seq = []
-    for squash, dy, bright in ((0.96, 0, True), (1.03, -16, False), (1.01, -22, True), (0.98, -4, False)):
-        seq.append((Pose(squash=squash, dy=dy, breath=0.5, fx=(("bolt", SLOT[0], SLOT[1] + dy, 74, bright),)), 110))
+    # le pose di Codex sono un po' più alte: -20 porta il piede d'appoggio sulla linea
+    for cell, dy, bright in ((0, -20, True), (1, -26, False), (2, -20, True), (3, -30, False)):
+        seq.append((Pose(hand=f"jog{cell}", dy=dy, fx=(("bolt", SLOT[0], SLOT[1] + dy, 74, bright),)), 110))
     return seq, True
 
 
