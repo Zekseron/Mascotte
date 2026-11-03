@@ -10,7 +10,7 @@ Tutti i quindici stati, ricavati dai due disegni approvati e dalle espressioni d
 | `thinking` | Mano al mento e occhi in alto; salgono due sbuffi e una nuvola che si riempie di puntini, poi uno sguardo di lato. |
 | `working` | Due ingranaggi che girano accanto alla mano, cenni del capo. |
 | `reading` | Tiene il libro con due mani e lo legge: pagina sinistra, battito di ciglia, pagina destra, poi la gira con la mano. |
-| `writing` | Foglio che si riempie, matita che si muove. |
+| `writing` | Scrive su un blocco a spirale: la matita va su e giù per tre passate, poi una pausa con un battito di ciglia. |
 | `running` | Saltelli con fulmine che lampeggia. |
 | `waiting` | Ti saluta: il braccio si alza dal fianco e la mano saluta con tre inclinazioni, con un dondolio e un battito, poi riscende. |
 | `done` | Occhi felici, sorriso aperto, dondolio e stelline. |
