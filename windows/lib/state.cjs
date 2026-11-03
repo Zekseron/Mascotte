@@ -10,7 +10,7 @@ class StateController {
     const used = this.parser.resolveState(state, this.pack).used;
     const animation = this.pack.animations[used];
     this.emit({ state, used, animation });
-    if (forever || ['sleep', 'drag'].includes(state)) return true;
+    if (forever || ['sleep', 'drag', 'drag-left', 'drag-right'].includes(state)) return true;
     let ms = state === 'idle' ? 300000 : ['done', 'error', 'talk'].includes(state) ? 4000 : 5000;
     if (state === 'celebrate' && !animation.loop) ms = this.parser.totalMs(this.parser.frameSchedule(animation)) + 1000;
     this.timer = this.clock.setTimeout(() => this.set(state === 'idle' ? 'sleep' : 'idle'), ms);

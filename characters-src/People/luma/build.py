@@ -86,7 +86,7 @@ class Pose:
     mouth: str = ""       # "" (sorriso originale) | small | mid | open | worried | una bocca di EXPRESSIONS
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
-    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance) | jump0..jump3, nap0 (pose intere di celebrate e sleep)
+    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance) | jump0..jump3, nap0, dangle0..dangle2 (pose intere di celebrate, sleep, drag)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -1043,8 +1043,16 @@ JUMP_BASE = 927   # piedi nel ritaglio
 # ridisegnate per intero (scambiarle farebbe tremolare i contorni): il respiro
 # alza solo schiena e testa (nap_breath), ferma da terra fin sopra le ginocchia.
 NAP_CELLS = (((223, 49, 744, 881), 0.864, 22),)
+# Trascinata (drag): le tre pose di B-drag, appese con le gambe che pendono a
+# sinistra, al centro e a destra. Combaciano con la testa originale alla stessa
+# scala del corpo: la testa resta dov'è (quarto valore: alto della posa nel
+# ritaglio) e la posa ruota un poco attorno al punto in cui la si tiene.
+DANGLE_CELLS = (((264, 18, 614, 701), 1.3365, 10, 32), ((909, 18, 1250, 703), 1.326, 27, 32),
+                ((1543, 18, 1914, 699), 1.339, 28, 32))
+DANGLE_PIVOT = (300, 150)   # nella tela: in cima alla testa
 WHOLE = {"jump": ("B-celebrate/celebrate-4-celle-trasparente.png", JUMP_CELLS),
-         "nap": ("B-sleep/sleep-2-celle-trasparente.png", NAP_CELLS)}
+         "nap": ("B-sleep/sleep-2-celle-trasparente.png", NAP_CELLS),
+         "dangle": ("B-drag/drag-3-celle-trasparente.png", DANGLE_CELLS)}
 NAP_BREATH = (0.40, 0.70)   # da questa frazione d'altezza (dall'alto) il respiro sfuma a zero
 
 
@@ -1054,10 +1062,11 @@ def _whole_frame(p: Pose) -> Image.Image:
     key = ("whole", p.hand)
     if key not in _CACHE:
         sheet, cells = WHOLE[kind]
-        box, scale, x = cells[int(p.hand[len(kind):])]
+        box, scale, x, *top_y = cells[int(p.hand[len(kind):])]
         c = Image.open(HERE / "disegni" / sheet).convert("RGBA").crop(box)
-        _CACHE[key] = (c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS), x)
-    img, x = _CACHE[key]
+        _CACHE[key] = (c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS), x,
+                       top_y[0] if top_y else None)
+    img, x, top_y = _CACHE[key]
     full_w = img.width
     w, h = round(img.width / p.squash ** 0.3), round(img.height * p.squash)   # si allarga meno di quanto si schiaccia
     if (w, h) != img.size:
@@ -1067,7 +1076,10 @@ def _whole_frame(p: Pose) -> Image.Image:
     left, top = (FRAMED[0] - CANVAS[0]) // 2, FRAMED[1] - CANVAS[1]    # dove cade la tela nel fotogramma
     cx = left + OFFSET[0] + x + full_w / 2   # centro della posa a misura piena
     framed = Image.new("RGBa", FRAMED, (0, 0, 0, 0))
-    framed.paste(img, (round(cx - w / 2), round(top + OFFSET[1] + JUMP_BASE + p.dy - h)), img)
+    y = top + OFFSET[1] + (top_y if top_y is not None else JUMP_BASE - h) + p.dy   # alto fissato o piedi a terra
+    framed.paste(img, (round(cx - w / 2), round(y)), img)
+    if p.swing:
+        framed = framed.rotate(p.swing, center=(left + DANGLE_PIVOT[0], top + DANGLE_PIVOT[1]), resample=Image.BICUBIC)
     framed = framed.convert("RGBA")
     for kind_, fx, fy, *args in p.fx:
         _effect(framed, (kind_, fx + left, fy + top, *args))
@@ -1091,7 +1103,7 @@ def _nap_breath(img: Image.Image, b: float) -> Image.Image:
 
 
 def render(p: Pose) -> Image.Image:
-    if p.hand.startswith(("jump", "nap")):
+    if p.hand.startswith(("jump", "nap", "dangle")):
         return _whole_frame(p)
     img = _with_arm(p) if p.arm else _face(p.eyes, p.mouth).copy()
     if p.hand == "chin":
@@ -1345,16 +1357,34 @@ def look():
 
 
 def drag():
+    # appesa per la testa: le gambe dondolano da un lato all'altro (tre pose di
+    # Codex) e la figura ruota appena attorno alla presa; goccia ai due estremi
+    steps = ((0, -1.8), (0, -1.2), (1, -0.6), (1, 0.6), (2, 1.2), (2, 1.8), (2, 1.2), (1, 0.6), (1, -0.6), (0, -1.2))
     seq = []
-    for swing in (-4.0, -1.5, 2.5, 4.0, 1.5, -2.5):
-        fx = (("drop", 160, 266, 20),) if abs(swing) > 3 else ()
-        seq.append((Pose(dy=-34, swing=swing, eyes="sorpresi", mouth="sorpresa", fx=fx), 160))
+    for cell, swing in steps:
+        fx = (("drop", 160, 266, 20),) if abs(swing) == 1.8 else ()
+        seq.append((Pose(hand=f"dangle{cell}", dy=-34, swing=swing, fx=fx), 110))
     return seq, True
 
 
+
+def _drag_toward(cell: int, sign: float):
+    # trascinata in una direzione: le gambe restano indietro dal lato opposto e
+    # oscillano appena, finché non ti fermi
+    return [(Pose(hand=f"dangle{cell}", dy=-34, swing=sign * a), 140) for a in (1.4, 1.8, 2.2, 1.8)], True
+
+
+def drag_left():
+    return _drag_toward(2, 1.0)    # verso sinistra: gambe che pendono a destra
+
+
+def drag_right():
+    return _drag_toward(0, -1.0)   # verso destra: gambe che pendono a sinistra
+
 STATES = {"idle": idle, "sleep": sleep, "listening": listening, "thinking": thinking, "working": working,
           "reading": reading, "writing": writing, "running": running, "waiting": waiting, "done": done,
-          "celebrate": celebrate, "error": error, "talk": talk, "look": look, "drag": drag}
+          "celebrate": celebrate, "error": error, "talk": talk, "look": look, "drag": drag,
+          "drag-left": drag_left, "drag-right": drag_right}
 
 
 # ---------------------------------------------------------------- pacchetto

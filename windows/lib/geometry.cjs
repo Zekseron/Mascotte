@@ -9,6 +9,16 @@ function maskHit(mask, frame, bounds, cursor) {
   const y = Math.floor((cursor.y - bounds.y) * frame.height / bounds.height);
   return x >= 0 && y >= 0 && x < frame.width && y < frame.height && Boolean(mask[y * frame.width + x]);
 }
+// Stato del trascinamento secondo la direzione orizzontale: velocità smussata con
+// isteresi, così piccoli scatti della mano non fanno cambiare posa di continuo.
+function dragLean(drag, x) {
+  const dx = Number.isFinite(drag.lastX) ? x - drag.lastX : 0;
+  drag.lastX = x;
+  drag.vx = (drag.vx || 0) * 0.6 + dx * 0.4;
+  if (Math.abs(drag.vx) >= 3) drag.lean = drag.vx < 0 ? 'drag-left' : 'drag-right';
+  else if (Math.abs(drag.vx) < 0.8) drag.lean = 'drag';
+  return drag.lean || 'drag';
+}
 function dragPosition(drag, cursor) {
   return { x: Math.round(drag.position.x + cursor.x - drag.cursor.x), y: Math.round(drag.position.y + cursor.y - drag.cursor.y) };
 }
@@ -25,4 +35,4 @@ function barHit(display, point, platform = process.platform) {
     ((point.x >= x && point.x < a.x) || (point.x >= a.x + a.width && point.x < x + width));
   return inBottom || inSide;
 }
-module.exports = { mascotSize, maskHit, dragPosition, barEdge, barHit };
+module.exports = { mascotSize, maskHit, dragPosition, barEdge, barHit, dragLean };

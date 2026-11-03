@@ -97,7 +97,7 @@ Il Mac Intel non è supportato dall'app attuale (solo Apple Silicon).
 ## Personaggi disponibili
 
 - **Cat → Rosso**, pacchetto `characters/Cat/rosso/`.
-- **People → Luma**, pacchetto `characters/People/luma/`: illustrata, con tutti i quindici stati ricavati dai due disegni approvati.
+- **People → Luma**, pacchetto `characters/People/luma/`: illustrata, con tutti gli stati ricavati dai due disegni approvati e dai disegni di Codex, comprese le gambe che seguono la direzione quando la trascini.
 
 Menu Personaggio con categorie e grandezza ricordata per personaggio. I sorgenti grafici sono nelle stesse categorie sotto characters-src.
 

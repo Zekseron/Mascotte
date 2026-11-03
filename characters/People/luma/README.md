@@ -1,6 +1,6 @@
 # Luma
 
-Tutti i quindici stati, ricavati dai due disegni approvati e dalle espressioni disegnate da Codex (bocche e sguardi):
+Tutti gli stati (diciassette), ricavati dai due disegni approvati e dalle espressioni disegnate da Codex (bocche e sguardi):
 
 | Stato | Gesto |
 | --- | --- |
@@ -18,9 +18,11 @@ Tutti i quindici stati, ricavati dai due disegni approvati e dalle espressioni d
 | `error` | Si porta le mani alle guance a bocca aperta, sobbalza tremando mentre una goccia di sudore scende, poi sbatte le ciglia. |
 | `talk` | Parla con le vocali disegnate e piccoli cenni del capo; sulle parole centrali la mano si scosta dal fianco come chi spiega. |
 | `look` | Tiene una lente davanti a un occhio, con l'occhio ingrandito, e strizza l'altro; la sposta appena e fa una piccola «o» di stupore. |
-| `drag` | Sollevata e sorpresa, oscilla come un pendolo con le gambe che penzolano. |
+| `drag` | Appesa per la testa mentre la trascini: le gambe dondolano piano da un lato all'altro. |
+| `drag-left` | Trascinata verso sinistra: le gambe restano indietro e pendono a destra, finché ti muovi. |
+| `drag-right` | Trascinata verso destra: le gambe pendono a sinistra, finché ti muovi. |
 
-- Formato `mascotte-pack/1`, PNG trasparente, fotogrammi 320 × 512, 145 celle.
+- Formato `mascotte-pack/1`, PNG trasparente, fotogrammi 320 × 512, 151 celle.
 - Grandezza iniziale circa 137 × 219 punti (`scale: 3`, `pixelRatio: 7`). La figura è alta circa 189 punti; lo spazio in più serve a salti ed effetti e resta trasparente ai clic.
 
 Nell'app: **Personaggio → People → Luma**. Puoi anche importare la cartella da **Impostazioni → Mascotte → Aggiungi mascotte…**, se Luma non è già inclusa nella build. Nel visore si può trascinare direttamente questa cartella.
