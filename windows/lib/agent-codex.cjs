@@ -4,7 +4,7 @@ const { spawnAgent, stopProcess } = require('./agent-process.cjs');
 // JSON-RPC newline-delimited, verificato sullo schema dell'app-server installato.
 function runCodex({ command, cwd, prompt, image, sessionId, onSession, onEvent, ask, spawn = spawnAgent }) {
   const child = spawn(command, ['-c', 'web_search="live"', '-c', 'approval_policy="on-request"', '-c', 'approvals_reviewer="user"', 'app-server'], cwd);
-  let sequence = 0, buffer = '', diagnostic = '', closed = false, settle, turnId, text = '';
+  let sequence = 0, buffer = '', diagnostic = '', closed = false, settle, text = '';
   const pending = new Map();
   const send = message => { if (!closed) child.stdin.write(JSON.stringify(message) + '\n'); };
   const request = (method, params) => new Promise((resolve, reject) => {
@@ -45,7 +45,6 @@ function runCodex({ command, cwd, prompt, image, sessionId, onSession, onEvent, 
       message.error ? p.reject(new Error(message.error.message)) : p.resolve(message.result); return;
     }
     const p = message.params || {};
-    if (message.method === 'turn/started') turnId = p.turn?.id;
     if (message.method === 'item/agentMessage/delta') { text = (text + (p.delta || '')).slice(-100000); onEvent({ liveText: text }); }
     if (message.method === 'item/started' || message.method === 'item/completed') {
       const item = p.item || {};
@@ -82,8 +81,8 @@ function runCodex({ command, cwd, prompt, image, sessionId, onSession, onEvent, 
     sessionId = response.thread.id; onSession(sessionId);
     const input = [{ type: 'text', text: prompt }];
     if (image) input.push({ type: 'image', url: 'data:image/jpeg;base64,' + image });
-    const result = await request('turn/start', { threadId: sessionId, input }); turnId = result.turn.id;
+    await request('turn/start', { threadId: sessionId, input });
   })().catch(finish);
-  return { promise, stop() { if (turnId) send({ id: ++sequence, method: 'turn/interrupt', params: { threadId: sessionId, turnId } }); finish(new Error('Attività interrotta.')); } };
+  return { promise, stop() { finish(new Error('Attività interrotta.')); } };
 }
 module.exports = { runCodex };

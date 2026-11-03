@@ -7,13 +7,22 @@ async function main() {
   const command = findCLI('codex');
   if (!command) throw new Error('Installa Codex per questa verifica opzionale.');
   const directory = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'mascotte policy '));
-  let tools, authorization;
+  let tools, authorization, nested; let calls = 0;
   const server = http.createServer((req, res) => {
     let body = '';
     req.on('data', data => { body += data; if (body.length > 1048576) req.destroy(); });
     req.on('end', () => {
       if (req.url.includes('responses')) {
-        tools = JSON.parse(body).tools || []; authorization = req.headers.authorization;
+        const data = JSON.parse(body); tools = data.tools || []; authorization ||= req.headers.authorization;
+        for (const item of data.input || []) if (item.type === 'custom_tool_call_output') nested = item.output;
+        if (calls++ === 0) {
+          res.writeHead(200, { 'Content-Type': 'text/event-stream' });
+          const item = { type: 'custom_tool_call', id: 'fc_policy', call_id: 'call_policy', name: 'exec', input: 'text({tools:ALL_TOOLS.map(t=>t.name),process:typeof process,require:typeof require,fetch:typeof fetch});', status: 'completed' };
+          const event = (type, data) => res.write('event: ' + type + '\ndata: ' + JSON.stringify({ type, ...data }) + '\n\n');
+          event('response.output_item.done', { output_index: 0, item });
+          event('response.completed', { response: { id: 'response_policy', status: 'completed', output: [item], usage: { input_tokens: 1, output_tokens: 1, total_tokens: 2 } } });
+          res.end(); return;
+        }
       }
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: { message: 'Fine della verifica locale intenzionale', type: 'invalid_request_error' } }));
@@ -30,8 +39,16 @@ async function main() {
     if (!tools) throw new Error('Nessuna richiesta al mock: ' + output.stderr.slice(-1200));
     const names = tools.map(t => t.name || t.type);
     if (authorization) throw new Error('Autenticazione inattesa nel mock.');
-    const forbidden = names.filter(n => !['update_plan', 'request_user_input'].includes(n));
+    const forbidden = names.filter(n => !['exec', 'wait', 'web_search', 'update_plan', 'request_user_input'].includes(n));
     if (forbidden.length) throw new Error('Strumenti non consentiti ancora offerti: ' + forbidden.join(', '));
+    if (!names.includes('web_search')) throw new Error('Ricerca web non esposta.');
+    const blocks = Array.isArray(nested) ? nested : [{ text: nested }];
+    let catalog;
+    for (const block of blocks) { try { const value = JSON.parse(block.text); if (Array.isArray(value.tools)) catalog = value; } catch {} }
+    if (!catalog) throw new Error('Catalogo code mode non verificato.');
+    if (catalog.tools.some(name => !['update_plan', 'request_user_input'].includes(name))) throw new Error('Strumenti annidati non consentiti: ' + catalog.tools.join(', '));
+    for (const name of ['process', 'require', 'fetch']) if (catalog[name] !== 'undefined') throw new Error('Accesso diretto inatteso in code mode: ' + name);
+    console.log('Code mode: catalogo annidato verificato, niente process/require/fetch.');
     console.log('Policy Codex verificata con CLI reale e backend finto. Strumenti:', names.join(', ') || 'nessuno');
   } finally {
     await new Promise(resolve => server.close(resolve));

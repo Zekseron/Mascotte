@@ -9,7 +9,7 @@ const ENGINES = ['codex', 'claude'];
 const DISABLED = ['shell_tool', 'unified_exec', 'shell_snapshot', 'apps', 'plugins', 'multi_agent', 'computer_use', 'browser_use', 'browser_use_external', 'in_app_browser', 'view_image', 'image_generation', 'goals', 'sleep_tool', 'tool_suggest'];
 
 function argumentsFor(engine, imagePath = null, streamImage = false) {
-  if (engine === 'claude') return ['--print', '--output-format', 'json', ...(streamImage ? ['--input-format', 'stream-json'] : []), '--tools', 'WebSearch,WebFetch', '--permission-mode', 'dontAsk',
+  if (engine === 'claude') return ['--print', '--output-format', 'json', ...(streamImage ? ['--input-format', 'stream-json'] : []), '--tools', 'WebSearch,WebFetch', '--allowedTools', 'WebSearch,WebFetch', '--permission-mode', 'dontAsk',
     '--strict-mcp-config', '--mcp-config', '{"mcpServers":{}}', '--disable-slash-commands',
     '--setting-sources', '', '--no-session-persistence', '--append-system-prompt', INSTRUCTIONS];
   if (engine !== 'codex') throw new Error('IA sconosciuta.');
