@@ -24,7 +24,7 @@ test('unione dei personaggi inclusi e personali, con categoria Personali', () =>
   const included = Characters.readIncluded(P, path.join(__dirname, '../../characters'));
   assert.deepEqual(included.map(c => c.id), ['rosso', 'luma']); assert.ok(included.every(c => !c.personal));
   const luma = included.find(c => c.id === 'luma');
-  assert.deepEqual(luma.pack.frame, { width: 288, height: 512 });
+  assert.deepEqual(luma.pack.frame, { width: 320, height: 512 });
   assert.equal(luma.pack.pixelRatio, 7); assert.ok(luma.pack.animations.idle.frames.length > 1);
   const one = source(user, 'biscotto', named('biscotto', 'Biscotto'));
   const personal = Characters.readPersonal(P, user, ['rosso']);
