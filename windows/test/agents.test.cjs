@@ -52,6 +52,19 @@ test('approvazioni: ID attivo obbligatorio, dati validati; Interrompi libera le 
   run.stop(); await rejected; assert.equal(manager.pending.size, 0); assert.equal(manager.active, null);
 });
 
+test('Esci: stop del gestore raggiunge subito il processo, una sola volta', async t => {
+  const root = temporary(t); let reject, stops = 0;
+  const manager = new AgentManager(path.join(root, 'data'), () => {}, {
+    codex: () => ({ promise: new Promise((_, fail) => { reject = fail; }), stop() { stops++; reject(new Error('Attività interrotta.')); } })
+  });
+  manager.choose('codex', root);
+  const run = manager.run('codex', {}, 'prova');
+  const rejected = assert.rejects(run.promise, /interrotta/);
+  run.stop(); run.stop();
+  assert.equal(stops, 1, 'before-quit non deve dipendere da una microtask');
+  await rejected;
+});
+
 test('Claude SDK: usa sessione, permessi default, strumenti e risposte ai chiarimenti', async () => {
   let options, closed = false; const requests = [], sessions = [];
   const loadSDK = async () => ({ query: args => {

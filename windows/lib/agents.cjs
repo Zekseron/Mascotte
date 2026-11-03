@@ -74,20 +74,19 @@ class AgentManager {
     this.eventEngine = engine;
     this.events = []; this.liveText = '';
     this.store.set(engine, [...this.store.get(engine), { role: 'user', text: prompt + (image ? '\n[Fotogramma allegato]' : '') }]);
-    let stopped = false, resolveReady;
-    const ready = new Promise(resolve => { resolveReady = resolve; });
-    const handle = { stop: () => { stopped = true; ready.then(run => run?.stop()); for (const p of this.pending.values()) p.resolve(false); this.pending.clear(); this.notify(); } };
+    let stopped = false, runner;
+    const handle = { stop: () => { if (stopped) return; stopped = true; runner?.stop(); for (const p of this.pending.values()) p.resolve(false); this.pending.clear(); this.notify(); } };
     this.active = handle;
     handle.promise = (async () => {
       try {
-        const run = this.runners[engine]({ command, cwd, prompt, image, sessionId: entry.sessionId,
+        const run = runner = this.runners[engine]({ command, cwd, prompt, image, sessionId: entry.sessionId,
           onSession: id => { if (typeof id === 'string' && id.length < 500) { this.saved[engine] = { cwd, sessionId: id }; this.save(); } },
           onEvent: event => this.event(event), ask: request => this.ask(request) });
-        resolveReady(run); this.armTimer(); if (stopped) run.stop();
+        this.armTimer(); if (stopped) run.stop();
         const text = await run.promise;
         this.store.set(engine, [...this.store.get(engine), { role: 'assistant', text: text.slice(0, 100000) }]); return text;
       } finally {
-        resolveReady(null); clearTimeout(this.timer); clearTimeout(this.eventTimer); this.eventTimer = null; this.active = null;
+        runner = null; clearTimeout(this.timer); clearTimeout(this.eventTimer); this.eventTimer = null; this.active = null;
         for (const p of this.pending.values()) p.resolve(false); this.pending.clear(); this.liveText = ''; this.notify();
       }
     })();

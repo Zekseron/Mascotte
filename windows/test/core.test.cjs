@@ -98,6 +98,7 @@ test('Codex e Claude consentono ricerca web ma non strumenti generici o sessioni
   assert.ok(codex.includes('suppress_unstable_features_warning=true')); assert.ok(!codex.includes('tools.view_image=false'));
   assert.ok(!codex.includes('--last')); assert.ok(codex.includes('web_search="live"')); assert.ok(argumentsFor('claude').includes('--no-session-persistence'));
   const args = argumentsFor('claude'); assert.equal(args[args.indexOf('--tools') + 1], 'WebSearch,WebFetch');
+  assert.equal(args[args.indexOf('--allowedTools') + 1], 'WebSearch,WebFetch');
   assert.ok(!promptWithHistory([{ role: 'notice', text: 'private error' }], 'hi').includes('private error'));
 });
 for (const engine of ['codex', 'claude']) test('processo simulato ' + engine + ': stdin, JSON e niente shell', async t => {

@@ -48,8 +48,8 @@ function runClaude({ command, cwd, prompt, image, sessionId, onSession, onEvent,
       }
       if (!completed) throw new Error('Claude si è chiuso prima della fine del turno.');
       return text || 'Attività completata.';
-    } finally { query.close(); stopProcess(child); }
+    } finally { stopProcess(child); query.close(); }
   })();
-  return { promise, stop() { stopped = true; abortController.abort(); query?.close(); stopProcess(child); } };
+  return { promise, stop() { if (stopped) return; stopped = true; stopProcess(child); abortController.abort(); query?.close(); } };
 }
 module.exports = { runClaude };
