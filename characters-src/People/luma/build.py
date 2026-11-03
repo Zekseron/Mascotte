@@ -33,10 +33,12 @@ OPEN_X, CLOSED_X = 250, 949
 # Spazio di lavoro in pixel sorgente: margini per salti ed effetti sopra e ai
 # lati. Alla fine viene centrato in FRAMED e ridotto a 8/17, il fotogramma più
 # grande ammesso (512 di altezza); con pixelRatio 7 Luma resta alta come prima.
+# FRAMED è più largo della tela per il salto di celebrate, a braccia e gambe
+# aperte, che si compone direttamente lì (_jump_frame).
 CANVAS = (600, 1080)
 OFFSET = (60, 138)
-FRAMED = (612, 1088)
-TILE = (288, 512)
+FRAMED = (680, 1088)
+TILE = (320, 512)
 COLS = 10
 
 # Punti di riferimento nello spazio di lavoro.
@@ -84,7 +86,7 @@ class Pose:
     mouth: str = ""       # "" (sorriso originale) | small | mid | open | worried | una bocca di EXPRESSIONS
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
-    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance)
+    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance) | jump0..jump3 (pose intere di celebrate)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -1028,7 +1030,39 @@ def _effect(img: Image.Image, spec: tuple) -> None:
 
 # ---------------------------------------------------------------- resa
 
+# Festa (celebrate): le quattro pose intere di B-celebrate (carica, salto,
+# atterraggio, pugno con occhiolino), alla scala che porta la loro testa sulla
+# testa originale, coi piedi sulla linea. I fotogrammi intermedi le schiacciano o
+# le allungano ancorate ai piedi (squash) e le alzano (dy). Il salto è più largo
+# della tela: si compone direttamente nel fotogramma.
+JUMP_CELLS = (((99, 102, 450, 721), 1.236, 31), ((531, 12, 1058, 630), 1.22, -86),   # salto: 2,5% più piccolo e centrato, entra nel fotogramma
+              ((1127, 110, 1574, 723), 1.248, -2), ((1637, 33, 2067, 728), 1.2375, -37))
+JUMP_BASE = 927   # piedi nel ritaglio
+
+
+def _jump_frame(p: Pose) -> Image.Image:
+    key = ("jump", p.hand)
+    if key not in _CACHE:
+        box, scale, x = JUMP_CELLS[int(p.hand[-1])]
+        c = Image.open(HERE / "disegni" / "B-celebrate" / "celebrate-4-celle-trasparente.png").convert("RGBA").crop(box)
+        _CACHE[key] = (c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS), x)
+    img, x = _CACHE[key]
+    w, h = round(img.width / p.squash ** 0.3), round(img.height * p.squash)   # si allarga meno di quanto si schiaccia
+    if (w, h) != img.size:
+        img = img.resize((w, h), Image.LANCZOS)
+    left, top = (FRAMED[0] - CANVAS[0]) // 2, FRAMED[1] - CANVAS[1]    # dove cade la tela nel fotogramma
+    cx = left + OFFSET[0] + x + _CACHE[key][0].width / 2   # centro della posa a misura piena
+    framed = Image.new("RGBa", FRAMED, (0, 0, 0, 0))
+    framed.paste(img, (round(cx - w / 2), round(top + OFFSET[1] + JUMP_BASE + p.dy - h)), img)
+    framed = framed.convert("RGBA")
+    for kind, fx, fy, *args in p.fx:
+        _effect(framed, (kind, fx + left, fy + top, *args))
+    return framed.resize(TILE, Image.LANCZOS)
+
+
 def render(p: Pose) -> Image.Image:
+    if p.hand.startswith("jump"):
+        return _jump_frame(p)
     img = _with_arm(p) if p.arm else _face(p.eyes, p.mouth).copy()
     if p.hand == "chin":
         img = _with_chin(img, p.eyes)
@@ -1228,18 +1262,16 @@ def done():
 
 
 def celebrate():
-    sparks = (("star", 96, 236, 30, 10), ("star", 506, 170, 38, -12), ("heart", 486, 318, 30))
-    seq = [
-        (Pose(squash=0.94, eyes="closed", mouth="small"), 120),
-        (Pose(squash=1.05, dy=-30, mouth="open"), 80),
-        (Pose(squash=1.02, dy=-56, mouth="open", fx=sparks[:2]), 120),
-        (Pose(squash=1.0, dy=-46, eyes="closed", mouth="open", fx=sparks), 100),
-        (Pose(squash=1.02, dy=-16, eyes="closed", mouth="open", fx=sparks), 70),
-        (Pose(squash=0.95, eyes="closed", mouth="open", fx=sparks), 110),
-        (Pose(eyes="closed", mouth="open", breath=0.5,
-              fx=(("star", 90, 220, 26, 25), ("star", 512, 160, 34, 0), ("heart", 486, 306, 26))), 600),
-    ]
-    return seq, False
+    # carica, slancio, salita, sospensione, discesa, atterraggio e pugno con
+    # occhiolino; stelline e cuore compaiono durante il salto
+    s1, s2, s3 = ("star", 96, 236, 30, 10), ("star", 506, 170, 38, -12), ("heart", 486, 318, 30)
+    steps = ((0, 1.00, 0, (), 70), (0, 0.96, 0, (), 70), (0, 0.92, 0, (), 100), (0, 1.07, 12, (), 50),
+             (1, 1.07, 40, (), 45), (1, 1.04, 78, (s1,), 55), (1, 1.01, 100, (s1,), 70),
+             (1, 0.99, 108, (s1, s2), 140), (1, 1.00, 100, (s1, s2), 60), (1, 1.03, 70, (s1, s2), 50),
+             (1, 1.06, 30, (s1, s2), 45), (2, 0.90, 0, (s1, s2, s3), 70), (2, 0.96, 0, (s1, s2, s3), 70),
+             (2, 1.00, 0, (s1, s2, s3), 90), (3, 1.04, 8, (s1, s2, s3), 70), (3, 0.98, 0, (s1, s2, s3), 70),
+             (3, 1.00, 0, (s1, s2, s3), 900))
+    return [(Pose(hand=f"jump{cell}", squash=sq, dy=-lift, fx=fx), ms) for cell, sq, lift, fx, ms in steps], False
 
 
 def error():

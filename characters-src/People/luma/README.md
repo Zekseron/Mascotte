@@ -26,9 +26,10 @@ Ci sono solo due disegni, quindi ogni posa deforma quei pixel e aggiunge bocca e
 - **Lente (`look`):** braccio, mano e lente di B-look (`LENS_CELLS`), che combacia col corpo originale quasi senza ritocchi. Della lente si prende il disco dentro l'anello dorato, con l'occhio ingrandito di Codex; l'altro occhio è strizzato con la palpebra chiusa originale (`eyes="wink"`).
 - **Spavento (`error`):** mani alle guance e maniche di B-error (`CHEEK_CELLS`), che combacia col corpo originale. Le mani hanno una sagoma ciascuna (`CHEEK_HANDS`), le maniche si riempiono dal loro colore e tengono il loro contorno fino ai polsini; originali restano viso, colletto e pettorina (`CHEEK_BIB`).
 - **Braccio che si scosta (`talk` e inizio del saluto):** il braccio sinistro originale è ritagliato lungo la sua linea scura interna (`LIFT_ARM`, misurata riga per riga), così si muove intero col suo contorno; dove manica e giacca sono dipinte senza linea fra loro gli si disegna un contorno che sfuma verso la spalla (`LIFT_EDGE`). Sotto, il corpo senza braccia di A1 ridipinge la giacca.
+- **Festa (`celebrate`):** le quattro pose intere di B-celebrate (`JUMP_CELLS`), alla scala che porta la loro testa sulla testa originale, coi piedi sulla linea; il salto è ridotto del 2,5% per entrare nel fotogramma. I 17 fotogrammi nascono schiacciando, allungando (ancorati ai piedi) e alzando le quattro pose.
 - **Effetti:** z, nuvolette del pensiero (sbuffi con ombra e riflesso, la nuvola grande con i puntini), onde, fulmine, punto esclamativo, stelline, cuore e goccia. Sono disegnati a 3x con contorno arrotondato, perlopiù nell'area in alto a destra.
 
-Le pose uguali diventano una sola cella. Lo spazio di lavoro di 600 × 1080 px sorgente viene ridotto a 8/17 nel fotogramma di 288 × 512, il massimo ammesso. Con `pixelRatio` 7 e `scale` 3 Luma è alta circa 189 punti come prima, con margine per salti ed effetti.
+Le pose uguali diventano una sola cella. Lo spazio di lavoro di 600 × 1080 px sorgente viene centrato in 680 × 1088 e ridotto a 8/17 nel fotogramma di 320 × 512 (512 è il massimo ammesso in altezza); la larghezza in più serve al salto di `celebrate`, composto direttamente nel fotogramma. Con `pixelRatio` 7 e `scale` 3 Luma è alta circa 189 punti come prima, con margine per salti ed effetti.
 
 Prompt di estrazione dello sfondo (imagegen integrato):
 
