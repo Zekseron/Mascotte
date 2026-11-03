@@ -43,7 +43,6 @@ COLS = 10
 FEET = (300, 1063)
 NECK = (300, 538)
 HEAD_TOP = (300, 174)
-EYES = ((215, 410), (331, 410))
 EAR = (432, 440)
 HAND_R = (478, 760)
 HOLD = (300, 60)  # dove la si tiene mentre la trascini
@@ -81,12 +80,11 @@ class Pose:
     dx: float = 0.0
     dy: float = 0.0
     swing: float = 0.0    # pendolo attorno a HOLD, gambe che penzolano
-    eyes: str = "open"    # open | closed | half | uno sguardo di EXPRESSIONS
+    eyes: str = "open"    # open | closed | wink | half | uno sguardo di EXPRESSIONS
     mouth: str = ""       # "" (sorriso originale) | small | mid | open | worried | una bocca di EXPRESSIONS
-    lens: tuple | None = None  # centro della lente che ingrandisce
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
-    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave)
+    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -190,11 +188,15 @@ def _face(eyes: str, mouth: str) -> Image.Image:
     if key not in _CACHE:
         opened, shut = _crops()
         img = (shut if eyes == "closed" else opened).copy()
+        if eyes == "wink":   # solo l'occhio destro (per chi guarda) chiuso
+            m = Image.new("L", opened.size, 0)
+            ImageDraw.Draw(m).rounded_rectangle((214, 229, 320, 306), radius=26, fill=255)
+            img = Image.composite(shut, opened, m.filter(ImageFilter.GaussianBlur(5)))
         for name in (EYE_ALIASES.get(eyes, eyes), MOUTH_ALIASES.get(mouth, mouth)):
             if name in EXPRESSIONS:
                 patch, mask = _expression(name)
                 img.paste(patch, (0, 0), mask)
-            elif name not in ("", "open", "closed"):
+            elif name not in ("", "open", "closed", "wink"):
                 raise ValueError(f"espressione sconosciuta: {name}")
         canvas = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
         canvas.paste(img, OFFSET)
@@ -691,6 +693,59 @@ def _with_tool(face: Image.Image, eyes: str, cell: int) -> Image.Image:
     return out
 
 
+# Lente (look): braccio, mano e lente di B-look, che combacia col corpo originale
+# quasi senza ritocchi. Della lente si prende il disco dentro l'anello dorato,
+# con l'occhio ingrandito disegnato da Codex; fuori restano i suoi capelli.
+LENS_CELLS = (((292, 21, 710, 874), 1.0078, 32, 64, (148, 302)),
+              ((1040, 21, 1459, 874), 1.0185, 30, 58, (130, 298)))   # ..., centro dell'anello
+LENS_R = 61
+LENS_SLEEVE = ((20, 330), (150, 360), (200, 380), (210, 470), (200, 560), (30, 560), (10, 450))
+LENS_HANDLE = ((96, 344), (126, 348), (110, 420), (84, 418))
+
+
+def _lens_arm(cell: int) -> Image.Image:
+    key = ("lens", cell)
+    if key in _CACHE:
+        return _CACHE[key]
+    ox, oy = OFFSET
+    box, scale, x, y, (cx, cy) = LENS_CELLS[cell]
+    c = Image.open(HERE / "disegni" / "B-look" / "look-2-celle-trasparente.png").convert("RGBA").crop(box)
+    small = c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS).convert("RGBA")
+    layer = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    layer.alpha_composite(small, (ox + x, oy + y))
+    neck = _zone(TOOL_NECK)
+    lp = layer.load()
+    inside = Image.new("L", CANVAS, 0)
+    ip = inside.load()
+    for yy in range(oy + 300, oy + 580):
+        for xx in range(ox + 10, ox + 260):
+            r, g, b, a = lp[xx, yy]
+            if a > 40 and (r + g + b) / 3 > 95:
+                ip[xx, yy] = 255
+    inside = ImageChops.multiply(inside, ImageChops.multiply(_zone(LENS_SLEEVE), ImageChops.invert(neck)))
+    ip = inside.load()
+    for yy in range(oy + 360, oy + 570, 3):
+        for xx in range(ox + 10, ox + 250, 3):
+            r, g, b, a = lp[xx, yy]
+            if ip[xx, yy] == 255 and ((r > 200 and 140 < g < 195 and b < 100) or _is_skin(r, g, b)):
+                ImageDraw.floodfill(inside, (xx, yy), 128)
+    fill = inside.point(lambda v: 255 if v == 128 else 0)
+    disk = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(disk).ellipse((ox + cx - LENS_R, oy + cy - LENS_R, ox + cx + LENS_R, oy + cy + LENS_R), fill=255)
+    fill = ImageChops.lighter(ImageChops.lighter(fill, disk), _zone(LENS_HANDLE))
+    dark = layer.convert("L").point(lambda v: 255 if v <= 95 else 0)
+    ring = ImageChops.multiply(ImageChops.multiply(fill.filter(ImageFilter.MaxFilter(11)), dark), ImageChops.invert(neck))
+    m = ImageChops.lighter(fill, ring).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(0.8))
+    _CACHE[key] = _masked(layer, m)
+    return _CACHE[key]
+
+
+def _with_lens(face: Image.Image, eyes: str, cell: int) -> Image.Image:
+    img = Image.composite(_armless(eyes), face, _zone(TOOL_FLANK, 3))
+    img.alpha_composite(_lens_arm(cell))
+    return img
+
+
 def _with_book(img: Image.Image, eyes: str, cell: int, arms=None) -> Image.Image:
     """Le due braccia davanti al busto (libro o blocco), con i fianchi di A1."""
     flanks = ImageChops.lighter(_zone(BOOK_FLANKS[0]), _zone(BOOK_FLANKS[1])).filter(ImageFilter.GaussianBlur(3))
@@ -720,12 +775,6 @@ def _inverse(p: Pose):
         if wh and (p.head or p.head_dx or p.head_dy):
             x, y = x - p.head_dx * wh, y - p.head_dy * wh
             x, y = rotate(x, y, nx, ny, -p.head * wh)
-        if p.lens:
-            lx, ly = p.lens
-            r = math.hypot(x - lx, y - ly)
-            if r < 46:
-                k = 1 / 1.45
-                x, y = lx + (x - lx) * k, ly + (y - ly) * k
         if p.breath:
             yc = y - oy
             # testa e spalle salgono appena, il busto si allunga (respiro approvato)
@@ -872,29 +921,6 @@ def _arcs(n: int, zoom: float = 1.9):
     return paint
 
 
-def _lens():
-    def paint(d, c, ss):
-        r = 48 * ss
-        a = math.radians(50)
-        hx, hy = c + math.cos(a) * r, c + math.sin(a) * r
-        d.line([(hx, hy), (hx + math.cos(a) * 46 * ss, hy + math.sin(a) * 46 * ss)], fill=(150, 84, 52, 255), width=int(16 * ss))
-        d.ellipse((c - r, c - r, c + r, c + r), outline=(214, 160, 64, 255), width=int(9 * ss))
-    return paint
-
-
-def _lens_glass(img: Image.Image, center) -> None:
-    ss = 3
-    r = 44
-    size = r * 2 + 4
-    layer = Image.new("RGBA", (size * ss, size * ss), (0, 0, 0, 0))
-    d = ImageDraw.Draw(layer)
-    c = size * ss / 2
-    d.ellipse((c - r * ss, c - r * ss, c + r * ss, c + r * ss), fill=(190, 230, 250, 46))
-    d.arc((c - 30 * ss, c - 30 * ss, c + 30 * ss, c + 30 * ss), 200, 250, fill=(255, 255, 255, 200), width=int(6 * ss))
-    layer = layer.resize((size, size), Image.LANCZOS)
-    img.alpha_composite(layer, (int(center[0] - size / 2), int(center[1] - size / 2)))
-
-
 PAINTERS = {"star": _star, "heart": _heart, "z": _zee, "drop": _drop, "exclaim": _exclaim,
             "bolt": _bolt, "arcs": _arcs, "cloud": _cloud}
 SIZES = {"star": 2.5, "heart": 2.6, "z": 2.8, "drop": 4.2, "exclaim": 1.3,
@@ -907,11 +933,6 @@ def _effect(img: Image.Image, spec: tuple) -> None:
     if args and isinstance(args[-1], tuple) and args[-1][0] == "alpha":
         alpha = args[-1][1]
         args = args[:-1]
-    if kind == "lens":
-        _lens_glass(img, (x, y))
-        size = 210
-        img.alpha_composite(_sticker(size, _lens()), (int(x - size / 2), int(y - size / 2)))
-        return
     painter = PAINTERS[kind](*args)
     factor = SIZES[kind]
     size = factor if isinstance(factor, int) else int(args[0] * factor) + 16
@@ -926,6 +947,8 @@ def render(p: Pose) -> Image.Image:
         img = _with_chin(img, p.eyes)
     elif p.hand.startswith("book"):
         img = _with_book(img, p.eyes, int(p.hand[-1]))
+    elif p.hand.startswith("lens"):
+        img = _with_lens(img, p.eyes, int(p.hand[-1]))
     elif p.hand.startswith("tool"):
         img = _with_tool(img, p.eyes, int(p.hand[-1]))
     elif p.hand.startswith("pad"):
@@ -933,8 +956,6 @@ def render(p: Pose) -> Image.Image:
     img = _warp(img, p)
     for spec in p.fx:
         _effect(img, spec)
-    if p.lens:
-        _effect(img, ("lens", *p.lens))
     framed = Image.new("RGBA", FRAMED, (0, 0, 0, 0))
     framed.paste(img, ((FRAMED[0] - CANVAS[0]) // 2, FRAMED[1] - CANVAS[1]))
     return framed.resize(TILE, Image.LANCZOS)
@@ -1154,12 +1175,12 @@ def talk():
 
 
 def look():
-    l_eye, r_eye = EYES
-    path = ((l_eye, 650), ((273, 404), 220), (r_eye, 650), ((273, 404), 220))
-    seq = []
-    for (x, y), ms in path:
-        side = "sinistra" if x < 273 else ("destra" if x > 273 else "open")
-        seq.append((Pose(head=-1.0 if x < 273 else (1.0 if x > 273 else 0), eyes=side, lens=(x, y), breath=0.3), ms))
+    # lente davanti a un occhio e l'altro strizzato; la sposta appena, poi una
+    # piccola «o» di stupore
+    def pose(cell, breath, mouth=""):
+        return Pose(hand=f"lens{cell}", eyes="wink", mouth=mouth, breath=breath)
+    seq = [(pose(0, 0.3), 900), (pose(1, 0.4), 500), (pose(0, 0.5), 700), (pose(1, 0.5, "o"), 600),
+           (pose(1, 0.4, "o"), 300), (pose(0, 0.3), 500)]
     return seq, True
 
 

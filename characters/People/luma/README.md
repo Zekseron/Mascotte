@@ -17,7 +17,7 @@ Tutti i quindici stati, ricavati dai due disegni approvati e dalle espressioni d
 | `celebrate` | Accovacciata, salto, atterraggio, posa felice con stelline e cuore (non in loop). |
 | `error` | Tremolio, occhi e bocca preoccupati, goccia di sudore. |
 | `talk` | Vocali disegnate («a», «o», «e», sorriso) con piccoli cenni e un battito. |
-| `look` | Lente d'ingrandimento che passa da un occhio all'altro, lo ingrandisce, e lo sguardo la segue. |
+| `look` | Tiene una lente davanti a un occhio, con l'occhio ingrandito, e strizza l'altro; la sposta appena e fa una piccola «o» di stupore. |
 | `drag` | Sollevata e sorpresa, oscilla come un pendolo con le gambe che penzolano. |
 
 - Formato `mascotte-pack/1`, PNG trasparente, fotogrammi 288 × 512, 104 celle.
