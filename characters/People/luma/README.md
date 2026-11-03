@@ -5,7 +5,7 @@ Tutti i quindici stati, ricavati dai due disegni approvati e dalle espressioni d
 | Stato | Gesto |
 | --- | --- |
 | `idle` | Respiro di 4 s con testa e spalle che salgono appena. Battiti irregolari passando per gli occhi socchiusi, uno doppio, ciclo di 24 s. |
-| `sleep` | Occhi chiusi, testa reclinata, respiro lento e profondo, z che salgono e svaniscono. |
+| `sleep` | Seduta a terra con la testa sulle braccia: respiro lento e profondo, z che salgono e svaniscono. |
 | `listening` | Testa piegata e sguardo verso chi parla, onde che arrivano all'orecchio. |
 | `thinking` | Mano al mento e occhi in alto; salgono due sbuffi e una nuvola che si riempie di puntini, poi uno sguardo di lato. |
 | `working` | Stringe un bullone di un meccanismo con la chiave inglese, a scatti come un cricchetto; poi una pausa con un battito di ciglia. |
@@ -20,7 +20,7 @@ Tutti i quindici stati, ricavati dai due disegni approvati e dalle espressioni d
 | `look` | Tiene una lente davanti a un occhio, con l'occhio ingrandito, e strizza l'altro; la sposta appena e fa una piccola «o» di stupore. |
 | `drag` | Sollevata e sorpresa, oscilla come un pendolo con le gambe che penzolano. |
 
-- Formato `mascotte-pack/1`, PNG trasparente, fotogrammi 320 × 512, 141 celle.
+- Formato `mascotte-pack/1`, PNG trasparente, fotogrammi 320 × 512, 145 celle.
 - Grandezza iniziale circa 137 × 219 punti (`scale: 3`, `pixelRatio: 7`). La figura è alta circa 189 punti; lo spazio in più serve a salti ed effetti e resta trasparente ai clic.
 
 Nell'app: **Personaggio → People → Luma**. Puoi anche importare la cartella da **Impostazioni → Mascotte → Aggiungi mascotte…**, se Luma non è già inclusa nella build. Nel visore si può trascinare direttamente questa cartella.

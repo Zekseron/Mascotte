@@ -34,7 +34,7 @@ OPEN_X, CLOSED_X = 250, 949
 # lati. Alla fine viene centrato in FRAMED e ridotto a 8/17, il fotogramma più
 # grande ammesso (512 di altezza); con pixelRatio 7 Luma resta alta come prima.
 # FRAMED è più largo della tela per il salto di celebrate, a braccia e gambe
-# aperte, che si compone direttamente lì (_jump_frame).
+# aperte, che si compone direttamente lì (_whole_frame).
 CANVAS = (600, 1080)
 OFFSET = (60, 138)
 FRAMED = (680, 1088)
@@ -86,7 +86,7 @@ class Pose:
     mouth: str = ""       # "" (sorriso originale) | small | mid | open | worried | una bocca di EXPRESSIONS
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
-    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance) | jump0..jump3 (pose intere di celebrate)
+    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance) | jump0..jump3, nap0 (pose intere di celebrate e sleep)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -1038,31 +1038,61 @@ def _effect(img: Image.Image, spec: tuple) -> None:
 JUMP_CELLS = (((99, 102, 450, 721), 1.236, 31), ((531, 12, 1058, 630), 1.22, -86),   # salto: 2,5% più piccolo e centrato, entra nel fotogramma
               ((1127, 110, 1574, 723), 1.248, -2), ((1637, 33, 2067, 728), 1.2375, -37))
 JUMP_BASE = 927   # piedi nel ritaglio
+# Sonno (sleep): la prima posa di B-sleep, seduta a terra con la testa sulle
+# braccia, alla scala della testa originale a occhi chiusi. Le due celle sono
+# ridisegnate per intero (scambiarle farebbe tremolare i contorni): il respiro
+# alza solo schiena e testa (nap_breath), ferma da terra fin sopra le ginocchia.
+NAP_CELLS = (((223, 49, 744, 881), 0.864, 22),)
+WHOLE = {"jump": ("B-celebrate/celebrate-4-celle-trasparente.png", JUMP_CELLS),
+         "nap": ("B-sleep/sleep-2-celle-trasparente.png", NAP_CELLS)}
+NAP_BREATH = (0.40, 0.70)   # da questa frazione d'altezza (dall'alto) il respiro sfuma a zero
 
 
-def _jump_frame(p: Pose) -> Image.Image:
-    key = ("jump", p.hand)
+def _whole_frame(p: Pose) -> Image.Image:
+    """Una posa intera di Codex composta direttamente nel fotogramma."""
+    kind = p.hand.rstrip("0123456789")
+    key = ("whole", p.hand)
     if key not in _CACHE:
-        box, scale, x = JUMP_CELLS[int(p.hand[-1])]
-        c = Image.open(HERE / "disegni" / "B-celebrate" / "celebrate-4-celle-trasparente.png").convert("RGBA").crop(box)
+        sheet, cells = WHOLE[kind]
+        box, scale, x = cells[int(p.hand[len(kind):])]
+        c = Image.open(HERE / "disegni" / sheet).convert("RGBA").crop(box)
         _CACHE[key] = (c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS), x)
     img, x = _CACHE[key]
+    full_w = img.width
     w, h = round(img.width / p.squash ** 0.3), round(img.height * p.squash)   # si allarga meno di quanto si schiaccia
     if (w, h) != img.size:
         img = img.resize((w, h), Image.LANCZOS)
+    if kind == "nap" and p.breath:
+        img = _nap_breath(img, p.breath)
     left, top = (FRAMED[0] - CANVAS[0]) // 2, FRAMED[1] - CANVAS[1]    # dove cade la tela nel fotogramma
-    cx = left + OFFSET[0] + x + _CACHE[key][0].width / 2   # centro della posa a misura piena
+    cx = left + OFFSET[0] + x + full_w / 2   # centro della posa a misura piena
     framed = Image.new("RGBa", FRAMED, (0, 0, 0, 0))
     framed.paste(img, (round(cx - w / 2), round(top + OFFSET[1] + JUMP_BASE + p.dy - h)), img)
     framed = framed.convert("RGBA")
-    for kind, fx, fy, *args in p.fx:
-        _effect(framed, (kind, fx + left, fy + top, *args))
+    for kind_, fx, fy, *args in p.fx:
+        _effect(framed, (kind_, fx + left, fy + top, *args))
     return framed.resize(TILE, Image.LANCZOS)
 
 
+def _nap_breath(img: Image.Image, b: float) -> Image.Image:
+    """Schiena e testa salgono fino a 6 px; gambe e stivali restano fermi."""
+    W, H = img.size
+    y0, y1 = NAP_BREATH[0] * H, NAP_BREATH[1] * H
+
+    def f(x, y):
+        return x, y + 6 * b * (1 - smooth(y0, y1, y))
+    step = 8
+    mesh = []
+    for y in range(0, H, step):
+        for x in range(0, W, step):
+            x1, yy1 = min(x + step, W), min(y + step, H)
+            mesh.append(((x, y, x1, yy1), (*f(x, y), *f(x, yy1), *f(x1, yy1), *f(x1, y))))
+    return img.transform((W, H), Image.MESH, mesh, Image.BICUBIC)
+
+
 def render(p: Pose) -> Image.Image:
-    if p.hand.startswith("jump"):
-        return _jump_frame(p)
+    if p.hand.startswith(("jump", "nap")):
+        return _whole_frame(p)
     img = _with_arm(p) if p.arm else _face(p.eyes, p.mouth).copy()
     if p.hand == "chin":
         img = _with_chin(img, p.eyes)
@@ -1146,19 +1176,20 @@ SLOT = (462, 118)
 
 
 def sleep():
-    # respiro lento e profondo, testa un po' reclinata, z che salgono e svaniscono
-    head = dict(head=-5.0, head_dy=7.0, head_dx=-3.0)
+    # seduta a terra con la testa sulle braccia: respiro lento e profondo, z che
+    # salgono dalla testa e svaniscono
     seq = []
-    for i in range(6):
-        b = breath_at(i * 1000, 6000, 0.45) * 1.6
+    n = 10   # passi di 600 ms su un respiro di 6 s
+    for i in range(n):
+        b = breath_at(i * 6000 / n, 6000, 0.45)
         z = []
         for off in (0.0, 0.5):
-            u = (i / 6 + off) % 1
-            x = 408 + u * 120 + math.sin(u * 5) * 10
-            y = 230 - u * 190
+            u = (i / n + off) % 1
+            x = 420 + u * 110 + math.sin(u * 5) * 10
+            y = 380 - u * 220
             a = 1.0 if u < 0.65 else (1 - u) / 0.35
             z.append(("z", x, y, 18 + u * 22, ("alpha", round(max(0.0, a), 2))))
-        seq.append((Pose(breath=round(b, 2), eyes="closed", fx=tuple(z), **head), 1000))
+        seq.append((Pose(hand="nap0", breath=round(b, 2), fx=tuple(z)), 600))
     return seq, True
 
 
