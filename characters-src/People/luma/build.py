@@ -87,7 +87,7 @@ class Pose:
     lens: tuple | None = None  # centro della lente che ingrandisce
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
-    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro)
+    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -116,6 +116,8 @@ EXPRESSIONS = {
     "libro0": ("B-reading/reading-3-celle", (239, 8, 554, 709), "eyes", 1.3509, -7, -12),
     "libro1": ("B-reading/reading-3-celle", (925, 8, 1240, 709), "eyes", 1.3385, -5, -10),
     "libro2": ("B-reading/reading-3-celle", (1577, 9, 1895, 709), "eyes", 1.3289, -9, -3),
+    # sguardo sul blocco, dalla prima posa di B-writing (nelle altre il sopracciglio non combacia)
+    "blocco": ("B-writing/writing-3-celle-v3", (203, 22, 519, 709), "eyes", 1.3554, -6, -29),
 }
 # nomi brevi usati negli stati, distinti per occhi e bocca ("open" vale per entrambi)
 EYE_ALIASES = {"half": "assonnati"}
@@ -510,10 +512,78 @@ def _book_arms(cell: int) -> Image.Image:
     return out
 
 
-def _with_book(img: Image.Image, eyes: str, cell: int) -> Image.Image:
+# Blocco (writing): braccia, blocco e matita di B-writing. La prima posa è
+# registrata su colletto, cintura e gambe, le altre sul blocco della prima, così
+# il blocco resta fermo e si muove la mano con la matita. Viso, collo e colletto
+# di Codex restano fuori: sopra il colletto passa solo la matita, in cima al
+# blocco solo la spirale.
+PAD_CELLS = (((203, 22, 519, 709), 1.3163, 33, 27, 0.0),
+             ((927, 22, 1243, 709), 1.3359, 27, 16, -2.0),
+             ((1651, 22, 1967, 709), 1.3031, 36, 30, -1.0))
+PAD_SLEEVES = ((50, 392), (140, 350), (240, 350), (330, 380), (430, 392), (440, 500), (430, 600), (60, 600), (44, 500))
+PAD_SHAPE = ((195, 400), (336, 396), (340, 550), (148, 554), (150, 470))
+PAD_TOP = 424      # sopra questa riga del blocco restano solo gli anelli della spirale
+PAD_NECK = ((140, 320), (330, 320), (330, 422), (240, 422), (215, 401), (150, 399))
+PAD_COLLAR = 398   # la pelle sotto questa riga è delle mani, sopra è il mento di Codex
+PENCILS = (((140, 362), (163, 360), (234, 450), (222, 464), (138, 384)),
+           ((145, 381), (174, 381), (227, 455), (212, 467), (145, 407)),
+           ((135, 416), (164, 414), (187, 470), (148, 470)))
+
+
+def _pad_arms(cell: int) -> Image.Image:
+    key = ("pad", cell)
+    if key in _CACHE:
+        return _CACHE[key]
+    ox, oy = OFFSET
+    box, scale, x, y, rot = PAD_CELLS[cell]
+    c = Image.open(HERE / "disegni" / "B-writing" / "writing-3-celle-v3-trasparente.png").convert("RGBA").crop(box)
+    small = c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS)
+    if rot:
+        small = small.rotate(rot, resample=Image.BICUBIC, center=(small.width * 0.45, small.height * 0.55))
+    layer = Image.new("RGBa", CANVAS, (0, 0, 0, 0))
+    layer.paste(small, (ox + x, oy + y), small)
+    layer = layer.convert("RGBA")
+    zone = _zone(PAD_SLEEVES)
+    lp = layer.load()
+    inside = Image.new("L", CANVAS, 0)
+    ip = inside.load()
+    for yy in range(oy + 340, oy + 610):
+        for xx in range(ox + 40, ox + 450):
+            r, g, b, a = lp[xx, yy]
+            if a > 40 and (r + g + b) / 3 > 95:
+                ip[xx, yy] = 255
+    inside = ImageChops.multiply(inside, zone)
+    ip = inside.load()
+    for yy in range(oy + 350, oy + 600, 3):
+        for xx in range(ox + 50, ox + 440, 3):
+            r, g, b, a = lp[xx, yy]
+            pencil = (r > 230 and g > 170 and b < 120) or (r > 220 and g < 170 and b > 130)
+            body = (r > 200 and 140 < g < 195 and b < 100) or (r > 215 and g > 165 and 135 < b < 200)
+            if ip[xx, yy] == 255 and (pencil or (body and yy > oy + PAD_COLLAR)):
+                ImageDraw.floodfill(inside, (xx, yy), 128)
+    filled = inside.point(lambda v: 255 if v == 128 else 0)
+    neck = _zone(PAD_NECK)
+    pen = ImageChops.multiply(_zone(PENCILS[cell]), layer.getchannel("A").point(lambda v: 255 if v > 40 else 0))
+    filled = ImageChops.lighter(ImageChops.multiply(filled, ImageChops.invert(neck)), ImageChops.multiply(pen, neck))
+    band = ImageChops.multiply(_zone(PAD_SHAPE), _zone(((100, 380), (360, 380), (360, PAD_TOP), (100, PAD_TOP))))
+    rings = ImageChops.multiply(band, layer.getchannel("B").point(lambda v: 255 if v < 140 else 0)).filter(ImageFilter.MaxFilter(3))
+    fill = ImageChops.lighter(filled, ImageChops.lighter(ImageChops.multiply(_zone(PAD_SHAPE), ImageChops.invert(band)), rings))
+    dark = layer.convert("L").point(lambda v: 255 if v <= 95 else 0)
+    ring = ImageChops.multiply(ImageChops.multiply(fill.filter(ImageFilter.MaxFilter(11)), dark), zone)
+    ring = ImageChops.multiply(ring, ImageChops.invert(ImageChops.multiply(neck, ImageChops.invert(pen.filter(ImageFilter.MaxFilter(3))))))
+    m = ImageChops.lighter(fill, ring).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(0.8))
+    white = Image.merge("RGB", layer.split()[:3]).convert("L").point(lambda v: 255 if v > 244 else 0)
+    grey = ImageChops.subtract(layer.getchannel("R"), layer.getchannel("B")).point(lambda v: 255 if v < 16 else 0)
+    m = ImageChops.multiply(m, ImageChops.invert(ImageChops.multiply(ImageChops.multiply(white, grey), ImageChops.invert(_zone(PAD_SHAPE)))))
+    _CACHE[key] = _masked(layer, m)
+    return _CACHE[key]
+
+
+def _with_book(img: Image.Image, eyes: str, cell: int, arms=None) -> Image.Image:
+    """Le due braccia davanti al busto (libro o blocco), con i fianchi di A1."""
     flanks = ImageChops.lighter(_zone(BOOK_FLANKS[0]), _zone(BOOK_FLANKS[1])).filter(ImageFilter.GaussianBlur(3))
     img = Image.composite(_armless(eyes), img, flanks)
-    img.alpha_composite(_book_arms(cell))
+    img.alpha_composite((arms or _book_arms)(cell))
     return img
 
 # ---------------------------------------------------------------- deformazione
@@ -704,34 +774,6 @@ def _arcs(n: int, zoom: float = 1.9):
     return paint
 
 
-def _paper(lines: float, tip: tuple[float, float], zoom: float = 1.45):
-    def paint(d, c, ss):
-        s = ss * zoom
-        corners = [(-42, -50), (40, -54), (46, 48), (-36, 52)]
-        d.polygon([(c + x * s, c + y * s) for x, y in corners], fill=CREAM + (255,))
-        for k in range(4):
-            full = min(1.0, max(0.0, lines - k))
-            if full <= 0:
-                break
-            y = -30 + k * 20
-            x0, x1 = -28, -28 + 60 * full
-            pts = [(c + (x0 + (x1 - x0) * i / 12) * s, c + (y + math.sin(i * 1.7) * 2.5) * s) for i in range(13)]
-            d.line(pts, fill=(96, 112, 150, 255), width=int(3 * s), joint="curve")
-        # matita: corpo giallo, punta di legno e mina, gomma rosa
-        tx, ty = c + tip[0] * s, c + tip[1] * s
-        a = math.radians(-58)
-        ux, uy = math.cos(a), math.sin(a)
-        px, py = -uy, ux
-
-        def at(t, o):
-            return (tx + ux * t * s + px * o * s, ty + uy * t * s + py * o * s)
-        d.polygon([at(0, 0), at(16, -7), at(16, 7)], fill=(232, 196, 150, 255))
-        d.polygon([at(0, 0), at(6, -2.6), at(6, 2.6)], fill=INK + (255,))
-        d.polygon([at(16, -7), at(66, -7), at(66, 7), at(16, 7)], fill=YELLOW + (255,))
-        d.polygon([at(66, -7), at(78, -7), at(78, 7), at(66, 7)], fill=PINK + (255,))
-    return paint
-
-
 def _lens():
     def paint(d, c, ss):
         r = 48 * ss
@@ -756,9 +798,9 @@ def _lens_glass(img: Image.Image, center) -> None:
 
 
 PAINTERS = {"star": _star, "heart": _heart, "z": _zee, "drop": _drop, "exclaim": _exclaim,
-            "gear": _gear, "bolt": _bolt, "arcs": _arcs, "paper": _paper, "cloud": _cloud}
+            "gear": _gear, "bolt": _bolt, "arcs": _arcs, "cloud": _cloud}
 SIZES = {"star": 2.5, "heart": 2.6, "z": 2.8, "drop": 4.2, "exclaim": 1.3,
-         "gear": 2.6, "bolt": 2.6, "arcs": 250, "paper": 330, "cloud": 2.9}
+         "gear": 2.6, "bolt": 2.6, "arcs": 250, "cloud": 2.9}
 
 
 def _effect(img: Image.Image, spec: tuple) -> None:
@@ -786,6 +828,8 @@ def render(p: Pose) -> Image.Image:
         img = _with_chin(img, p.eyes)
     elif p.hand.startswith("book"):
         img = _with_book(img, p.eyes, int(p.hand[-1]))
+    elif p.hand.startswith("pad"):
+        img = _with_book(img, p.eyes, int(p.hand[-1]), _pad_arms)
     img = _warp(img, p)
     for spec in p.fx:
         _effect(img, spec)
@@ -924,11 +968,10 @@ def reading():
 
 
 def writing():
-    base = dict(head=4.5, head_dy=5.0, head_dx=3.0, breath=0.2)
-    seq = []
-    tips = ((-18, -32), (6, -26), (28, -32), (-10, -8))
-    for i, tip in enumerate(tips):
-        seq.append((Pose(**base, fx=(("paper", SLOT[0], SLOT[1] + 36, 1.0 + i * 0.75, tip),)), 170))
+    # tre passate di matita sul blocco, poi una pausa con un battito di ciglia
+    seq = [(Pose(hand=f"pad{c}", eyes="blocco", breath=0.3 + 0.1 * (k % 2)), 130) for k in range(3) for c in (0, 1, 2, 1)]
+    seq += [(Pose(hand="pad0", eyes="blocco", breath=0.5), 400), (Pose(hand="pad0", eyes="closed", breath=0.5), 110),
+            (Pose(hand="pad0", eyes="blocco", breath=0.4), 300)]
     return seq, True
 
 
