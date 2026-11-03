@@ -8,7 +8,7 @@ Tutti i quindici stati, ricavati dai due disegni approvati e dalle espressioni d
 | `sleep` | Occhi chiusi, testa reclinata, respiro lento e profondo, z che salgono e svaniscono. |
 | `listening` | Testa piegata e sguardo verso chi parla, onde che arrivano all'orecchio. |
 | `thinking` | Mano al mento e occhi in alto; salgono due sbuffi e una nuvola che si riempie di puntini, poi uno sguardo di lato. |
-| `working` | Due ingranaggi che girano accanto alla mano, cenni del capo. |
+| `working` | Stringe un bullone di un meccanismo con la chiave inglese, a scatti come un cricchetto; poi una pausa con un battito di ciglia. |
 | `reading` | Tiene il libro con due mani e lo legge: pagina sinistra, battito di ciglia, pagina destra, poi la gira con la mano. |
 | `writing` | Scrive su un blocco a spirale: la matita va su e giù per tre passate, poi una pausa con un battito di ciglia. |
 | `running` | Saltelli con fulmine che lampeggia. |
