@@ -7,7 +7,7 @@ Tutti i quindici stati, ricavati dai due disegni approvati e dalle espressioni d
 | `idle` | Respiro di 4 s con testa e spalle che salgono appena. Battiti irregolari passando per gli occhi socchiusi, uno doppio, ciclo di 24 s. |
 | `sleep` | Occhi chiusi, testa reclinata, respiro lento e profondo, z che salgono e svaniscono. |
 | `listening` | Testa piegata e sguardo verso chi parla, onde che arrivano all'orecchio. |
-| `thinking` | Occhi rivolti in alto, tre puntini che compaiono uno alla volta. |
+| `thinking` | Mano al mento e occhi in alto; salgono due sbuffi e una nuvola che si riempie di puntini, poi uno sguardo di lato. |
 | `working` | Due ingranaggi che girano accanto alla mano, cenni del capo. |
 | `reading` | Libro aperto con pagina che si gira, testa china. |
 | `writing` | Foglio che si riempie, matita che si muove. |
