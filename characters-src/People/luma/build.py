@@ -84,7 +84,7 @@ class Pose:
     mouth: str = ""       # "" (sorriso originale) | small | mid | open | worried | una bocca di EXPRESSIONS
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
-    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente)
+    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -746,6 +746,54 @@ def _with_lens(face: Image.Image, eyes: str, cell: int) -> Image.Image:
     return img
 
 
+# Spavento (error): mani alle guance e maniche di B-error, che combacia col corpo
+# originale. Le mani hanno una sagoma ciascuna (le dita sono aree separate dal
+# contorno), le maniche si riempiono dal loro colore e tengono il loro contorno;
+# originali restano viso, colletto e pettorina.
+CHEEK_CELLS = (((266, 19, 668, 872), 1.0288, 40, 50), ((1092, 16, 1494, 872), 1.0201, 40, 54))
+CHEEK_HANDS = ((((148, 362), (165, 352), (200, 358), (210, 380), (205, 418), (190, 436), (158, 430), (146, 400)),
+                ((250, 360), (275, 352), (308, 368), (314, 400), (302, 434), (270, 436), (246, 412), (242, 386))),
+               (((146, 354), (170, 344), (202, 352), (210, 380), (204, 418), (176, 430), (148, 408), (144, 376)),
+                ((242, 352), (266, 344), (292, 352), (306, 385), (298, 424), (264, 426), (242, 402), (234, 374))))
+CHEEK_SLEEVES = ((10, 360), (150, 380), (205, 440), (245, 440), (320, 380), (470, 360), (470, 600), (10, 600))
+CHEEK_BIB = ((208, 380), (254, 380), (256, 444), (263, 450), (263, 520), (208, 520))   # colletto e pettorina
+
+
+def _cheek_arms(cell: int) -> Image.Image:
+    key = ("cheeks", cell)
+    if key in _CACHE:
+        return _CACHE[key]
+    ox, oy = OFFSET
+    box, scale, x, y = CHEEK_CELLS[cell]
+    c = Image.open(HERE / "disegni" / "B-error" / "error-2-celle-trasparente.png").convert("RGBA").crop(box)
+    small = c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS).convert("RGBA")
+    layer = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    layer.alpha_composite(small, (ox + x, oy + y))
+    zone = ImageChops.multiply(_zone(CHEEK_SLEEVES), ImageChops.invert(_zone(CHEEK_BIB)))
+    lp = layer.load()
+    inside = Image.new("L", CANVAS, 0)
+    ip = inside.load()
+    for yy in range(oy + 380, oy + 610):
+        for xx in range(ox + 10, ox + 470):
+            r, g, b, a = lp[xx, yy]
+            if a > 40 and (r + g + b) / 3 > 95:
+                ip[xx, yy] = 255
+    inside = ImageChops.multiply(inside, zone)
+    ip = inside.load()
+    for yy in range(oy + 400, oy + 600, 3):
+        for xx in range(ox + 10, ox + 470, 3):
+            r, g, b, a = lp[xx, yy]
+            if ip[xx, yy] == 255 and r > 200 and 140 < g < 195 and b < 100:
+                ImageDraw.floodfill(inside, (xx, yy), 128)
+    fill = inside.point(lambda v: 255 if v == 128 else 0)
+    hands = ImageChops.lighter(_zone(CHEEK_HANDS[cell][0]), _zone(CHEEK_HANDS[cell][1]))
+    dark = layer.convert("L").point(lambda v: 255 if v <= 95 else 0)
+    ring = ImageChops.multiply(ImageChops.multiply(fill.filter(ImageFilter.MaxFilter(11)), dark), zone)
+    m = ImageChops.lighter(ImageChops.lighter(fill, ring).filter(ImageFilter.MaxFilter(3)), hands).filter(ImageFilter.GaussianBlur(0.8))
+    _CACHE[key] = _masked(layer, m)
+    return _CACHE[key]
+
+
 def _with_book(img: Image.Image, eyes: str, cell: int, arms=None) -> Image.Image:
     """Le due braccia davanti al busto (libro o blocco), con i fianchi di A1."""
     flanks = ImageChops.lighter(_zone(BOOK_FLANKS[0]), _zone(BOOK_FLANKS[1])).filter(ImageFilter.GaussianBlur(3))
@@ -947,6 +995,8 @@ def render(p: Pose) -> Image.Image:
         img = _with_chin(img, p.eyes)
     elif p.hand.startswith("book"):
         img = _with_book(img, p.eyes, int(p.hand[-1]))
+    elif p.hand.startswith("cheeks"):
+        img = _with_book(img, p.eyes, int(p.hand[-1]), _cheek_arms)
     elif p.hand.startswith("lens"):
         img = _with_lens(img, p.eyes, int(p.hand[-1]))
     elif p.hand.startswith("tool"):
@@ -1154,11 +1204,14 @@ def celebrate():
 
 
 def error():
-    seq = []
-    for i, shake in enumerate((-4, 3, -2, 4)):
-        p = Pose(dx=shake, head=-2.5, head_dy=2, squash=0.985, eyes="preoccupati", mouth="worried", breath=0.2)
-        seq.append((replace(p, fx=(("drop", 150 + shake, 292 + i * 7, 24),)), 90))
-    seq[-1] = (seq[-1][0], 520)
+    # mani alle guance; sobbalza tremando mentre la goccia scende, poi un battito
+    def pose(cell, mouth, dx=0, eyes="sorpresi", drop=None):
+        fx = (("drop", 150 + dx, drop, 24),) if drop else ()
+        return Pose(hand=f"cheeks{cell}", eyes=eyes, mouth=mouth, dx=dx, breath=0.2, fx=fx)
+    seq = [(pose(0, "o"), 260)]
+    for i, dx in enumerate((-3, 3, -2, 2, 0)):
+        seq.append((pose(1, "sorpresa", dx, drop=292 + 7 * i), 90 if dx else 420))
+    seq += [(pose(0, "o", eyes="closed", drop=320), 110), (pose(0, "o"), 500)]
     return seq, True
 
 
