@@ -16,6 +16,8 @@
     "error":     { "fallback": "idle",     "description": "Qualcosa è andato storto" },
     "talk":      { "fallback": "idle",     "description": "Mostra un fumetto con una risposta" },
     "look":      { "fallback": "thinking", "description": "Sta facendo un controllo visivo dello schermo" },
-    "drag":      { "fallback": "idle",     "description": "La stai trascinando" }
+    "drag":      { "fallback": "idle",     "description": "La stai trascinando" },
+    "drag-left": { "fallback": "drag",     "description": "La stai trascinando verso sinistra (gambe che pendono a destra)" },
+    "drag-right":{ "fallback": "drag",     "description": "La stai trascinando verso destra (gambe che pendono a sinistra)" }
   }
 }

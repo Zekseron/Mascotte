@@ -54,3 +54,22 @@ test('schermo secondario a sinistra con coordinate negative', () => {
   assert.equal(barEdge(d).y, 1080);
   assert.equal(barHit(d, { x: -900, y: 500 }, 'darwin'), false);
 });
+test('dragLean: gambe secondo la direzione, con isteresi', () => {
+  const { dragLean } = require('../lib/geometry.cjs');
+  const drag = {};
+  assert.equal(dragLean(drag, 500), 'drag');
+  let state; for (const x of [490, 478, 466, 454]) state = dragLean(drag, x);
+  assert.equal(state, 'drag-left');
+  assert.equal(dragLean(drag, 453), 'drag-left');            // rallenta: resta finché la velocità non scende molto
+  for (const x of [453, 453, 453, 453, 453]) state = dragLean(drag, x);
+  assert.equal(state, 'drag');
+  for (const x of [465, 478, 492, 506]) state = dragLean(drag, x);
+  assert.equal(state, 'drag-right');
+});
+test('i due stati del trascinamento ripiegano su drag e restano finché si trascina', () => {
+  const P = require('../resources/pack.js'); const { StateController } = require('../lib/state.cjs');
+  assert.equal(P.STATES.states['drag-left'].fallback, 'drag'); assert.equal(P.STATES.states['drag-right'].fallback, 'drag');
+  const pack = { animations: { idle: { frames: [0] }, drag: { frames: [1] } } };
+  const timers = []; const c = new StateController(pack, P, () => {}, { setTimeout: (f) => timers.push(f), clearTimeout() {} });
+  c.set('drag-left'); assert.equal(P.resolveState('drag-left', pack).used, 'drag'); assert.equal(timers.length, 0);
+});

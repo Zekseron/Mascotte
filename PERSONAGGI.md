@@ -106,8 +106,10 @@ L'unico stato obbligatorio è **`idle`**. Gli altri sono facoltativi: se uno man
 | `talk` | Mostra una risposta nel fumetto | `idle` |
 | `look` | Controllo visivo dello schermo | `thinking` |
 | `drag` | La stai trascinando | `idle` |
+| `drag-left` | La stai trascinando verso sinistra: gambe che pendono a destra | `drag` |
+| `drag-right` | La stai trascinando verso destra: gambe che pendono a sinistra | `drag` |
 
-Consiglio: parti da `idle`, `thinking`, `done` ed `error`; aggiungi gli altri quando ne hai voglia. Un pacchetto con tutti i quindici stati è il più bello da vedere. Per Rosso si è seguita la ricetta in [characters-src/ANIMAZIONI.md](characters-src/ANIMAZIONI.md): puoi riusarla come guida per ritmo e gesti.
+Consiglio: parti da `idle`, `thinking`, `done` ed `error`; aggiungi gli altri quando ne hai voglia. Un pacchetto con tutti gli stati è il più bello da vedere. Per Rosso si è seguita la ricetta in [characters-src/ANIMAZIONI.md](characters-src/ANIMAZIONI.md): puoi riusarla come guida per ritmo e gesti.
 
 ## 2. Come crearlo
 

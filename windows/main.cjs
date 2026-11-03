@@ -33,7 +33,7 @@ function startApplication() {
   const Releases = require('./lib/releases.cjs');
   const Attachment = require('./lib/attachment.cjs'), { sendRefusal } = require('./lib/send-guard.cjs');
   const LocalCommands = require('./lib/local-commands.cjs'), FolderView = require('./lib/folder-view.cjs'), ExtraFolders = require('./lib/extra-folders.cjs');
-  const { mascotSize, maskHit, dragPosition, barEdge, barHit } = require('./lib/geometry.cjs');
+  const { mascotSize, maskHit, dragPosition, barEdge, barHit, dragLean } = require('./lib/geometry.cjs');
   const P = require('./resources/pack.js');
   const Characters = require('./lib/characters.cjs');
   const { buildChatSnapshot } = require('./lib/snapshot.cjs');
@@ -470,8 +470,16 @@ function startApplication() {
       if (action === 'chat') { if (!currentRun) controller.set('listening'); showChat(); return; }
       if (action === 'menu') { prepareWindowCapture(); menu().popup({ window: mascot }); return; }
       if (action === 'drag-start') { detach(); drag = { position: mascot.getBounds(), cursor: screen.getCursorScreenPoint(), resume: controller.state }; controller.set('drag', true); mouseIgnored = false; mascot.setIgnoreMouseEvents(false); return; }
-      if (action === 'drag-move' && drag && Number.isFinite(data?.x) && Number.isFinite(data?.y) && Math.abs(data.x) < 50000 && Math.abs(data.y) < 50000) { const pos = dragPosition(drag, screen.getCursorScreenPoint()); moveMascot(pos.x, pos.y); return; }
+      if (action === 'drag-move' && drag && Number.isFinite(data?.x) && Number.isFinite(data?.y) && Math.abs(data.x) < 50000 && Math.abs(data.y) < 50000) {
+        const cursor = screen.getCursorScreenPoint(), pos = dragPosition(drag, cursor); moveMascot(pos.x, pos.y);
+        // Gambe che seguono la direzione: drag-left/drag-right finché si muove, poi di nuovo drag.
+        const lean = dragLean(drag, cursor.x); if (lean !== controller.state) controller.set(lean, true);
+        clearTimeout(drag.still); const current = drag;
+        drag.still = setTimeout(() => { if (drag !== current) return; current.vx = 0; current.lean = 'drag'; if (controller.state !== 'drag') controller.set('drag', true); }, 180);
+        return;
+      }
       if (action === 'drag-end' && drag) {
+        clearTimeout(drag.still);
         const resume = drag.resume, dropPoint = screen.getCursorScreenPoint(), barDisplay = taskbarDisplayAt(dropPoint);
         drag = null; settings.position = clampPosition(mascot.getBounds(), mascot.getBounds().width, mascot.getBounds().height, displayAreas());
         moveMascot(settings.position.x, settings.position.y); saveSettings(); controller.set(currentRun ? 'thinking' : resume === 'sleep' ? 'idle' : resume, Boolean(currentRun)); updateHit();

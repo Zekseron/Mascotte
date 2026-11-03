@@ -66,6 +66,8 @@ unica per app e visore.
 | `talk` | Mostra un fumetto con una risposta | `idle` |
 | `look` | Sta facendo un controllo visivo | `thinking` |
 | `drag` | La stai trascinando | `idle` |
+| `drag-left` | La stai trascinando verso sinistra: gambe che pendono a destra | `drag` |
+| `drag-right` | La stai trascinando verso destra: gambe che pendono a sinistra | `drag` |
 
 Il ripiego è a catena: un personaggio con il solo `idle` funziona già, e
 ogni animazione in più lo rende più espressivo. Quanto dura uno stato lo
