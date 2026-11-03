@@ -55,7 +55,6 @@ YELLOW = (250, 204, 72)
 ORANGE = (236, 128, 52)
 PINK = (240, 112, 128)
 SKY = (132, 204, 240)
-STEEL = (150, 168, 176)
 TEAL = (52, 112, 118)
 
 
@@ -87,7 +86,7 @@ class Pose:
     lens: tuple | None = None  # centro della lente che ingrandisce
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
-    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita)
+    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -579,6 +578,119 @@ def _pad_arms(cell: int) -> Image.Image:
     return _CACHE[key]
 
 
+# Chiave (working): braccia, meccanismo e chiave di B-working. La prima posa è
+# registrata su colletto, cintura e gambe, le altre sulla parte bassa del
+# meccanismo, così gira solo la chiave. Restano originali colletto e pettorina
+# (TOOL_NECK), il ricciolo davanti alla spalla (TOOL_CURL), la cima della spalla
+# (TOOL_SHOULDER) e il borsello (via il cacciavite di Codex, TOOL_SCREWDRIVER).
+TOOL_CELLS = (((123, 21, 451, 708), 1.2513, 38, 68), ((664, 21, 993, 708), 1.2699, 31, 59),
+              ((1217, 21, 1536, 708), 1.2263, 51, 78), ((1768, 21, 2079, 708), 1.2324, 59, 75))
+TOOL_SLEEVES = ((20, 380), (110, 336), (186, 346), (240, 380), (330, 380), (430, 392), (440, 500), (430, 600), (30, 600), (20, 500))
+TOOL_GADGET = ((150, 468), (296, 462), (300, 578), (150, 582))
+TOOL_NECK = ((190, 320), (300, 320), (300, 466), (190, 466))
+TOOL_CURL = ((20, 320), (200, 320), (200, 400), (160, 410), (140, 446), (20, 446))
+TOOL_SHOULDER = ((140, 432), (150, 425), (160, 416), (170, 408), (180, 399), (190, 391), (206, 384))
+TOOL_GAP = ((112, 448), (126, 441), (140, 433), (152, 425), (156, 450))   # fra ricciolo e spalla
+TOOL_SCREWDRIVER = ((334, 576), (374, 570), (374, 608), (332, 608))
+TOOL_FLANK = ((20, 452), (120, 448), (200, 446), (204, 470), (200, 560), (190, 720), (20, 720))
+TOOL_COLLAR = 398   # i semi del riempimento partono sotto il colletto
+
+
+def _is_skin(r: int, g: int, b: int) -> bool:
+    return r > 215 and g > 165 and 135 < b < 200
+
+
+def _tool_arms(cell: int) -> Image.Image:
+    key = ("tool", cell)
+    if key in _CACHE:
+        return _CACHE[key]
+    ox, oy = OFFSET
+    box, scale, x, y = TOOL_CELLS[cell]
+    c = Image.open(HERE / "disegni" / "B-working" / "working-4-celle-trasparente.png").convert("RGBA").crop(box)
+    small = c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS).convert("RGBA")
+    layer = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    layer.alpha_composite(small, (ox + x, oy + y))
+    zone = _zone(TOOL_SLEEVES)
+    neck = _zone(TOOL_NECK)
+    lp = layer.load()
+    inside = Image.new("L", CANVAS, 0)
+    ip = inside.load()
+    for yy in range(oy + 340, oy + 610):
+        for xx in range(ox + 20, ox + 450):
+            r, g, b, a = lp[xx, yy]
+            if a > 40 and (r + g + b) / 3 > 95:
+                ip[xx, yy] = 255
+    inside = ImageChops.multiply(inside, zone)
+    ip = inside.load()
+    for yy in range(oy + TOOL_COLLAR + 2, oy + 600, 3):
+        for xx in range(ox + 30, ox + 440, 3):
+            r, g, b, a = lp[xx, yy]
+            steel = max(r, g, b) - min(r, g, b) < 24 and 110 < (r + g + b) / 3 < 235
+            sleeve = r > 200 and 140 < g < 195 and b < 100
+            if ip[xx, yy] == 255 and (steel or sleeve or _is_skin(r, g, b)):
+                ImageDraw.floodfill(inside, (xx, yy), 128)
+    filled = ImageChops.multiply(inside.point(lambda v: 255 if v == 128 else 0), ImageChops.invert(neck))
+    fill = ImageChops.lighter(filled, _zone(TOOL_GADGET))
+    dark = layer.convert("L").point(lambda v: 255 if v <= 95 else 0)
+    ring = ImageChops.multiply(ImageChops.multiply(fill.filter(ImageFilter.MaxFilter(11)), dark),
+                               ImageChops.multiply(zone, ImageChops.invert(neck)))
+    m = ImageChops.lighter(fill, ring).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(0.8))
+    white = Image.merge("RGB", layer.split()[:3]).convert("L").point(lambda v: 255 if v > 244 else 0)
+    grey = ImageChops.subtract(layer.getchannel("R"), layer.getchannel("B")).point(lambda v: 255 if v < 16 else 0)
+    m = ImageChops.multiply(m, ImageChops.invert(ImageChops.multiply(ImageChops.multiply(white, grey),
+                                                                     ImageChops.invert(_zone(TOOL_GADGET)))))
+    # Sulla cima della spalla resta il contorno originale: sopra la sua linea via
+    # tutto quello di Codex, appena sotto via il suo contorno; mano e chiave restano.
+    keep = Image.new("L", CANVAS, 0)
+    kp = keep.load()
+    for yy in range(oy + 360, oy + 426):
+        for xx in range(ox + 20, ox + 450):
+            r, g, b, a = lp[xx, yy]
+            steel = max(r, g, b) - min(r, g, b) < 20 and 160 < (r + g + b) / 3 < 235
+            if a > 200 and (_is_skin(r, g, b) or steel):
+                kp[xx, yy] = 255
+    keep = keep.filter(ImageFilter.MinFilter(3)).filter(ImageFilter.MaxFilter(9))
+    line = _canvas(TOOL_SHOULDER)
+    above = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(above).polygon(line + [(line[-1][0], oy + 330), (line[0][0], oy + 330)], fill=255)
+    band = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(band).polygon(line + [(px, py + 14) for px, py in reversed(line)], fill=255)
+    drop = ImageChops.lighter(above, ImageChops.multiply(band, dark.filter(ImageFilter.MaxFilter(3))))
+    m = ImageChops.multiply(m, ImageChops.invert(ImageChops.multiply(drop.filter(ImageFilter.GaussianBlur(0.8)), ImageChops.invert(keep))))
+    m = ImageChops.multiply(m, ImageChops.invert(_zone(TOOL_SCREWDRIVER, 0.8)))
+    _CACHE[key] = _masked(layer, m)
+    return _CACHE[key]
+
+
+def _with_tool(face: Image.Image, eyes: str, cell: int) -> Image.Image:
+    ox, oy = OFFSET
+    flanks = ImageChops.lighter(_zone(TOOL_FLANK), _zone(BOOK_FLANKS[1])).filter(ImageFilter.GaussianBlur(3))
+    img = Image.composite(_armless(eyes), face, flanks)
+    arm = _tool_arms(cell)
+    img.alpha_composite(arm)
+    # il ricciolo originale resta davanti alla spalla, la mano davanti al ricciolo
+    skin = Image.new("L", CANVAS, 0)
+    sp, ap = skin.load(), arm.load()
+    for yy in range(oy + 330, oy + 450):
+        for xx in range(ox + 20, ox + 200):
+            r, g, b, a = ap[xx, yy]
+            if a > 200 and _is_skin(r, g, b):
+                sp[xx, yy] = 255
+    hair = ImageChops.multiply(_zone(TOOL_CURL), ImageChops.invert(skin.filter(ImageFilter.MaxFilter(13))))
+    img.alpha_composite(_masked(face, hair.filter(ImageFilter.GaussianBlur(1))))
+    # il vuoto fra ricciolo e spalla, coperto dai capelli nel disegno di Codex, si
+    # riempie col colore della manica attorno
+    hole = ImageChops.multiply(_zone(TOOL_GAP), img.getchannel("A").point(lambda v: 255 if v < 250 else 0))
+    soft = img.convert("RGBa")
+    for _ in range(4):
+        soft = soft.filter(ImageFilter.GaussianBlur(3))
+    soft = soft.convert("RGBA")
+    soft.putalpha(255)
+    out = Image.composite(soft, Image.new("RGBA", CANVAS, (0, 0, 0, 0)), hole.filter(ImageFilter.GaussianBlur(0.8)))
+    out.alpha_composite(img)
+    return out
+
+
 def _with_book(img: Image.Image, eyes: str, cell: int, arms=None) -> Image.Image:
     """Le due braccia davanti al busto (libro o blocco), con i fianchi di A1."""
     flanks = ImageChops.lighter(_zone(BOOK_FLANKS[0]), _zone(BOOK_FLANKS[1])).filter(ImageFilter.GaussianBlur(3))
@@ -742,20 +854,6 @@ def _exclaim(h: float):
     return paint
 
 
-def _gear(r: float, angle: float, teeth: int = 8):
-    def paint(d, c, ss):
-        pts = []
-        for i in range(teeth * 4):
-            a = math.radians(angle) + 2 * math.pi * i / (teeth * 4)
-            rr = (r if (i % 4) in (1, 2) else r * 0.74) * ss
-            pts.append((c + math.cos(a) * rr, c + math.sin(a) * rr))
-        d.polygon(pts, fill=STEEL + (255,))
-        hole = r * 0.28 * ss
-        d.ellipse((c - r * 0.5 * ss, c - r * 0.5 * ss, c + r * 0.5 * ss, c + r * 0.5 * ss), fill=(196, 210, 214, 255))
-        d.ellipse((c - hole, c - hole, c + hole, c + hole), fill=INK + (255,))
-    return paint
-
-
 def _bolt(r: float, bright: bool):
     def paint(d, c, ss):
         s = r * ss
@@ -798,9 +896,9 @@ def _lens_glass(img: Image.Image, center) -> None:
 
 
 PAINTERS = {"star": _star, "heart": _heart, "z": _zee, "drop": _drop, "exclaim": _exclaim,
-            "gear": _gear, "bolt": _bolt, "arcs": _arcs, "cloud": _cloud}
+            "bolt": _bolt, "arcs": _arcs, "cloud": _cloud}
 SIZES = {"star": 2.5, "heart": 2.6, "z": 2.8, "drop": 4.2, "exclaim": 1.3,
-         "gear": 2.6, "bolt": 2.6, "arcs": 250, "cloud": 2.9}
+         "bolt": 2.6, "arcs": 250, "cloud": 2.9}
 
 
 def _effect(img: Image.Image, spec: tuple) -> None:
@@ -828,6 +926,8 @@ def render(p: Pose) -> Image.Image:
         img = _with_chin(img, p.eyes)
     elif p.hand.startswith("book"):
         img = _with_book(img, p.eyes, int(p.hand[-1]))
+    elif p.hand.startswith("tool"):
+        img = _with_tool(img, p.eyes, int(p.hand[-1]))
     elif p.hand.startswith("pad"):
         img = _with_book(img, p.eyes, int(p.hand[-1]), _pad_arms)
     img = _warp(img, p)
@@ -948,13 +1048,15 @@ def listening():
 
 
 def working():
-    # Luma è un'aggiustatutto: due ingranaggi girano accanto alla mano
+    # cricchetto: la chiave avanza in quattro scatti e torna indietro veloce, tre
+    # volte; poi una pausa con un battito di ciglia
+    def pose(cell, breath, eyes="open"):
+        return Pose(hand=f"tool{cell}", eyes=eyes, breath=breath)
     seq = []
-    for i in range(4):
-        a = i * 360 / 8 / 4
-        nod = (0.0, 2.0, 3.0, 1.0)[i]
-        fx = (("gear", 526, 676, 54, a), ("gear", 500, 562, 36, -a * 54 / 36 + 22.5 / 2))
-        seq.append((Pose(head=2.5, head_dy=nod, breath=0.2, fx=fx), 125))
+    for _ in range(3):
+        seq += [(pose(0, 0.3), 150), (pose(1, 0.35), 150), (pose(2, 0.4), 150), (pose(3, 0.45), 220),
+                (pose(2, 0.4), 80), (pose(1, 0.35), 80)]
+    seq += [(pose(0, 0.4), 300), (pose(0, 0.4, "closed"), 110), (pose(0, 0.3), 300)]
     return seq, True
 
 
