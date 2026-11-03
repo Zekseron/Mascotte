@@ -330,14 +330,53 @@ def _wave_arm(cell: int) -> Image.Image:
     return _CACHE[key]
 
 
+def _lift_parts(eyes: str, mouth: str) -> tuple[Image.Image, Image.Image]:
+    """Busto e braccio sinistro interi per il braccio che si scosta. Il braccio è
+    ritagliato lungo la sua linea interna (LIFT_ARM), contorno compreso, così si
+    muove tutto; sotto, il corpo senza braccia di A1 ridipinge la giacca."""
+    key = ("lift", eyes, mouth)
+    if key in _CACHE:
+        return _CACHE[key]
+    whole = _face(eyes, mouth)
+    body = Image.composite(_armless(eyes), whole, _zone(BOOK_FLANKS[1], 3))
+    arm = _masked(whole, _zone(LIFT_ARM, 0.8))
+    # Sopra il borsello manica e giacca sono dipinte senza una linea fra loro: il
+    # lato verso il busto prende un contorno come quello esterno, che sfuma verso
+    # la spalla, dove il braccio resta attaccato.
+    ox, oy = OFFSET
+    W, H = CANVAS
+    ss = 3
+    line = Image.new("L", (W * ss, H * ss), 0)
+    pts = [((x + ox + 2) * ss, (y + oy) * ss) for x, y in LIFT_ARM[LIFT_EDGE[0]:LIFT_EDGE[1]]]
+    ImageDraw.Draw(line).line(pts, fill=255, width=6 * ss, joint="curve")
+    line = line.resize(CANVAS, Image.LANCZOS)
+    fade = Image.new("L", CANVAS, 0)
+    fd = ImageDraw.Draw(fade)
+    for yy in range(H):
+        fd.line((0, yy, W, yy), fill=round(255 * smooth(oy + 430, oy + 480, yy)))
+    ink = Image.new("RGBA", CANVAS, INK + (0,))
+    ink.putalpha(ImageChops.multiply(ImageChops.multiply(line, fade), arm.getchannel("A")))
+    arm.alpha_composite(ink)
+    _CACHE[key] = (body, arm)
+    return _CACHE[key]
+
+
+# braccio sinistro nel ritaglio: in alto la spalla, a sinistra 3 px oltre la linea
+# scura interna della manica (misurata riga per riga), così il contorno resta
+# tutto col braccio; poi fra borsello e mano fino in fondo
+LIFT_ARM = ((300, 380), (480, 380), (480, 724), (379, 724), (378, 644), (373, 624), (352, 611), (334, 602), (322, 592),
+            (319, 576), (318, 560), (316, 544), (309, 528), (306, 504), (300, 484), (294, 468), (299, 456),
+            (302, 440), (306, 428), (312, 418), (306, 400))
+LIFT_EDGE = (7, 21)   # tratto di LIFT_ARM lungo il busto, dal borsello alla spalla
+
+
 def _with_arm(p: Pose) -> Image.Image:
     """La figura col braccio sinistro nella posa data, prima della deformazione."""
     px, py = _pivot()
     if p.arm == "lift":
         # Braccio originale che si scosta dal fianco piegandosi: fermo alla spalla,
         # sempre più ruotato verso la mano, così l'attacco resta quello disegnato.
-        body, whole = _body(p.eyes, p.mouth, codex=False)
-        arm = _masked(whole, _arm_mask(whole))
+        body, arm = _lift_parts(p.eyes, p.mouth)
         ox, oy = OFFSET
         W = CANVAS[0]
 
@@ -1216,14 +1255,19 @@ def error():
 
 
 def talk():
-    # vocali disegnate da Codex, piccoli cenni del capo, un battito a metà frase
+    # vocali disegnate da Codex e piccoli cenni del capo; sulle parole centrali la
+    # mano si scosta dal fianco come chi spiega, poi torna giù. Un battito a metà.
+    pattern = (("sorriso", "open", 0, 0, 140), ("a", "open", -1.5, -8, 110), ("o", "open", -1, -16, 110),
+               ("e", "open", -1, -22, 120), ("a", "open", -1.5, -22, 130), ("sorriso", "open", 0, -16, 90),
+               ("sorriso", "half", 0, -10, 45), ("sorriso", "closed", 0, -6, 90), ("sorriso", "half", 0, -3, 45),
+               ("felice", "open", -1.5, 0, 150), ("o", "open", -1, 0, 100), ("e", "open", -1, 0, 110),
+               ("", "open", 0, 0, 320))
     seq = []
-    pattern = (("sorriso", "open", 0, 140), ("a", "open", -1.5, 120), ("o", "open", -1, 110), ("e", "open", -1, 110),
-               ("a", "open", -1.5, 130), ("sorriso", "open", 0, 90), ("sorriso", "half", 0, 45), ("sorriso", "closed", 0, 90),
-               ("sorriso", "half", 0, 45), ("felice", "open", -1.5, 150), ("o", "open", -1, 100), ("e", "open", -1, 110),
-               ("", "open", 0, 320))
-    for mouth, eyes, bob, ms in pattern:
-        seq.append((Pose(mouth=mouth, eyes=eyes, head_dy=bob, head=0.8 if bob else 0, breath=0.4), ms))
+    for mouth, eyes, bob, angle, ms in pattern:
+        p = Pose(mouth=mouth, eyes=eyes, head_dy=bob, head=0.8 if bob else 0, breath=0.4)
+        if angle:
+            p = replace(p, arm="lift", arm_angle=angle, lean=-angle / 40)
+        seq.append((p, ms))
     return seq, True
 
 

@@ -16,7 +16,7 @@ Tutti i quindici stati, ricavati dai due disegni approvati e dalle espressioni d
 | `done` | Occhi felici, sorriso aperto, dondolio e stelline. |
 | `celebrate` | Accovacciata, salto, atterraggio, posa felice con stelline e cuore (non in loop). |
 | `error` | Si porta le mani alle guance a bocca aperta, sobbalza tremando mentre una goccia di sudore scende, poi sbatte le ciglia. |
-| `talk` | Vocali disegnate («a», «o», «e», sorriso) con piccoli cenni e un battito. |
+| `talk` | Parla con le vocali disegnate e piccoli cenni del capo; sulle parole centrali la mano si scosta dal fianco come chi spiega. |
 | `look` | Tiene una lente davanti a un occhio, con l'occhio ingrandito, e strizza l'altro; la sposta appena e fa una piccola «o» di stupore. |
 | `drag` | Sollevata e sorpresa, oscilla come un pendolo con le gambe che penzolano. |
 
