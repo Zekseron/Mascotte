@@ -87,6 +87,7 @@ class Pose:
     lens: tuple | None = None  # centro della lente che ingrandisce
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
+    hand: str = ""         # braccio destro: "" | chin (mano al mento, da B-thinking)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -355,6 +356,69 @@ def _with_arm(p: Pose) -> Image.Image:
     return img
 
 
+# Mano al mento (thinking): braccio destro, a sinistra di chi guarda, preso da
+# B-thinking. Quella posa combacia con l'originale scalata di poco, quindi il
+# braccio entra al suo posto senza ruotarlo; dove pendeva il braccio originale
+# si usa il corpo senza braccia di A1, che dipinge fianco e pantaloncini.
+CHIN_CELL = ((292, 23, 684, 867), 1.0372, 47, 54)   # riquadro, scala, posizione nel ritaglio
+CHIN_FLANK = ((30, 400), (120, 380), (200, 392), (204, 470), (200, 560), (190, 720), (20, 720))
+CHIN_ZONE = ((142, 366), (170, 350), (206, 350), (230, 370), (228, 414), (210, 444), (206, 480), (202, 526),
+             (188, 560), (150, 576), (100, 574), (60, 552), (48, 500), (70, 456), (110, 432), (132, 416))
+CHIN_HAND = (180, 425)   # centro della mano
+
+
+def _chin_arm() -> Image.Image:
+    """Manica, polsino e mano di B-thinking col loro contorno, al loro posto sulla tela."""
+    if "chin" in _CACHE:
+        return _CACHE["chin"]
+    ox, oy = OFFSET
+    box, scale, x, y = CHIN_CELL
+    c = Image.open(HERE / "disegni" / "B-thinking" / "thinking-2-celle-trasparente.png").convert("RGBA").crop(box)
+    small = c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS).convert("RGBA")
+    layer = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    layer.alpha_composite(small, (ox + x, oy + y))
+    zone = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(zone).polygon(_canvas(CHIN_ZONE), fill=255)
+    # Le aree chiare chiuse dal contorno che contengono la mano o un pixel senape
+    # della manica (i capelli sono più rossi), più il contorno attorno: restano
+    # fuori i capelli e il mento della posa di Codex.
+    lp = layer.load()
+    inside = Image.new("L", CANVAS, 0)
+    ip = inside.load()
+    for yy in range(oy + 330, oy + 600):
+        for xx in range(ox + 30, ox + 250):
+            r, g, b, a = lp[xx, yy]
+            if a > 40 and (r + g + b) / 3 > 95:
+                ip[xx, yy] = 255
+    inside = ImageChops.multiply(inside, zone)
+    ip = inside.load()
+    seeds = [(ox + CHIN_HAND[0], oy + CHIN_HAND[1])]
+    seeds += [(xx, yy) for yy in range(oy + 400, oy + 590, 3) for xx in range(ox + 40, ox + 240, 3)
+              if ip[xx, yy] == 255 and lp[xx, yy][0] > 200 and 140 < lp[xx, yy][1] < 195 and lp[xx, yy][2] < 100]
+    for q in seeds:
+        if ip[q] == 255:
+            ImageDraw.floodfill(inside, q, 128)
+    fill = inside.point(lambda v: 255 if v == 128 else 0)
+    dark = layer.convert("L").point(lambda v: 255 if v <= 95 else 0)
+    ring = ImageChops.multiply(ImageChops.multiply(fill.filter(ImageFilter.MaxFilter(11)), dark), zone)
+    m = ImageChops.lighter(fill, ring).filter(ImageFilter.MaxFilter(3)).filter(ImageFilter.GaussianBlur(0.8))
+    _CACHE["chin"] = _masked(layer, m)
+    return _CACHE["chin"]
+
+
+def _with_chin(img: Image.Image, eyes: str) -> Image.Image:
+    ox, oy = OFFSET
+    sheet = Image.open(HERE / "disegni" / "A1-corpo" / "corpo-senza-braccia-trasparente.png").convert("RGBA")
+    x0 = CLOSED_X if eyes == "closed" else OPEN_X
+    armless = Image.new("RGBA", CANVAS, (0, 0, 0, 0))
+    armless.paste(sheet.crop((x0, 0, x0 + CROP_W, CROP_H)), (ox + 1, oy))
+    zone = Image.new("L", CANVAS, 0)
+    ImageDraw.Draw(zone).polygon(_canvas(CHIN_FLANK), fill=255)
+    img = Image.composite(armless, img, zone.filter(ImageFilter.GaussianBlur(3)))
+    img.alpha_composite(_chin_arm())
+    return img
+
+
 # ---------------------------------------------------------------- deformazione
 
 def _inverse(p: Pose):
@@ -458,9 +522,34 @@ def _zee(r: float):
     return paint
 
 
-def _dot(r: float):
+# nuvoletta: lobi tondi con un'ombra in basso a destra e un riflesso; la più
+# grande porta i tre puntini del pensiero
+CLOUD_LOBES = {
+    "puff": ((0, 0.08, 0.82), (-0.42, 0.22, 0.58), (0.4, -0.2, 0.6)),
+    "cloud": ((0, 0.12, 0.62), (-0.62, 0.22, 0.5), (0.62, 0.2, 0.52), (-0.3, -0.28, 0.5), (0.3, -0.36, 0.56),
+              (-0.86, 0.06, 0.32), (0.88, 0.02, 0.34)),
+}
+SHADE = (238, 220, 190)
+
+
+def _cloud(r: float, kind: str = "puff", dots: int = 0):
+    lobes = CLOUD_LOBES[kind]
     def paint(d, c, ss):
-        d.ellipse((c - r * ss, c - r * ss, c + r * ss, c + r * ss), fill=CREAM + (255,))
+        s = r * ss
+        def blob(dx, dy, k, fill):
+            for x, y, rr in lobes:
+                rr = rr * s * k
+                cx, cy = c + x * s + dx, c + y * s + dy
+                d.ellipse((cx - rr, cy - rr, cx + rr, cy + rr), fill=fill)
+        blob(0, 0, 1, SHADE + (255,))
+        blob(-s * 0.08, -s * 0.1, 0.9, CREAM + (255,))
+        for x, y, rr in lobes[:2]:
+            hx, hy, hr = c + (x - rr * 0.35) * s, c + (y - rr * 0.4) * s, rr * s * 0.22
+            d.ellipse((hx - hr, hy - hr * 0.7, hx + hr, hy + hr * 0.7), fill=(255, 255, 250, 255))
+        for i in range(dots):
+            dx = (i - 1) * s * 0.42   # posti fissi: i puntini compaiono uno alla volta
+            dr = s * 0.1
+            d.ellipse((c + dx - dr, c + s * 0.06 - dr, c + dx + dr, c + s * 0.06 + dr), fill=INK + (255,))
     return paint
 
 
@@ -593,10 +682,10 @@ def _lens_glass(img: Image.Image, center) -> None:
     img.alpha_composite(layer, (int(center[0] - size / 2), int(center[1] - size / 2)))
 
 
-PAINTERS = {"star": _star, "heart": _heart, "z": _zee, "dot": _dot, "drop": _drop, "exclaim": _exclaim,
-            "gear": _gear, "bolt": _bolt, "arcs": _arcs, "book": _book, "paper": _paper}
-SIZES = {"star": 2.5, "heart": 2.6, "z": 2.8, "dot": 2.8, "drop": 4.2, "exclaim": 1.3,
-         "gear": 2.6, "bolt": 2.6, "arcs": 250, "book": 280, "paper": 330}
+PAINTERS = {"star": _star, "heart": _heart, "z": _zee, "drop": _drop, "exclaim": _exclaim,
+            "gear": _gear, "bolt": _bolt, "arcs": _arcs, "book": _book, "paper": _paper, "cloud": _cloud}
+SIZES = {"star": 2.5, "heart": 2.6, "z": 2.8, "drop": 4.2, "exclaim": 1.3,
+         "gear": 2.6, "bolt": 2.6, "arcs": 250, "book": 280, "paper": 330, "cloud": 2.9}
 
 
 def _effect(img: Image.Image, spec: tuple) -> None:
@@ -620,6 +709,8 @@ def _effect(img: Image.Image, spec: tuple) -> None:
 
 def render(p: Pose) -> Image.Image:
     img = _with_arm(p) if p.arm else _face(p.eyes, p.mouth).copy()
+    if p.hand == "chin":
+        img = _with_chin(img, p.eyes)
     img = _warp(img, p)
     for spec in p.fx:
         _effect(img, spec)
@@ -709,13 +800,23 @@ def sleep():
 
 
 def thinking():
-    base = dict(head=-4.0, head_dy=-4.0, head_dx=-2.0, breath=0.3)
-    dots = [("dot", 404, 200, 13), ("dot", 456, 140, 18), ("dot", 524, 70, 25)]
-    seq = [(Pose(**base, eyes="alto"), 500)]
-    for n in (1, 2, 3):
-        seq.append((Pose(**base, eyes="alto", fx=tuple(dots[:n])), 450 if n < 3 else 1100))
-    for eyes, ms in (("half", 40), ("closed", 90), ("half", 40), ("alto", 500)):
-        seq.append((Pose(**base, eyes=eyes, fx=tuple(dots)), ms))
+    # mano al mento; dalla testa salgono due sbuffi e poi la nuvola, che si
+    # gonfia e si riempie di puntini uno alla volta
+    p1, p2 = ("cloud", 410, 196, 11, "puff"), ("cloud", 456, 150, 18, "puff")
+
+    def big(k=1.0, dy=0, n=3):
+        return ("cloud", 506, 78 + dy, 46 * k, "cloud", n)
+
+    def pose(eyes="alto", breath=0.6, fx=()):
+        return Pose(hand="chin", eyes=eyes, breath=breath, fx=fx)
+    seq = [(pose(breath=0.3), 500), (pose(breath=0.4, fx=(p1,)), 380), (pose(breath=0.5, fx=(p1, p2)), 380),
+           (pose(breath=0.55, fx=(p1, p2, big(0.8, n=0))), 70), (pose(fx=(p1, p2, big(1.06, n=0))), 70),
+           (pose(fx=(p1, p2, big(n=0))), 200)]
+    seq += [(pose(fx=(p1, p2, big(n=n))), 260 if n < 3 else 500) for n in (1, 2, 3)]
+    up = (p1, p2, big(dy=-2))
+    seq += [(pose("half", fx=up), 40), (pose("closed", fx=up), 90), (pose("half", fx=up), 40),
+            (pose(breath=0.5, fx=up), 600), (pose("destra", breath=0.4, fx=(p1, p2, big())), 900),
+            (pose(breath=0.3, fx=up), 600)]
     return seq, True
 
 
