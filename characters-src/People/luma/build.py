@@ -1575,7 +1575,7 @@ def _seat(state, i, ms, k=1.0):
 def seated_states():
     """Pose sedute per stato, per perch.states."""
     cycle = lambda n, k: [_seat(n, i, 160) for i in (*range(k), *range(k - 2, 0, -1))] * 3
-    return {
+    seq = {
         "waiting": (cycle("waiting", 3), True),
         "thinking": ([_seat("thinking", 0, 900), _seat("thinking", 1, 900)], True),
         "working": (cycle("working", 3), True),
@@ -1587,6 +1587,9 @@ def seated_states():
         "error": ([_seat("error", 0, 260)] + [_seat("error", 1, 90), _seat("error", 0, 90)] * 2 + [_seat("error", 1, 520)], True),
         "sleep": ([_seat("sleep", 0, 1200), _seat("sleep", 1, 900), _seat("sleep", 2, 1400), _seat("sleep", 1, 700)], True),
     }
+    # done da seduta: la stessa festa di celebrate (in piedi done ripiega su idle)
+    seq["done"] = seq["celebrate"]
+    return seq
 
 STATES = {"idle": idle, "sleep": sleep, "listening": listening, "thinking": thinking, "working": working,
           "reading": reading, "writing": writing, "running": running, "waiting": waiting, "done": done,
