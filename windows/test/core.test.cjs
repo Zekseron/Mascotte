@@ -170,7 +170,7 @@ test('chiusura app: stop forzato uccide subito il gruppo', { skip: process.platf
   const pid = Number(fs.readFileSync(pidFile, 'utf8')); run.stop('Risposta interrotta.', true);
   await assert.rejects(run.promise, /interrotta/); assert.ok(await waitFor(() => !alive(pid), 3000));
 });
-test('CLI script npm con shebang env node: runtime di Electron e PATH minimo, binari nativi invariati', { skip: process.platform === 'win32' && 'comportamento solo macOS/Linux' }, async t => {
+test('CLI script npm con shebang env node: runtime di Electron e PATH minimo, binari nativi con la loro cartella nel PATH', { skip: process.platform === 'win32' && 'comportamento solo macOS/Linux' }, async t => {
   const directory = temporary(t), bin = path.join(directory, 'prefix', 'bin'), lib = path.join(directory, 'prefix', 'lib', 'pkg'); fs.mkdirSync(bin, { recursive: true }); fs.mkdirSync(lib, { recursive: true });
   fs.writeFileSync(path.join(lib, 'cli.js'), '#!/usr/bin/env node\n' + fs.readFileSync(path.join(__dirname, 'fixture.cjs'), 'utf8'), { mode: 0o755 });
   fs.symlinkSync(path.join('..', 'lib', 'pkg', 'cli.js'), path.join(bin, 'claude'));
@@ -183,9 +183,9 @@ test('CLI script npm con shebang env node: runtime di Electron e PATH minimo, bi
     assert.equal(decodeOutput('claude', output.stdout, output.code, output.stderr), 'Risposta simulata: ciao');
   } finally { process.env.PATH = saved; if (savedCli === undefined) delete process.env.MASCOTTE_CHAT_CLAUDE; else process.env.MASCOTTE_CHAT_CLAUDE = savedCli; }
   const native = path.join(directory, 'nativo'); fs.writeFileSync(native, 'binario', { mode: 0o755 });
-  assert.deepEqual(commandFor(native), { file: native, prefix: [], env: {} });
+  assert.deepEqual(commandFor(native), { file: native, prefix: [], env: {}, pathDirs: [directory] });
   const sh = path.join(directory, 'sh-script'); fs.writeFileSync(sh, '#!/bin/sh\n', { mode: 0o755 });
-  assert.deepEqual(commandFor(sh), { file: sh, prefix: [], env: {} });
+  assert.deepEqual(commandFor(sh), { file: sh, prefix: [], env: {}, pathDirs: [directory] });
 });
 
 test('impostazioni: un file JSON valido ma non oggetto vale come nessuna impostazione', () => {
