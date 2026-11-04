@@ -39,7 +39,7 @@ CANVAS = (600, 1080)
 OFFSET = (60, 138)
 FRAMED = (680, 1088)
 TILE = (320, 512)
-COLS = 10
+COLS = 12   # 12 × 320 = 3840 px: con la seduta le righe restano sotto gli 8192 px
 
 # Punti di riferimento nello spazio di lavoro.
 FEET = (300, 1063)
@@ -85,7 +85,7 @@ class Pose:
     mouth: str = ""       # "" (sorriso originale) | small | mid | open | worried | una bocca di EXPRESSIONS
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
-    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance) | jump0..3, nap0, dangle0..2, ear0..1, jog0..3 (pose intere di Codex)
+    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance) | jump0..3, nap0, dangle0..2, ear0..1, jog0..3 (pose intere di Codex) | perch-<gambe>, sing0..2 (seduta sul bordo)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -1112,7 +1112,96 @@ def _nap_breath(img: Image.Image, b: float) -> Image.Image:
     return img.transform((W, H), Image.MESH, mesh, Image.BICUBIC)
 
 
+# Seduta sul bordo (perch): la prima posa di B-sitting alla scala della testa
+# originale. Le altre celle sono ridisegnate per intero, quindi se ne prendono solo
+# le parti: occhi chiusi dalla seconda, stinchi e stivali (sotto PERCH_LEGS_Y)
+# dalla terza (calcio in avanti) e dalla quarta (gambe indietro). I passaggi verso
+# il calcio accorciano gli stinchi della prima verso il ginocchio. Il canto prende
+# da B-singing tutto ciò che sta sopra PERCH_JOIN (testa, colletto, spalle) e lo
+# posa sul corpo della seduta, allineato su busto, mani e pantaloncini.
+PERCH_CELLS = (((96, 17, 447, 726), 1.25, 18, 20), ((622, 17, 973, 726), 1.2562, 18, 18),
+               ((1148, 17, 1497, 703), 1.2562, 19, 17), ((1672, 17, 2022, 711), 1.2562, 17, 17))
+SING_CELLS = (((104, 25, 526, 831), 1.0884, -1, 29), ((707, 23, 1108, 831), 1.0857, 22, 28),
+              ((1300, 34, 1721, 831), 1.0952, 19, 35))
+PERCH_EYES = ((118, 222), (328, 222), (328, 300), (118, 300))
+PERCH_LEGS_Y = 668   # sotto il bordo
+PERCH_KNEE = 690
+PERCH_JOIN = 480     # sopra questa riga, nel canto, testa e spalle di B-singing
+PERCH_SEAT = 655     # il bordo, all'altezza delle mani appoggiate
+
+
+def _sheet_cell(sheet: str, cell) -> Image.Image:
+    """Una cella di un foglio di Codex alla sua scala, nel ritaglio 480 × 937."""
+    key = ("cell", sheet, cell)
+    if key not in _CACHE:
+        box, scale, x, y = cell
+        c = Image.open(HERE / "disegni" / sheet).convert("RGBA").crop(box)
+        small = c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS)
+        can = Image.new("RGBa", (CROP_W, CROP_H), (0, 0, 0, 0))
+        can.paste(small, (round(x), round(y)), small)
+        _CACHE[key] = can.convert("RGBA")
+    return _CACHE[key]
+
+
+def _perch_shins(k: float) -> Image.Image:
+    """Prima posa seduta con stinchi e stivali accorciati verso il ginocchio."""
+    base = _sheet_cell("B-sitting/seduta-4-celle-trasparente.png", PERCH_CELLS[0])
+
+    def f(x, y):
+        return x, (PERCH_KNEE + (y - PERCH_KNEE) / k) if y > PERCH_KNEE else y
+    mesh = []
+    for y in range(PERCH_KNEE - 10, CROP_H, 8):
+        for x in range(0, CROP_W, 8):
+            x1, y1 = min(x + 8, CROP_W), min(y + 8, CROP_H)
+            mesh.append(((x, y, x1, y1), (*f(x, y), *f(x, y1), *f(x1, y1), *f(x1, y))))
+    low = base.convert("RGBa").transform((CROP_W, CROP_H), Image.MESH, mesh, Image.BICUBIC).convert("RGBA")
+    out = base.copy()
+    out.paste((0, 0, 0, 0), (0, PERCH_KNEE - 6, CROP_W, CROP_H))
+    keep = Image.new("L", (CROP_W, CROP_H), 0)
+    ImageDraw.Draw(keep).rectangle((0, PERCH_KNEE - 6, CROP_W, CROP_H), fill=255)
+    out.alpha_composite(_masked(low, keep))
+    return out
+
+
+def _perch_crop(p: Pose) -> Image.Image:
+    """La seduta nel ritaglio: hand è perch-<gambe> (0, 2, 3 o un accorciamento) o sing0..2."""
+    sit = "B-sitting/seduta-4-celle-trasparente.png"
+    if p.hand.startswith("sing"):
+        head = _sheet_cell("B-singing/canto-seduta-3-celle-trasparente.png", SING_CELLS[int(p.hand[-1])])
+        body = _masked(_sheet_cell(sit, PERCH_CELLS[0]), _band(PERCH_JOIN - 6, CROP_H, 0))
+        out = Image.new("RGBA", (CROP_W, CROP_H), (0, 0, 0, 0))
+        out.alpha_composite(body)
+        out.alpha_composite(_masked(head, _band(0, PERCH_JOIN + 6, 4)))
+        return out
+    legs = p.hand.split("-", 1)[1]
+    img = _sheet_cell(sit, PERCH_CELLS[0])
+    if legs in ("2", "3"):
+        img = Image.composite(_sheet_cell(sit, PERCH_CELLS[int(legs)]), img, _band(PERCH_LEGS_Y, CROP_H, 5))
+    elif legs != "0":
+        img = Image.composite(_perch_shins(float(legs)), img, _band(PERCH_LEGS_Y, CROP_H, 5))
+    if p.eyes == "closed":
+        eyes = Image.new("L", (CROP_W, CROP_H), 0)
+        ImageDraw.Draw(eyes).polygon(PERCH_EYES, fill=255)
+        img = Image.composite(_sheet_cell(sit, PERCH_CELLS[1]), img, eyes.filter(ImageFilter.GaussianBlur(6)))
+    return img
+
+
+def _band(y0: int, y1: int, blur: float) -> Image.Image:
+    m = Image.new("L", (CROP_W, CROP_H), 0)
+    ImageDraw.Draw(m).rectangle((0, y0, CROP_W, y1), fill=255)
+    return m.filter(ImageFilter.GaussianBlur(blur)) if blur else m
+
+
+def _perch_frame(p: Pose) -> Image.Image:
+    left, top = (FRAMED[0] - CANVAS[0]) // 2, FRAMED[1] - CANVAS[1]
+    framed = Image.new("RGBA", FRAMED, (0, 0, 0, 0))
+    framed.alpha_composite(_perch_crop(p), (left + OFFSET[0], top + OFFSET[1]))
+    return framed.resize(TILE, Image.LANCZOS)
+
+
 def render(p: Pose) -> Image.Image:
+    if p.hand.startswith(("perch", "sing")):
+        return _perch_frame(p)
     if p.hand.startswith(("jump", "nap", "dangle", "ear", "jog")):
         return _whole_frame(p)
     img = _with_arm(p) if p.arm else _face(p.eyes, p.mouth).copy()
@@ -1393,6 +1482,21 @@ def drag_left():
 def drag_right():
     return _drag_toward(0, -1.0)   # verso destra: gambe che pendono a sinistra
 
+
+def perch():
+    # seduta sul bordo: dondola le gambe (in avanti per gradi fino al calcio,
+    # indietro con la quarta cella) e sbatte le ciglia fra un dondolio e l'altro
+    def legs(v, ms, eyes="open"):
+        return Pose(hand=f"perch-{v}", eyes=eyes), ms
+    swing = [legs(0.95, 120), legs(0.88, 120), legs(2, 260), legs(0.88, 120), legs(0.95, 120),
+             legs(0, 160), legs(3, 320), legs(0, 160)]
+    return [legs(0, 600)] + swing + [legs(0, 500), legs(0, 110, "closed"), legs(0, 500)] + swing, True
+
+
+def perch_singing():
+    # canta a occhi chiusi, la testa ondeggia: «a» a sinistra, «o» dritta, aperta a destra
+    return [(Pose(hand=f"sing{i}"), ms) for i, ms in ((0, 380), (1, 300), (2, 380), (1, 300))], True
+
 STATES = {"idle": idle, "sleep": sleep, "listening": listening, "thinking": thinking, "working": working,
           "reading": reading, "writing": writing, "running": running, "waiting": waiting, "done": done,
           "celebrate": celebrate, "error": error, "talk": talk, "look": look, "drag": drag,
@@ -1400,6 +1504,17 @@ STATES = {"idle": idle, "sleep": sleep, "listening": listening, "thinking": thin
 
 
 # ---------------------------------------------------------------- pacchetto
+
+def _compact(sheet: Image.Image) -> Image.Image:
+    """Foglio più leggero senza differenze visibili: colori arrotondati a multipli
+    di 4 (al massimo 2 livelli su 255) e colore azzerato dove è tutto trasparente.
+    Da 14,6 a circa 10,8 MB, sotto il limite di 16 del formato."""
+    r, g, b, a = sheet.split()
+    step = lambda v: min(252, (v + 2) & 0xFC) if v < 253 else 255
+    out = Image.new("RGBA", sheet.size, (0, 0, 0, 0))
+    out.paste(Image.merge("RGBA", [c.point(step) for c in (r, g, b)] + [a]), (0, 0), a.point(lambda v: 255 if v else 0))
+    return out
+
 
 def build(out_root, preview_root) -> dict:
     out = Path(out_root) / "People" / "luma"
@@ -1410,7 +1525,7 @@ def build(out_root, preview_root) -> dict:
     tiles: list[Image.Image] = []
     index: dict[Pose, int] = {}
     timelines = {}
-    for state, make in STATES.items():
+    for state, make in {**STATES, "perch": perch, "perch-singing": perch_singing}.items():
         seq, loop = make()
         cells = []
         for pose, _ in seq:
@@ -1424,11 +1539,11 @@ def build(out_root, preview_root) -> dict:
     sheet = Image.new("RGBA", (COLS * TILE[0], rows * TILE[1]), (0, 0, 0, 0))
     for i, tile in enumerate(tiles):
         sheet.paste(tile, ((i % COLS) * TILE[0], (i // COLS) * TILE[1]))
-    sheet.save(out / "sprites.png", optimize=True)
+    _compact(sheet).save(out / "sprites.png", optimize=True)
     tiles[0].save(HERE / "preview.png")
 
     animations = {}
-    for state, (seq, cells, loop) in timelines.items():
+    for state, (seq, cells, loop) in timelines.items():   # perch e perch-singing escono poi da animations
         anim = {"row": 0, "frames": [c % COLS for c in cells], "frameRows": [c // COLS for c in cells],
                 "fps": 20, "durations": [ms for _, ms in seq]}
         if not loop:
@@ -1436,7 +1551,11 @@ def build(out_root, preview_root) -> dict:
         animations[state] = anim
     pack = {"format": "mascotte-pack/1", "id": "luma", "name": "Luma", "author": "Mascotte", "sheet": "sprites.png",
             "frame": {"width": TILE[0], "height": TILE[1]}, "pixelRatio": 7, "scale": 3,
-            "bubble": {"x": TILE[0] // 2, "y": 80}, "animations": animations}
+            "bubble": {"x": TILE[0] // 2, "y": 80}, "animations": animations,
+            "perch": {"animation": animations.pop("perch"), "singing": animations.pop("perch-singing"),
+                      # il bacino sul bordo, in pixel del fotogramma
+                      "anchor": {"x": round((FRAMED[0] / 2) * TILE[0] / FRAMED[0]),
+                                 "y": round(((FRAMED[1] - CANVAS[1]) + OFFSET[1] + PERCH_SEAT) * TILE[1] / FRAMED[1])}}}
     (out / "character.json").write_text(json.dumps(pack, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
 
     _previews(tiles, timelines, previews)
@@ -1465,5 +1584,6 @@ def _previews(tiles, timelines, folder: Path) -> None:
 
 if __name__ == "__main__":
     pack = build(ROOT / "characters", ROOT / "work" / "previews")
-    used = {(r, c) for a in pack["animations"].values() for c, r in zip(a["frames"], a["frameRows"])}
+    anims = [*pack["animations"].values(), pack["perch"]["animation"], pack["perch"]["singing"]]
+    used = {(r, c) for a in anims for c, r in zip(a["frames"], a["frameRows"])}
     print(f"ok: characters/People/luma ({len(used)} celle) e work/previews/luma")
