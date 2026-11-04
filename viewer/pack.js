@@ -263,6 +263,12 @@
     return { used: 'idle', chain, cycle };
   }
 
+  // Il ripiego successivo di uno stato, a prescindere dalle animazioni presenti.
+  function nextFallback(state, pack) {
+    const own = (pack && pack.fallbacks) || {};
+    return has(own, state) && typeof own[state] === 'string' && own[state] ? own[state] : defaultFallback(state);
+  }
+
   function resolveState(state, pack) {
     const r = walk(state, pack);
     return { used: r.used, chain: r.chain };
@@ -626,6 +632,19 @@
         if(animation) {
           perch={animation,anchor:{...value.anchor}};
           if(has(value,'singing'))perch.singing=readAnimation('perch.singing',value.singing,cols,rows,errors,warnings);
+          // pose sedute per stato (facoltative): da agganciata si cerca lo stato e i
+          // suoi ripieghi; senza una posa propria resta perch.animation
+          if(has(value,'states')) {
+            if(!isObject(value.states)) errors.push('perch.states: deve essere un oggetto {stato: animazione}');
+            else {
+              perch.states={};
+              for(const key of Object.keys(value.states)) {
+                if(!isKnownState(key)) { warnings.push('perch.states.'+key+': stato sconosciuto, ignorato'); continue; }
+                const anim=readAnimation('perch.states.'+key,value.states[key],cols,rows,errors,warnings);
+                if(anim) perch.states[key]=anim;
+              }
+            }
+          }
         }
       } else errors.push('perch: animazione o punto di appoggio non valido');
     }
@@ -637,8 +656,15 @@
     return { errors, warnings, pack };
   }
 
-  function displayAnimation(pack,animation,perching,singing=false) {
-    return perching && pack.perch ? (singing && pack.perch.singing || pack.perch.animation) : animation;
+  function displayAnimation(pack,animation,perching,singing=false,state) {
+    if(!perching || !pack.perch) return animation;
+    if(singing && pack.perch.singing) return pack.perch.singing;
+    const seated=pack.perch.states;
+    if(seated && state) {
+      // stesso percorso dei ripieghi, ma tra le pose sedute
+      for(let s=state, guard=0; s && guard<32; s=nextFallback(s, pack), guard++) if(has(seated, s)) return seated[s];
+    }
+    return pack.perch.animation;
   }
 
   return {

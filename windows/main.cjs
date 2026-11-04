@@ -187,7 +187,7 @@ function startApplication() {
   }
   const displayAreas = () => screen.getAllDisplays().map(d => d.workArea);
   const displayScale = () => settings.scale/(pack.pixelRatio||1);
-  const effectiveAnimation = animation => P.displayAnimation(pack,animation,attachment !== 'free',singing);
+  const effectiveAnimation = (animation, state = controller?.state) => P.displayAnimation(pack,animation,attachment !== 'free',singing,state);
   const stateAnimation = () => effectiveAnimation(pack.animations[P.resolveState(controller.state,pack).used]);
   function moveMascot(x, y) {
     // Always provide the intended size: moving between DPI contexts must not accumulate size changes.
@@ -200,9 +200,9 @@ function startApplication() {
     settings.character=id;
     settings.scale=settings.scales[id] || (id==='rosso'?settings.scale:pack.scale);
     if(!Characters.SCALES.includes(settings.scale)||Math.max(pack.frame.width,pack.frame.height)*displayScale()>2048)settings.scale=pack.scale;
-    controller=new StateController(pack,P,value=>mascot.webContents.send('mascotte-state',{...value,animation:effectiveAnimation(value.animation)}));
+    controller=new StateController(pack,P,value=>mascot.webContents.send('mascotte-state',{...value,animation:effectiveAnimation(value.animation,value.state)}));
     if(!initial){
-      mascot.webContents.send('mascotte-state',{character:{pack,imageData,animation:effectiveAnimation(pack.animations.idle)}});
+      mascot.webContents.send('mascotte-state',{character:{pack,imageData,animation:effectiveAnimation(pack.animations.idle,'idle')}});
       setScale(settings.scale);controller.set(currentRun?'thinking':'idle',Boolean(currentRun));saveSettings();broadcast();
     }
   }

@@ -178,5 +178,10 @@ e category per ogni voce. Il loader Mac riconosce anche i pacchetti piatti prece
   è agganciata. Un secondo clic o lo sgancio lo disattiva; non cambia gli stati IA
   e non attiva acquisizione audio. Assente nei vecchi pacchetti: si usa la idle seduta.
 
+- `perch.states`: opzionale, `{stato: animazione}` con le stesse regole di `animation`.
+  Da agganciata l'app cerca una posa seduta per lo stato in corso e, se manca, segue
+  i ripieghi degli stati (per esempio `reading` → `working`); senza nessuna resta
+  `perch.animation`. Il canto manuale ha la precedenza. Stati sconosciuti: avviso.
+
 - `pixelRatio`: opzionale, intero 1–8 (default 1). I pixel dello sprite restano
   invariati; grandezza in punti = frame × scala / pixelRatio. Per esempio, un frame alto 448 con pixelRatio=4 misura 112 punti a 1×. Rosso resta pixelRatio=1.

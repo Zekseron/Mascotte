@@ -531,3 +531,19 @@ test('validatePack: scala e fotogrammi estremi non possono produrre una finestra
   assert.ok(hasError(validatePack(minimal({ frame: { width: 512, height: 512 }, scale: 8 })), '2048 punti'));
   assert.deepStrictEqual(check(minimal({ scale: 8 })).errors, []);
 });
+test('perch.states: posa seduta per stato, con i ripieghi e il canto che ha la precedenza', () => {
+  const anim = (f) => ({ row: 0, frames: [f] });
+  const json = { format: 'mascotte-pack/1', id: 'x', name: 'X', sheet: 's.png', frame: { width: 10, height: 10 },
+    animations: { idle: anim(0), working: anim(1), reading: anim(2) },
+    perch: { animation: anim(3), anchor: { x: 5, y: 5 }, singing: anim(4), states: { working: anim(5), boh: anim(6) } } };
+  const r = Pack.validatePack(json, 70, 10);
+  assert.deepEqual(r.errors, []);
+  assert.ok(r.warnings.some(w => w.startsWith('perch.states.boh')));
+  const pack = r.pack, a = pack.animations, P = Pack;
+  assert.equal(P.displayAnimation(pack, a.working, true, false, 'working').frames[0], 5);
+  assert.equal(P.displayAnimation(pack, a.reading, true, false, 'reading').frames[0], 5);   // reading → working
+  assert.equal(P.displayAnimation(pack, a.idle, true, false, 'idle').frames[0], 3);
+  assert.equal(P.displayAnimation(pack, a.working, true, true, 'working').frames[0], 4);
+  assert.equal(P.displayAnimation(pack, a.working, false, false, 'working').frames[0], 1);
+  assert.equal(P.displayAnimation(pack, a.working, true).frames[0], 3);                       // senza stato: seduta normale
+});
