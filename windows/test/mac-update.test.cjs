@@ -155,7 +155,9 @@ test('mac-sign: ricerca dell’identità, firma coerente e ZIP rigenerato', mac,
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte sign ')); t.after(() => fs.rmSync(base, { recursive: true, force: true }));
   const app = path.join(base, 'mac-arm64', 'Mascotte.app'); fs.mkdirSync(path.join(app, 'Contents', 'Resources'), { recursive: true });
   fs.writeFileSync(path.join(app, 'Contents', 'Resources', 'mascotte-window-helper'), 'h');
+  fs.writeFileSync(path.join(app, 'Contents', 'Info.plist'), '<dict><key>CFBundleShortVersionString</key>\n\t<string>1.0.0</string></dict>');
   fs.writeFileSync(path.join(base, 'Mascotte-Mac-1.0.0-arm64.zip'), 'old'); fs.writeFileSync(path.join(base, 'Mascotte-Mac-1.0.0-arm64.zip.blockmap'), 'b');
+  fs.writeFileSync(path.join(base, 'Mascotte-Mac-0.8.0-arm64.zip'), 'older');
   const calls = [], warnings = [];
   const run = (file, args) => {
     calls.push([path.basename(file), ...args.map(a => a.startsWith(base) ? path.relative(base, a) : a)]);
@@ -175,6 +177,8 @@ test('mac-sign: ricerca dell’identità, firma coerente e ZIP rigenerato', mac,
   assert.deepEqual(calls.find(c => c[0] === 'ditto').slice(1, 5), ['-c', '-k', '--sequesterRsrc', '--keepParent']);
   assert.equal(fs.readFileSync(path.join(base, 'Mascotte-Mac-1.0.0-arm64.zip'), 'utf8'), 'new zip');
   assert.equal(fs.existsSync(path.join(base, 'Mascotte-Mac-1.0.0-arm64.zip.blockmap')), false);
+  assert.equal(fs.readFileSync(path.join(base, 'Mascotte-Mac-0.8.0-arm64.zip'), 'utf8'), 'older', 'lo ZIP di una versione precedente resta intatto');
+  assert.deepEqual(result.zips, ['Mascotte-Mac-1.0.0-arm64.zip']);
   // Nome personalizzato e certificato assente: avviso, nessuna firma, ZIP intatto.
   calls.length = 0; fs.writeFileSync(path.join(base, 'Mascotte-Mac-1.0.0-arm64.zip'), 'old');
   const none = Sign.signOutput(base, { env: { MASCOTTE_MAC_IDENTITY: 'Non esiste' }, run, log() {}, warn: m => warnings.push(m) });

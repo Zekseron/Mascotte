@@ -33,8 +33,11 @@ test('A0: cartella diretta risponde dall’app, domanda interpretativa prosegue 
   const model = run('riassumi la cartella', null, { kind: 'model' });
   assert.equal(model.messages.length, 0); assert.equal(model.result.folderRead.context, 'Dati di prova');
 });
-test('B-OBS caratterizzato: con immagine il comando va al modello, senza immagine all’app', () => {
+test('B-OBS: anche con il fotogramma dell’osservazione i comandi restano all’app, le altre domande vanno al modello', () => {
+  const frame = 'data:image/jpeg;base64,fixture';
   assert.equal(run('che promemoria ho?').result.replied, true);
-  const observed = run('che promemoria ho?', 'data:image/jpeg;base64,fixture');
-  assert.equal(observed.result.delegated, true); assert.equal(observed.messages.length, 0);
+  const observed = run('che promemoria ho?', frame);
+  assert.equal(observed.result.replied, true); assert.match(observed.messages[1].text, /Non hai promemoria/);
+  assert.equal(run('ricordami tra 20 minuti di studiare', frame).pending.kind, 'reminder');
+  assert.equal(run('cosa vedi nella finestra?', frame).result.delegated, true);
 });

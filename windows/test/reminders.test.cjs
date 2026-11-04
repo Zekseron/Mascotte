@@ -87,3 +87,20 @@ test('B2: «Rimanda» con l\'elenco pieno non lancia, non toglie nulla e restitu
   assert.match(handler, /Reminders\.snoozeAlarm\(/);
   assert.ok(handler.indexOf('if (snoozed.error)') < handler.indexOf('stopAlarm()'), 'stopAlarm solo dopo il controllo dell\'errore');
 });
+
+test('salvataggio fallito: lo stato in memoria non cambia e i promemoria scaduti si riprendono senza riavvio', { skip: process.platform === 'win32' || process.getuid?.() === 0 }, t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte promemoria disco '));
+  t.after(() => { fs.chmodSync(directory, 0o700); fs.rmSync(directory, { recursive: true, force: true }); });
+  const store = new R.ReminderStore(path.join(directory, 'reminders.json'));
+  store.add({ when: NOW.getTime() - 1000, text: 'scaduto' }); store.add({ when: NOW.getTime() + 60000, text: 'futuro' });
+  fs.chmodSync(directory, 0o500); // disco non scrivibile
+  assert.throws(() => store.takeDue(NOW.getTime()));
+  assert.throws(() => store.add({ when: NOW.getTime() + 120000, text: 'nuovo' }));
+  assert.throws(() => store.remove(store.list()[1].id));
+  assert.throws(() => store.clear());
+  assert.deepEqual(store.list().map(item => item.text), ['scaduto', 'futuro']);
+  fs.chmodSync(directory, 0o700); // disco di nuovo disponibile
+  assert.deepEqual(store.takeDue(NOW.getTime()).map(item => item.text), ['scaduto']);
+  assert.deepEqual(store.takeDue(NOW.getTime()), [], 'notificato una sola volta');
+  assert.deepEqual(new R.ReminderStore(path.join(directory, 'reminders.json')).list().map(item => item.text), ['futuro']);
+});

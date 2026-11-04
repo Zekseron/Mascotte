@@ -48,7 +48,11 @@ function readJSON(file, fallback, max = 1048576) {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
   } catch { return fallback; }
 }
-const chatMessage = m => ({ role: m.role, text: m.text.slice(0, 8000), ...(m.role === 'assistant' && m.kind === 'app' ? { kind: 'app' } : {}) });
+// Messaggi utente e avvisi fino a 8000 caratteri; risposte fino a 32000. Un taglio è sempre dichiarato in fondo al testo.
+const MAX_TEXT = { user: 8000, notice: 8000, assistant: 32000 };
+const CUT_NOTE = '\n\n[… testo tagliato qui: superava il limite di caratteri conservati da Mascotte]';
+const limitText = (text, max) => text.length <= max ? text : text.slice(0, max - CUT_NOTE.length) + CUT_NOTE;
+const chatMessage = m => ({ role: m.role, text: limitText(m.text, MAX_TEXT[m.role] || 8000), ...(m.role === 'assistant' && m.kind === 'app' ? { kind: 'app' } : {}) });
 class ChatStore {
   constructor(directory) { this.file = path.join(directory, 'history.json'); this.value = readJSON(this.file, {}); }
   get(engine) {

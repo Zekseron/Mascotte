@@ -187,3 +187,9 @@ test('CLI script npm con shebang env node: runtime di Electron e PATH minimo, bi
   const sh = path.join(directory, 'sh-script'); fs.writeFileSync(sh, '#!/bin/sh\n', { mode: 0o755 });
   assert.deepEqual(commandFor(sh), { file: sh, prefix: [], env: {} });
 });
+
+test('impostazioni: un file JSON valido ma non oggetto vale come nessuna impostazione', () => {
+  const { normalizeSettings } = require('../lib/settings.cjs');
+  const ctx = { LocalEngines: require('../lib/local-engines.cjs'), LocalAI: require('../lib/local-ai.cjs'), ExtraFolders: require('../lib/extra-folders.cjs'), Characters: require('../lib/characters.cjs'), AlarmSound: require('../lib/alarm-sound.cjs'), managedModel: 'gemma-4-e4b', platform: 'darwin', home: '/h', dataDir: '/d' };
+  for (const raw of [null, [], 3, 'testo']) assert.equal(normalizeSettings(raw, ctx).localEngine, 'ollama');
+});

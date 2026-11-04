@@ -83,16 +83,18 @@ class ReminderStore {
       .slice(0, MAX_REMINDERS).map(item => ({ id: item.id, when: item.when, text: item.text.slice(0, MAX_TEXT), alarm: Boolean(item.alarm) })).sort((a, b) => a.when - b.when);
   }
   save() { atomicJSON(this.file, this.items); }
+  // Scrive il nuovo elenco e solo dopo lo adotta: con un errore del disco lo stato in memoria resta quello di prima.
+  commit(items) { atomicJSON(this.file, items); this.items = items; }
   list() { return this.items.slice(); }
   add({ when, text, alarm }) {
     if (this.items.length >= MAX_REMINDERS) throw new Error(`Hai già ${MAX_REMINDERS} promemoria: cancellane qualcuno.`);
     const item = { id: randomUUID(), when: new Date(when).getTime(), text: String(text).slice(0, MAX_TEXT), alarm: Boolean(alarm) };
-    this.items = [...this.items, item].sort((a, b) => a.when - b.when); this.save(); return item;
+    this.commit([...this.items, item].sort((a, b) => a.when - b.when)); return item;
   }
-  remove(id) { const before = this.items.length; this.items = this.items.filter(item => item.id !== id); if (this.items.length !== before) this.save(); return before !== this.items.length; }
-  clear() { const count = this.items.length; this.items = []; this.save(); return count; }
+  remove(id) { const next = this.items.filter(item => item.id !== id); if (next.length === this.items.length) return false; this.commit(next); return true; }
+  clear() { const count = this.items.length; this.commit([]); return count; }
   // Scaduti (anche quelli persi mentre l'app era chiusa): tolti dall'elenco e restituiti.
-  takeDue(now = Date.now()) { const due = this.items.filter(item => item.when <= now); if (due.length) { this.items = this.items.filter(item => item.when > now); this.save(); } return due; }
+  takeDue(now = Date.now()) { const due = this.items.filter(item => item.when <= now); if (due.length) this.commit(this.items.filter(item => item.when > now)); return due; }
   next() { return this.items[0] || null; }
 }
 

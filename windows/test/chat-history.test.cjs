@@ -21,13 +21,13 @@ test('kind valido sopravvive a lettura, scrittura e modifiche di altre conversaz
 });
 test('limiti di messaggi, testo e file mantengono kind e dati leggibili da una versione precedente', t => {
   const dir = temp(t), store = new ChatStore(dir);
-  const many = Array.from({ length: 90 }, (_, i) => ({ role: 'assistant', text: String(i) + 'x'.repeat(9000), kind: 'app' }));
+  const many = Array.from({ length: 90 }, (_, i) => ({ role: 'assistant', text: String(i) + 'x'.repeat(40000), kind: 'app' }));
   for (const engine of ['codex', 'claude', 'locale']) store.set(engine, many);
   assert.ok(fs.statSync(store.file).size <= 1048576);
   const value = JSON.parse(fs.readFileSync(store.file, 'utf8'));
   for (const messages of Object.values(value)) {
     assert.ok(messages.length <= 60);
-    for (const m of messages) { assert.equal(m.text.length, 8000); assert.equal(m.kind, 'app'); }
+    for (const m of messages) { assert.equal(m.text.length, 32000); assert.equal(m.kind, 'app'); }
   }
   // La proiezione della vecchia versione perde solo kind: nessuna migrazione del testo.
   const before = value.locale.map(({ role, text }) => ({ role, text }));
@@ -43,4 +43,17 @@ test('prompt CLI legacy identico byte per byte; kind non cambia prompt CLI e loc
   assert.equal(promptWithHistory(marked, 'Domanda'), expected);
   const now = new Date('2026-10-30T08:00:00Z');
   assert.equal(JSON.stringify(buildMessages(history, 'Domanda', [], null, now)), JSON.stringify(buildMessages(marked, 'Domanda', [], null, now)));
+});
+
+test('risposte lunghe: conservate fino a 32000 caratteri e tagli sempre dichiarati', t => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte taglio '));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const { ChatStore } = require('../lib/storage.cjs');
+  new ChatStore(directory).set('codex', [{ role: 'user', text: 'u'.repeat(9000) }, { role: 'assistant', text: 'a'.repeat(9013) }, { role: 'assistant', text: 'b'.repeat(40000) }]);
+  const [user, medium, long] = new ChatStore(directory).get('codex');
+  assert.equal(medium.text.length, 9013, 'nessun taglio silenzioso sopra 8000');
+  assert.equal(long.text.length, 32000); assert.match(long.text, /testo tagliato qui/);
+  assert.equal(user.text.length, 8000); assert.match(user.text, /testo tagliato qui/);
+  const again = new ChatStore(directory); again.set('codex', again.get('codex'));
+  assert.equal(new ChatStore(directory).get('codex')[2].text, long.text, 'il taglio non si ripete a ogni salvataggio');
 });
