@@ -859,6 +859,10 @@ function startApplication() {
         }
         const completePrompt = CLI.promptWithHistory(data?.noHistory === true ? [] : history, prompt + imageNote);
         store.set(selected, [...history, { role: 'user', text: prompt + imageNote }]); notice = '';
+        // Secondo parere con la modalità Agente attiva: la vista mostra la cronologia dell'agente, quindi domanda e risposta
+        // compaiono anche lì, segnate come fuori dalla sessione (il servizio non le aggiunge al contesto dell'agente).
+        const agentView = selected !== 'locale' && data?.noHistory === true && agents.snapshot(selected).enabled;
+        if (agentView) agents.store.set(selected, [...agents.store.get(selected), { role: 'user', text: 'Secondo parere (Chat, fuori dalla sessione agente):\n' + prompt + imageNote }]);
         const args = selected === 'locale' ? null : CLI.argumentsFor(selected, imagePath, Boolean(image && selected === 'claude'));
         const input = image && selected === 'claude' ? CLI.promptWithImage(completePrompt, image.bytes.toString('base64')) : completePrompt;
         const run = selected === 'locale' ? LocalEngines.run(settings.localEngine, history, prompt, memory.relevant(prompt), { ...modelOptions(), imageBase64: image?.bytes.toString('base64') || null, folderContext: folderRead?.context || null }) : CLI.runCLI(command, args, input, imageDirectory || path.join(dataDirectory, 'chat'));
@@ -867,6 +871,7 @@ function startApplication() {
           const output = await run.promise;
           const text = selected === 'locale' ? (folderRead ? folderRead.notice + '\n\n' + output : output) : CLI.decodeOutput(selected, output.stdout, output.code, output.stderr);
           store.set(selected, [...store.get(selected), { role: 'assistant', text }]); controller.set('talk');
+          if (agentView) agents.store.set(selected, [...agents.store.get(selected), { role: 'assistant', text }]);
           if (selected === 'locale' && image) keepLastFrame(image.bytes, image.name, store.get('locale').length - 1, text);
         } catch (e) {
           notice = (e.name === 'AbortError' ? 'Risposta interrotta.' : selected === 'locale' && settings.localEngine !== 'ollama' && !(settings.localEngine === LocalEngines.MANAGED && e.code === 'NOT_READY') && ['MODEL_INVALID', 'ECONNREFUSED', 'AUTH', 'UNRECOGNIZED', 'NOT_READY'].includes(e.code) ? fallbackToDefault(e.message) : e.code === 'MODEL_INVALID' && selected === 'locale' && !LocalAI.isModel(settings.localModel) ? fallbackToDefault(e.message) : e.message).slice(0, 1500); controller.set('error');
