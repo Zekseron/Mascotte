@@ -132,6 +132,8 @@ function startApplication() {
     try { await other.checkModel(settings.localModel); return ''; }
     catch (error) {
       if (error.name === 'AbortError') throw error;
+      // llama.cpp gestito ancora da scaricare (es. prima installazione Windows): la scelta resta, il download si fa da Impostazioni.
+      if (settings.localEngine === LocalEngines.MANAGED && error.code === 'NOT_READY' && other.status?.().supported) throw error;
       const message = fallbackToDefault(error.message);
       try { return [message, await checkOllama()].filter(Boolean).join(' '); } catch (next) { next.message = `${message} ${next.message}`; throw next; }
     }
@@ -776,7 +778,8 @@ function startApplication() {
         if (refusal !== null) { if (refusal) { notice = refusal; broadcast(); } return; }
         if (pendingAction) { notice = 'Conferma o annulla prima l’azione proposta.'; broadcast(); return; }
         let folderRead = null;
-        if (engine === 'locale' && !imageData) {
+        // Comandi di Mascotte prima del modello, anche con un fotogramma allegato (l'osservazione lo aggiunge da sola): una sveglia va impostata, non descritta.
+        if (engine === 'locale') {
           const reply = answer => { store.set('locale', [...store.get('locale'), { role: 'user', text: text.trim() }, { role: 'assistant', text: answer, kind: 'app' }]); notice = ''; };
           const replyNow = answer => { reply(answer); broadcast(); return chatSnapshot(); };
           // Promemoria e sveglie: orario calcolato da Mascotte, impostazione con conferma, elenco e cancellazione diretti.
@@ -833,9 +836,9 @@ function startApplication() {
         if (engine !== 'locale' && !command) { notice = 'CLI non trovata. Installa e accedi a ' + engine + ' sul tuo ' + can.deviceName + '.'; broadcast(); return; }
         const selected = engine, prompt = text.trim(), history = store.get(selected);
         const imageNote = image ? `\n\n[Fotogramma condiviso: ${image.name}]` : '';
-        if (agents.snapshot(selected).enabled) {
+        // Il secondo parere (noHistory) va sempre in Chat, senza cronologia: non avvia mai un agente e non tocca la sessione agente salvata.
+        if (agents.snapshot(selected).enabled && data?.noHistory !== true) {
           try {
-            if (data?.noHistory === true) agents.reset(selected);
             const run = agents.run(selected, command, prompt, image?.bytes.toString('base64'));
             currentRun = run; notice = ''; controller.set('thinking', true); broadcast();
             await run.promise; controller.set('talk');

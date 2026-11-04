@@ -4,6 +4,8 @@
 // AlarmSound, più platform, home e dataDir), così si prova senza Electron né disco.
 function normalizeSettings(raw, ctx) {
   const { LocalEngines, LocalAI, ExtraFolders, Characters, AlarmSound } = ctx;
+  // Un file valido ma non oggetto (null, un elenco, un numero) vale come «nessuna impostazione salvata».
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) raw = {};
   // Motore: un valore sconosciuto, o un modello di un altro motore senza nome valido, torna a Ollama e al predefinito.
   // Nessuna scelta salvata (prima installazione): su Windows il predefinito è llama.cpp gestito da Mascotte con il suo unico modello
   // (prove del 30 ottobre 2026: più veloce di Ollama con Vulkan e legge le immagini). Su Mac resta Ollama.

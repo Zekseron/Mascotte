@@ -67,7 +67,7 @@ test('dragLean: gambe secondo la direzione, con isteresi', () => {
   assert.equal(state, 'drag-right');
 });
 test('i due stati del trascinamento ripiegano su drag e restano finché si trascina', () => {
-  const P = require('../resources/pack.js'); const { StateController } = require('../lib/state.cjs');
+  const P = require('../../viewer/pack.js'); const { StateController } = require('../lib/state.cjs');
   assert.equal(P.STATES.states['drag-left'].fallback, 'drag'); assert.equal(P.STATES.states['drag-right'].fallback, 'drag');
   const pack = { animations: { idle: { frames: [0] }, drag: { frames: [1] } } };
   const timers = []; const c = new StateController(pack, P, () => {}, { setTimeout: (f) => timers.push(f), clearTimeout() {} });

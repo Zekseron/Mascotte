@@ -41,6 +41,15 @@ function regenerateZip(app, zip, run = defaultRun) {
   fs.renameSync(temporary, zip);
   fs.rmSync(`${zip}.blockmap`, { force: true }); // la mappa dei blocchi di electron-builder non corrisponderebbe più
 }
+// Versione dell'app compilata, da Info.plist (CFBundleShortVersionString); senza plist quella di package.json.
+function appVersion(app) {
+  try {
+    const plist = fs.readFileSync(path.join(app, 'Contents', 'Info.plist'), 'utf8');
+    const match = plist.match(/<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/);
+    if (match) return match[1].trim();
+  } catch {}
+  return require('../package.json').version;
+}
 function signOutput(outputDir, { env = process.env, run = defaultRun, log = console.log, warn = console.warn } = {}) {
   const app = path.join(outputDir, 'mac-arm64', 'Mascotte.app');
   if (!fs.existsSync(app)) throw new Error(`App compilata non trovata: ${app}`);
@@ -51,7 +60,9 @@ function signOutput(outputDir, { env = process.env, run = defaultRun, log = cons
     return { signed: false };
   }
   signApp(app, identity, run);
-  const zips = fs.readdirSync(outputDir).filter(file => /^Mascotte-Mac-.+-arm64\.zip$/.test(file));
+  // Solo lo ZIP della versione appena compilata: quelli di versioni precedenti nella stessa cartella restano intatti.
+  const zip = `Mascotte-Mac-${appVersion(app)}-arm64.zip`;
+  const zips = fs.existsSync(path.join(outputDir, zip)) ? [zip] : [];
   for (const zip of zips) regenerateZip(app, path.join(outputDir, zip), run);
   log(`App firmata con «${identity.name}» e verificata (codesign --verify --deep --strict). ZIP rigenerato: ${zips.join(', ') || 'nessuno'}.`);
   return { signed: true, identity, zips };
