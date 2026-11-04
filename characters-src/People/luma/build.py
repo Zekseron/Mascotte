@@ -1631,7 +1631,13 @@ def build(out_root, preview_root) -> dict:
     sheet = Image.new("RGBA", (COLS * TILE[0], rows * TILE[1]), (0, 0, 0, 0))
     for i, tile in enumerate(tiles):
         sheet.paste(tile, ((i % COLS) * TILE[0], (i // COLS) * TILE[1]))
-    _compact(sheet).save(out / "sprites.png", optimize=True)
+    compact = _compact(sheet)
+    compact.save(out / "sprites.png", optimize=True)
+    # rilettura completa: un salvataggio interrotto lascia un PNG che si apre ma
+    # si decodifica solo in parte (un foglio così rende la mascotte invisibile)
+    with Image.open(out / "sprites.png") as check:
+        if check.convert("RGBA").tobytes() != compact.tobytes():
+            raise RuntimeError("sprites.png salvato non corrisponde al foglio: rigenerare")
     tiles[0].save(HERE / "preview.png")
 
     animations = {}
