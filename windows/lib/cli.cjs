@@ -67,6 +67,16 @@ function nodeScript(file) {
     return /^#!.*\bnode\b/.test(line) ? fs.realpathSync(file) : null;
   } catch { return null; } finally { if (fd !== undefined) fs.closeSync(fd); }
 }
+// Mac/Linux: se né il PATH né le cartelle della CLI contengono node (es. Codex dentro l'app ChatGPT, app aperta da Finder),
+// si aggiunge in fondo la prima cartella nota che lo contiene (PATH, /usr/local, Homebrew, nvm più recente): così i comandi
+// lanciati dall'agente, come npm test, trovano Node. Se node non c'è da nessuna parte la CLI resta com'è.
+function withNode(command, dirs, env) {
+  const hasNode = dir => { try { fs.accessSync(path.join(dir, 'node'), fs.constants.X_OK); return true; } catch { return false; } };
+  const reachable = [...(env.PATH || '').split(path.delimiter), ...(command.pathDirs || [])].filter(Boolean);
+  if (reachable.some(hasNode)) return command;
+  const found = dirs.find(hasNode);
+  return found ? { ...command, pathDirs: [...(command.pathDirs || []), found] } : command;
+}
 function findCLI(engine, env = process.env) {
   if (!ENGINES.includes(engine)) return null;
   if (env['MASCOTTE_CHAT_' + engine.toUpperCase()]) return commandFor(env['MASCOTTE_CHAT_' + engine.toUpperCase()]);
@@ -97,7 +107,7 @@ function findCLI(engine, env = process.env) {
   }
   for (const dir of dirs) for (const suffix of win ? ['.exe', '.cmd'] : ['']) {
     const cmd = commandFor(path.join(dir.replace(/^"|"$/g, ''), engine + suffix));
-    if (cmd) return cmd;
+    if (cmd) return win ? cmd : withNode(cmd, dirs, env);
   }
   return null;
 }
@@ -161,4 +171,4 @@ function runCLI(command, args, prompt, directory, timeout = 180000) {
   });
   return { promise, stop };
 }
-module.exports = { argumentsFor, promptWithHistory, promptWithImage, commandFor, findCLI, decodeOutput, runCLI, ENGINES, DISABLED };
+module.exports = { argumentsFor, promptWithHistory, promptWithImage, commandFor, findCLI, withNode, decodeOutput, runCLI, ENGINES, DISABLED };
