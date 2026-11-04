@@ -39,7 +39,7 @@ CANVAS = (600, 1080)
 OFFSET = (60, 138)
 FRAMED = (680, 1088)
 TILE = (320, 512)
-COLS = 12   # 12 × 320 = 3840 px: con la seduta le righe restano sotto gli 8192 px
+COLS = 16   # 16 × 320 = 5120 px: con le pose sedute le righe restano ben sotto gli 8192 px
 
 # Punti di riferimento nello spazio di lavoro.
 FEET = (300, 1063)
@@ -85,7 +85,7 @@ class Pose:
     mouth: str = ""       # "" (sorriso originale) | small | mid | open | worried | una bocca di EXPRESSIONS
     arm: str = ""          # braccio sinistro: "" | lift (si scosta) | wave0..wave2 (alzato, mano inclinata)
     arm_angle: float = 0.0  # gradi attorno alla spalla
-    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance) | jump0..3, nap0, dangle0..2, ear0..1, jog0..3 (pose intere di Codex) | perch-<gambe>, sing0..2 (seduta sul bordo)
+    hand: str = ""         # braccio destro: "" | chin (mano al mento) | book0..book2 (le due braccia col libro) | pad0..pad2 (blocco e matita) | tool0..tool3 (meccanismo e chiave) | lens0..lens1 (lente) | cheeks0..cheeks1 (mani alle guance) | jump0..3, nap0, dangle0..2, ear0..1, jog0..3 (pose intere di Codex) | perch-<gambe>, sing0..2, seat-<stato>-<cella> (seduta sul bordo)
     fx: tuple = ()        # effetti disegnati sopra: tuple di tuple
 
 
@@ -1192,6 +1192,74 @@ def _band(y0: int, y1: int, blur: float) -> Image.Image:
     return m.filter(ImageFilter.GaussianBlur(blur)) if blur else m
 
 
+# Pose sedute per stato (perch.states): dai fogli C-seduta di Codex si prende
+# la parte sopra il bordo, alla scala che porta la testa sulla seduta e
+# allineata sui fianchi; sotto restano le gambe della seduta, così il punto
+# d'appoggio non cambia. Si compone su una tela più larga del ritaglio: braccia
+# alzate e mani aperte ne escono ai lati.
+SEATED_CELLS = {
+    "waiting": (((86, 18, 535, 821), 1.1302, -44, 8), ((713, 18, 1151, 821), 1.12, -29, 13),
+                ((1345, 17, 1766, 821), 1.1407, -15, 1)),
+    "thinking": (((163, 23, 644, 1008), 0.9079, 22, 15), ((901, 24, 1379, 1008), 0.9004, 27, 21)),
+    "working": (((125, 19, 506, 848), 1.0848, 31, 6), ((728, 19, 1105, 848), 1.0956, 29, 0),
+                ((1331, 20, 1708, 848), 1.0807, 33, 9)),
+    "celebrate": (((182, 19, 567, 725), 1.2738, -21, 12), ((788, 19, 1284, 725), 1.2011, -53, 49),
+                  ((1509, 28, 1917, 725), 1.1585, 20, 67)),
+    "error": (((488, 24, 813, 723), 1.3102, 32, 10), ((1291, 24, 1616, 723), 1.3292, 29, 8)),
+    "sleep": (((226, 16, 578, 726), 1.2601, 17, 14), ((860, 21, 1220, 726), 1.2693, 4, 16),
+              ((1487, 34, 1863, 726), 1.2798, -17, 27)),
+}
+SEAT_PAD = 100         # margine ai lati del ritaglio
+SEAT_LEGS = (114, 344)  # larghezza delle gambe della seduta sotto il bordo
+
+
+def _seated_crop(p: Pose) -> Image.Image:
+    """Posa seduta per stato (hand seat-<stato>-<cella>, o seat-base) su una tela
+    larga 480 + 2 × SEAT_PAD; squash allunga il busto verso l'alto, ancorato al bordo."""
+    key = ("seated", p.hand)
+    if key not in _CACHE:
+        W = CROP_W + 2 * SEAT_PAD
+        low = Image.new("RGBA", (W, CROP_H), (0, 0, 0, 0))
+        low.alpha_composite(_perch_crop(Pose(hand="perch-0")), (SEAT_PAD, 0))
+        if p.hand == "seat-base":
+            _CACHE[key] = low
+        else:
+            _, state, i = p.hand.split("-")
+            box, scale, x, y = SEATED_CELLS[state][int(i)]
+            c = Image.open(HERE / "disegni" / "C-seduta" / f"{state}-trasparente.png").convert("RGBA").crop(box)
+            small = c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS)
+            top = Image.new("RGBa", (W, CROP_H), (0, 0, 0, 0))
+            top.paste(small, (round(x) + SEAT_PAD, round(y)), small)
+            top = top.convert("RGBA")
+            # le nostre gambe piene da poco sopra la giunzione, la parte di Codex
+            # sfuma sopra di loro: niente fascia semitrasparente
+            under = Image.new("L", (W, CROP_H), 0)
+            ImageDraw.Draw(under).rectangle((SEAT_PAD + SEAT_LEGS[0], PERCH_LEGS_Y - 14, SEAT_PAD + SEAT_LEGS[1], CROP_H), fill=255)
+            fade = Image.new("L", (W, CROP_H), 255)
+            ImageDraw.Draw(fade).rectangle((0, PERCH_LEGS_Y, W, CROP_H), fill=0)
+            out = Image.new("RGBA", (W, CROP_H), (0, 0, 0, 0))
+            out.alpha_composite(_masked(low, under))
+            out.alpha_composite(_masked(top, fade.filter(ImageFilter.GaussianBlur(3))))
+            _CACHE[key] = out
+    img = _CACHE[key]
+    if p.squash != 1:
+        W, H = img.size
+        legs = img.crop((0, PERCH_SEAT, W, H))
+        w2, h2 = round(W / p.squash ** 0.3), round(PERCH_SEAT * p.squash)
+        top = img.crop((0, 0, W, PERCH_SEAT)).convert("RGBa").resize((w2, h2), Image.LANCZOS).convert("RGBA")
+        img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        img.alpha_composite(legs, (0, PERCH_SEAT))
+        img.alpha_composite(top, ((W - w2) // 2, PERCH_SEAT - h2))
+    return img
+
+
+def _seated_frame(p: Pose) -> Image.Image:
+    left, top = (FRAMED[0] - CANVAS[0]) // 2, FRAMED[1] - CANVAS[1]
+    framed = Image.new("RGBA", FRAMED, (0, 0, 0, 0))
+    framed.alpha_composite(_seated_crop(p), (left + OFFSET[0] - SEAT_PAD, top + OFFSET[1]))
+    return framed.resize(TILE, Image.LANCZOS)
+
+
 def _perch_frame(p: Pose) -> Image.Image:
     left, top = (FRAMED[0] - CANVAS[0]) // 2, FRAMED[1] - CANVAS[1]
     framed = Image.new("RGBA", FRAMED, (0, 0, 0, 0))
@@ -1200,6 +1268,8 @@ def _perch_frame(p: Pose) -> Image.Image:
 
 
 def render(p: Pose) -> Image.Image:
+    if p.hand.startswith("seat"):
+        return _seated_frame(p)
     if p.hand.startswith(("perch", "sing")):
         return _perch_frame(p)
     if p.hand.startswith(("jump", "nap", "dangle", "ear", "jog")):
@@ -1497,6 +1567,27 @@ def perch_singing():
     # canta a occhi chiusi, la testa ondeggia: «a» a sinistra, «o» dritta, aperta a destra
     return [(Pose(hand=f"sing{i}"), ms) for i, ms in ((0, 380), (1, 300), (2, 380), (1, 300))], True
 
+
+def _seat(state, i, ms, k=1.0):
+    return Pose(hand=f"seat-{state}-{i}" if state else "seat-base", squash=k), ms
+
+
+def seated_states():
+    """Pose sedute per stato, per perch.states."""
+    cycle = lambda n, k: [_seat(n, i, 160) for i in (*range(k), *range(k - 2, 0, -1))] * 3
+    return {
+        "waiting": (cycle("waiting", 3), True),
+        "thinking": ([_seat("thinking", 0, 900), _seat("thinking", 1, 900)], True),
+        "working": (cycle("working", 3), True),
+        # si carica, poi ogni posa entra con un piccolo slancio e si assesta
+        "celebrate": ([_seat(None, 0, 300), _seat(None, 0, 120, 0.97), _seat("celebrate", 0, 90, 1.02),
+                       _seat("celebrate", 0, 240), _seat("celebrate", 1, 90, 1.05), _seat("celebrate", 1, 90, 1.02),
+                       _seat("celebrate", 1, 600), _seat("celebrate", 2, 90, 1.04), _seat("celebrate", 2, 90, 1.01),
+                       _seat("celebrate", 2, 1200)], False),
+        "error": ([_seat("error", 0, 260)] + [_seat("error", 1, 90), _seat("error", 0, 90)] * 2 + [_seat("error", 1, 520)], True),
+        "sleep": ([_seat("sleep", 0, 1200), _seat("sleep", 1, 900), _seat("sleep", 2, 1400), _seat("sleep", 1, 700)], True),
+    }
+
 STATES = {"idle": idle, "sleep": sleep, "listening": listening, "thinking": thinking, "working": working,
           "reading": reading, "writing": writing, "running": running, "waiting": waiting, "done": done,
           "celebrate": celebrate, "error": error, "talk": talk, "look": look, "drag": drag,
@@ -1525,7 +1616,8 @@ def build(out_root, preview_root) -> dict:
     tiles: list[Image.Image] = []
     index: dict[Pose, int] = {}
     timelines = {}
-    for state, make in {**STATES, "perch": perch, "perch-singing": perch_singing}.items():
+    seated = {f"perch-{k}": (lambda v=v: v) for k, v in seated_states().items()}
+    for state, make in {**STATES, "perch": perch, "perch-singing": perch_singing, **seated}.items():
         seq, loop = make()
         cells = []
         for pose, _ in seq:
@@ -1553,6 +1645,7 @@ def build(out_root, preview_root) -> dict:
             "frame": {"width": TILE[0], "height": TILE[1]}, "pixelRatio": 7, "scale": 3,
             "bubble": {"x": TILE[0] // 2, "y": 80}, "animations": animations,
             "perch": {"animation": animations.pop("perch"), "singing": animations.pop("perch-singing"),
+                      "states": {k: animations.pop(f"perch-{k}") for k in seated_states()},
                       # il bacino sul bordo, in pixel del fotogramma
                       "anchor": {"x": round((FRAMED[0] / 2) * TILE[0] / FRAMED[0]),
                                  "y": round(((FRAMED[1] - CANVAS[1]) + OFFSET[1] + PERCH_SEAT) * TILE[1] / FRAMED[1])}}}
@@ -1584,6 +1677,6 @@ def _previews(tiles, timelines, folder: Path) -> None:
 
 if __name__ == "__main__":
     pack = build(ROOT / "characters", ROOT / "work" / "previews")
-    anims = [*pack["animations"].values(), pack["perch"]["animation"], pack["perch"]["singing"]]
+    anims = [*pack["animations"].values(), pack["perch"]["animation"], pack["perch"]["singing"], *pack["perch"]["states"].values()]
     used = {(r, c) for a in anims for c, r in zip(a["frames"], a["frameRows"])}
     print(f"ok: characters/People/luma ({len(used)} celle) e work/previews/luma")

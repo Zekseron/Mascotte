@@ -22,8 +22,8 @@ Tutti gli stati (diciassette), ricavati dai due disegni approvati e dalle espres
 | `drag-left` | Trascinata verso sinistra: le gambe restano indietro e pendono a destra, finché ti muovi. |
 | `drag-right` | Trascinata verso destra: le gambe pendono a sinistra, finché ti muovi. |
 
-- **Agganciata** al Dock, alla barra o al bordo di una finestra (`perch`): si siede sul bordo, dondola le gambe e sbatte le ciglia. Dal menu, **Canta sul bordo** la fa cantare a occhi chiusi, con la testa che ondeggia (`perch.singing`). Da seduta non cambia posa con gli stati degli agenti.
-- Formato `mascotte-pack/1`, PNG trasparente, fotogrammi 320 × 512, 161 celle in un foglio 3840 × 7168 di circa 11 MB.
+- **Agganciata** al Dock, alla barra o al bordo di una finestra (`perch`): si siede sul bordo, dondola le gambe e sbatte le ciglia. Dal menu, **Canta sul bordo** la fa cantare a occhi chiusi, con la testa che ondeggia (`perch.singing`). Da seduta reagisce agli agenti con pose proprie: saluta (`waiting`), pensa con la mano al mento (`thinking`), lavora con la chiave su un meccanismo in grembo (`working`, anche per lettura, scrittura e comandi), festeggia (`celebrate`), si spaventa (`error`) e si appisola (`sleep`); `listening` e `look` usano la posa del pensiero, gli altri stati la seduta normale.
+- Formato `mascotte-pack/1`, PNG trasparente, fotogrammi 320 × 512, 184 celle in un foglio 5120 × 6144 di circa 12,5 MB.
 - Grandezza iniziale circa 137 × 219 punti (`scale: 3`, `pixelRatio: 7`). La figura è alta circa 189 punti; lo spazio in più serve a salti ed effetti e resta trasparente ai clic.
 
 Nell'app: **Personaggio → People → Luma**. Puoi anche importare la cartella da **Impostazioni → Mascotte → Aggiungi mascotte…**, se Luma non è già inclusa nella build. Nel visore si può trascinare direttamente questa cartella.
