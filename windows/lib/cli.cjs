@@ -54,6 +54,9 @@ function commandFor(file, electronExecutable = process.execPath) {
   // Script npm con shebang «env node» (macOS/Linux): un'app avviata da Finder ha un PATH minimo, senza node.
   // Si esegue con il runtime di Electron e si aggiunge al PATH la cartella della CLI (con nvm/Homebrew contiene node).
   if (script) return { file: electronExecutable, prefix: [script], env: { ELECTRON_RUN_AS_NODE: '1' }, pathDirs: [...new Set([path.dirname(file), path.dirname(script)])] };
+  // Eseguibile nativo (es. Claude in ~/.nvm/…/bin o in Homebrew): la sua cartella va in fondo al PATH, così i comandi
+  // lanciati dall'agente trovano node e gli altri strumenti della stessa installazione anche con l'app aperta da Finder.
+  if (process.platform !== 'win32') return { file, prefix: [], env: {}, pathDirs: [path.dirname(file)] };
   return { file, prefix: [], env: {} };
 }
 function nodeScript(file) {
