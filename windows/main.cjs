@@ -264,7 +264,11 @@ function startApplication() {
     if (!can.windowAttach) return;
     const selected = automatic ? null : captureFollower;
     clearTimeout(captureTimer); captureFollower = null;
-    detach(); attachment = 'window'; updatePose(); saveSettings(); let first = true;
+    // Aggancio automatico (al rilascio): la posa seduta arriva solo quando il lettore
+    // delle finestre conferma un bordo sotto il punto di rilascio, altrimenti per
+    // circa mezzo secondo la mascotte resterebbe seduta nel vuoto.
+    const confirm = () => { attachment = 'window'; updatePose(); saveSettings(); };
+    detach(); if (!automatic) confirm(); let first = true;
     follower = selected && !selected.closed ? selected : new Attachment.WindowFollower(() => {}, () => {});
     follower.setHandlers(state => {
       if (state.status === 'closed' || (automatic && state.status === 'unavailable')) { detach(); return; }
@@ -281,6 +285,7 @@ function startApplication() {
           const nearTop = dropPoint && dropPoint.x >= targetBounds.x && dropPoint.x <= targetBounds.x + targetBounds.width &&
             dropPoint.y >= targetBounds.y - tolerance && dropPoint.y <= targetBounds.y + tolerance;
           if (!nearTop) { detach(); return; }
+          confirm();
         }
         const b = mascot.getBounds(); anchorFraction = Math.max(0, Math.min(1, (b.x+b.width/2-top.x)/targetBounds.width)); first = false;
       }
