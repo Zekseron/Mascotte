@@ -8,6 +8,21 @@ const P = require('../../viewer/pack.js');
 const Characters = require('../lib/characters.cjs');
 
 const rosso = path.join(__dirname, '../../characters/Cat/rosso');
+test('Luma seduta: il vuoto fra gli stivali è trasparente, gli stivali restano opachi', async () => {
+  const { createCanvas, loadImage } = require('@napi-rs/canvas');
+  const directory = path.join(__dirname, '../../characters/People/luma');
+  const pack = JSON.parse(fs.readFileSync(path.join(directory, 'character.json'), 'utf8'));
+  const image = await loadImage(path.join(directory, pack.sheet));
+  const canvas = createCanvas(pack.frame.width, pack.frame.height), context = canvas.getContext('2d');
+  for (const [name, animation] of Object.entries({ base: pack.perch.animation, canto: pack.perch.singing, ...pack.perch.states })) {
+    const col = animation.frames[0], row = animation.frameRows[0];
+    context.clearRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, col * canvas.width, row * canvas.height, canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+    const alpha = x => context.getImageData(x, 445, 1, 1).data[3];
+    assert.ok(alpha(148) < 20, name + ': niente riempimento nello spazio fra gli stivali');
+    assert.ok(alpha(125) > 240 && alpha(170) > 240, name + ': stivali intatti');
+  }
+});
 const tmp = () => fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), 'mascotte-pers-'));
 // Cartella di origine con un pacchetto valido (copia di Rosso con id e nome cambiati); `edit` modifica il JSON.
 function source(root, folder, edit = json => json) {

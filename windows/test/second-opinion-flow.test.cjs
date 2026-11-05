@@ -2,7 +2,7 @@
 // Secondo parere con la modalità Agente attiva: ramo reale di main.cjs con servizi simulati.
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
-const source = fs.readFileSync(path.join(__dirname, '../main.cjs'), 'utf8');
+const source = fs.readFileSync(path.join(__dirname, '../main.cjs'), 'utf8').replace(/\r\n/g, '\n');
 const start = source.indexOf('        const selected = engine, prompt = text.trim()');
 const end = source.indexOf('\n      }\n    }\n    throw new Error(\'Azione non valida.\');', start);
 assert.ok(start > 0 && end > start);
