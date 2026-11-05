@@ -6,7 +6,7 @@ const { randomUUID } = require('node:crypto');
 const { pathToFileURL } = require('node:url');
 const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer, shell, systemPreferences, Notification, powerMonitor } = require('electron');
 const Platform = require('./lib/platform.cjs');
-const { showMascot } = require('./lib/mascot-window.cjs');
+const { showMascot, keepAboveTaskbar } = require('./lib/mascot-window.cjs');
 const Capture = require('./lib/capture.cjs');
 const can = Platform.capabilities();
 if (process.platform === 'win32') app.setAppUserModelId('local.mascotte.windows');
@@ -242,6 +242,7 @@ function startApplication() {
     const position = Attachment.origin(b, edge, display.workArea, anchorFraction,anchor);
     if (b.x !== position.x || b.y !== position.y) moveMascot(position.x, position.y);
     if (concealed) { showMascot(mascot); concealed = false; }
+    if (attachment === 'bar') keepAboveTaskbar(mascot);
     updateHit();
   }
   function taskbarDisplayAt(point) {
@@ -252,7 +253,7 @@ function startApplication() {
     detach(); const b = mascot.getBounds(), d = displayOverride || screen.getDisplayMatching(b);
     attachment = settings.attachment = 'bar'; anchorDisplay = d.id;
     anchorFraction = Math.max(0, Math.min(1, (b.x+b.width/2-d.workArea.x)/d.workArea.width));
-    updatePose();placeAttachment(); anchorTimer = setInterval(placeAttachment, 1000); saveSettings();
+    updatePose();placeAttachment(); anchorTimer = setInterval(placeAttachment, process.platform === 'win32' ? 250 : 1000); saveSettings();
   }
   function prepareWindowCapture() {
     if (!can.windowAttach) return;

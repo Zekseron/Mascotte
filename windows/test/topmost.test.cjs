@@ -25,7 +25,7 @@ test('Windows: mascotte topmost sopra una finestra normale anche dopo Mostra e c
   }
   let output = '', diagnostic = ''; child.stdout.on('data', data => { output += data; }); child.stderr.on('data', data => { diagnostic += data; });
   const until = async text => { const end = Date.now() + 12000; while (!output.includes(text) && Date.now() < end && child.exitCode === null) await new Promise(r => setTimeout(r, 50)); assert.ok(output.includes(text), diagnostic || 'Fixture non pronta'); };
-  const inspect = () => {
+  const inspect = ({ coverTopmost = false, covered = false } = {}) => {
     const script = `Add-Type @'
 using System; using System.Runtime.InteropServices; using System.Text;
 public static class ZOrder {
@@ -41,9 +41,12 @@ public static void Print(uint expected){int index=0;EnumWindows((h,p)=>{uint pid
     const stdout = execFileSync(path.join(process.env.SystemRoot || 'C:\\Windows', 'System32/WindowsPowerShell/v1.0/powershell.exe'), ['-NoProfile', '-NonInteractive', '-Command', script], { encoding: 'utf8', windowsHide: true, timeout: 5000 });
     const rows = stdout.trim().split(/\r?\n/).map(line => line.split('|'));
     const mascot = rows.find(row => row[0] === 'Mascotte topmost fixture'), cover = rows.find(row => row[0] === 'Mascotte cover fixture');
-    assert.ok(mascot && cover, stdout); assert.equal(mascot[2], 'True', 'flag WS_EX_TOPMOST presente'); assert.equal(cover[2], 'False');
-    assert.ok(Number(mascot[1]) < Number(cover[1]), 'la mascotte deve precedere la finestra normale nello z-order');
+    assert.ok(mascot && cover, stdout); assert.equal(mascot[2], 'True', 'flag WS_EX_TOPMOST presente'); assert.equal(cover[2], coverTopmost ? 'True' : 'False');
+    assert.equal(Number(mascot[1]) < Number(cover[1]), !covered, 'ordine nativo fra mascotte e finestra di copertura');
   };
   await until('ready'); inspect();
   fs.writeFileSync(path.join(profile, 'restore'), 'restore'); await until('restored'); inspect();
+  // Riproduce il caso di una barra/finestra topmost che viene sollevata in seguito.
+  fs.writeFileSync(path.join(profile, 'cover'), 'cover'); await until('covered'); inspect({ coverTopmost: true, covered: true });
+  fs.writeFileSync(path.join(profile, 'reassert'), 'reassert'); await until('reasserted'); inspect({ coverTopmost: true });
 });

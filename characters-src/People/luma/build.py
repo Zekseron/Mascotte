@@ -1128,6 +1128,22 @@ PERCH_LEGS_Y = 668   # sotto il bordo
 PERCH_KNEE = 690
 PERCH_JOIN = 480     # sopra questa riga, nel canto, testa e spalle di B-singing
 PERCH_SEAT = 655     # il bordo, all'altezza delle mani appoggiate
+# Residui dello sfondo bianco nei vuoti fra gambe/stivali delle quattro celle.
+# Coordinate del foglio sorgente; la zona esclude viso, camicia e pelle.
+PERCH_GAPS = ((241, 510, 271, 697), (765, 510, 796, 697),
+              (1267, 508, 1320, 668), (1812, 510, 1844, 682))
+
+
+def _clear_perch_gaps(img: Image.Image, box) -> Image.Image:
+    img = img.copy()
+    pixels = img.load()
+    for x0, y0, x1, y1 in PERCH_GAPS:
+        for y in range(max(0, y0 - box[1]), min(img.height, y1 - box[1])):
+            for x in range(max(0, x0 - box[0]), min(img.width, x1 - box[0])):
+                r, g, b, a = pixels[x, y]
+                if a and min(r, g, b) >= 220 and max(r, g, b) - min(r, g, b) < 24:
+                    pixels[x, y] = (0, 0, 0, 0)
+    return img
 
 
 def _sheet_cell(sheet: str, cell) -> Image.Image:
@@ -1136,6 +1152,8 @@ def _sheet_cell(sheet: str, cell) -> Image.Image:
     if key not in _CACHE:
         box, scale, x, y = cell
         c = Image.open(HERE / "disegni" / sheet).convert("RGBA").crop(box)
+        if sheet == "B-sitting/seduta-4-celle-trasparente.png":
+            c = _clear_perch_gaps(c, box)
         small = c.convert("RGBa").resize((round(c.width * scale), round(c.height * scale)), Image.LANCZOS)
         can = Image.new("RGBa", (CROP_W, CROP_H), (0, 0, 0, 0))
         can.paste(small, (round(x), round(y)), small)
