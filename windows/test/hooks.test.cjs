@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const { spawn, spawnSync } = require('node:child_process');
 const toml = require('smol-toml');
 const { prepareHooks } = require('../lib/setup.cjs');
 const { EventServer } = require('../lib/events.cjs');
@@ -67,6 +67,9 @@ test('Windows launcher delivers stdin through bundled Electron Node, independent
   const proposal = prepareHooks('{}', '', executable, bridge);
   const codex = toml.parse(proposal.codex), claude = JSON.parse(proposal.claude);
   assert.equal(codex.hooks.Interrupt[0].hooks[0].timeout, 3);
+  // Il primo avvio a freddo di Electron (runner CI appena creato, antivirus) può superare i 2 s
+  // concessi dal launcher PowerShell: lo si scalda una volta, il test verifica il percorso a regime.
+  spawnSync(executable, ['-e', ''], { env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' }, windowsHide: true, timeout: 30000 });
   const events = [], states = ['listening', 'running', 'reading', 'writing', 'thinking', 'waiting', 'done', 'error', 'idle'];
   const server = new EventServer(path.join(directory, 'events.json'), states, event => events.push(event));
   await server.start(0);
