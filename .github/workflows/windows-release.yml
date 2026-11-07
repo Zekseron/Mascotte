@@ -25,7 +25,7 @@ jobs:
         run: |
           npm.cmd ci
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          npm.cmd test
+          node --test --test-concurrency=1 "test/*.test.cjs"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build installer and portable package
         working-directory: windows

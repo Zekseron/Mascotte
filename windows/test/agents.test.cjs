@@ -5,10 +5,14 @@ const { AgentManager, workspacePath } = require('../lib/agents.cjs');
 const { runCodex } = require('../lib/agent-codex.cjs');
 const { runClaude } = require('../lib/agent-claude.cjs');
 const fixture = { file: process.execPath, prefix: [path.join(__dirname, 'fixtures/agent-codex.cjs')], env: {} };
-// I t.after girano nell'ordine di registrazione: la pulizia della cartella parte prima dei run.stop()
-// registrati dopo. Su Windows taskkill termina il processo finto in modo asincrono e la cartella di
-// lavoro resta bloccata (EBUSY) per qualche istante: si riprova con attesa crescente.
-const temporary = t => { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte-agent-')); t.after(() => fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 })); return dir; };
+// Su Windows taskkill termina il processo finto in modo asincrono: sul runner GitHub la cartella di
+// lavoro resta bloccata (EBUSY) anche per diversi secondi. La pulizia non è oggetto del test: si
+// riprova e, se resta bloccata, la cartella temporanea viene lasciata al sistema.
+const temporary = t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte-agent-'));
+  t.after(() => { try { fs.rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); } catch (error) { if (error.code !== 'EBUSY' && error.code !== 'EPERM') throw error; } });
+  return dir;
+};
 const until = async fn => { const end = Date.now() + 5000; while (!fn() && Date.now() < end) await new Promise(r => setTimeout(r, 15)); assert.ok(fn(), 'evento atteso'); };
 
 test('app-server: protocollo reale su processo finto, rifiuto, chiarimento e ripresa', { timeout: 15000 }, async t => {
