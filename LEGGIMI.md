@@ -1,4 +1,4 @@
-# Mascotte 0.8.0 — guida per chi riceve l'app
+# Mascotte 0.9.0 — guida per chi riceve l'app
 
 Una mascotte animata con micro chat Claude/Codex, chat con IA locale, osservazione facoltativa di una finestra e reazioni agli eventi locali. Questa guida serve a chi riceve l'app già pronta. Gli account e le conversazioni del creatore non sono inclusi.
 

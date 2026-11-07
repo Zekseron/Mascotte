@@ -4,7 +4,7 @@
 
 Una mascotte desktop per **Windows (x64)** e **Mac (Apple Silicon)** che reagisce con animazioni a Claude Code e Codex, e che all'occorrenza fa domande al volo, risponde con un'IA locale o guarda una finestra che scegli tu. Il personaggio è intercambiabile: i sorgenti includono il gattino in pixel art Rosso e Luma, illustrata.
 
-Versione attuale: **0.8.0**. È un'unica app Electron, in `windows/`, usata sia su Windows sia su Mac (la cartella ha ancora il vecchio nome: rinominarla è rimandato). La vecchia app nativa Swift per Mac, in `app/`, non è più sviluppata e resta come riferimento.
+Versione attuale: **0.9.0**. È un'unica app Electron, in `windows/`, usata sia su Windows sia su Mac (la cartella ha ancora il vecchio nome: rinominarla è rimandato). La vecchia app nativa Swift per Mac, in `app/`, non è più sviluppata e resta come riferimento.
 
 Progetto e decisioni: [DESIGN.md](DESIGN.md).
 

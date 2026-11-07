@@ -138,7 +138,7 @@ Questa è la procedura per chi ha scaricato il sorgente da GitHub o come archivi
    npm.cmd run build:win
    ```
 
-   La build crea `dist\Mascotte-Windows-0.9.0-x64.zip` e `dist\Mascotte-Setup-0.8.0-x64.exe`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
+   La build crea `dist\Mascotte-Windows-0.9.0-x64.zip` e `dist\Mascotte-Setup-0.9.0-x64.exe`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
 
 2. Estrai **tutto** lo ZIP in una cartella che non sposterai, ad esempio `%LOCALAPPDATA%\Programs\Mascotte`. In PowerShell, dalla cartella `windows`:
 
