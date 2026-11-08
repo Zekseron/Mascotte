@@ -111,11 +111,11 @@ test('Windows launcher delivers stdin through bundled Electron Node, independent
 });
 
 test('Mac: sostituisce gli hook e il notify della vecchia app Swift, conserva gli altri', () => {
-  const exe = '/Applications/Mascotte.app/Contents/MacOS/Mascotte', legacy = mode => `/usr/bin/python3 /Users/x/siti/mascotte/tools/mascotte-notify ${mode}`;
+  const exe = '/Applications/Mascotte.app/Contents/MacOS/Mascotte', legacy = mode => `/usr/bin/python3 /Users/x/progetti/mascotte/tools/mascotte-notify ${mode}`;
   const sky = '/Users/x/.codex/computer-use/Codex Computer Use.app/Contents/SharedSupport/SkyComputerUseClient.app/Contents/MacOS/SkyComputerUseClient';
   const memoria = { type: 'command', command: '$HOME/strumenti/richiama.sh' };
   const claude = { hooks: { SessionStart: [{ hooks: [memoria] }], Stop: [{ hooks: [{ type: 'command', command: legacy('--claude-hook') }] }], PreToolUse: [{ matcher: '.*', hooks: [{ type: 'command', command: legacy('--claude-hook') }] }] } };
-  const notify = [sky, 'turn-ended', '--previous-notify', JSON.stringify(['/usr/bin/python3', '/Users/x/siti/mascotte/tools/mascotte-notify', '--codex-notify', '--forward-command', JSON.stringify([sky, 'turn-ended'])])];
+  const notify = [sky, 'turn-ended', '--previous-notify', JSON.stringify(['/usr/bin/python3', '/Users/x/progetti/mascotte/tools/mascotte-notify', '--codex-notify', '--forward-command', JSON.stringify([sky, 'turn-ended'])])];
   const codex = { notify, hooks: { PreToolUse: [{ matcher: '.*', hooks: [{ type: 'command', command: legacy('--codex-hook'), timeout: 5 }] }] } };
   const result = prepareHooks(JSON.stringify(claude), toml.stringify(codex), exe, undefined, 'darwin');
   const c = JSON.parse(result.claude), x = toml.parse(result.codex);

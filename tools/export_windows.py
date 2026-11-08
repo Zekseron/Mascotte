@@ -36,9 +36,7 @@ with zipfile.ZipFile(source) as original, zipfile.ZipFile(target, 'w', zipfile.Z
                 if not data: break
                 out.write(data)
     output.writestr('LEGGIMI-WINDOWS.md', (ROOT / 'windows/README.md').read_bytes())
-    output.writestr('PROVA-STASERA.md', (ROOT / 'windows/PROVA-STASERA.md').read_bytes())
-for doc in ['README.md', 'PROVA-STASERA.md']:
-    (destination / ('LEGGIMI-WINDOWS.md' if doc == 'README.md' else doc)).write_bytes((ROOT / 'windows' / doc).read_bytes())
+(destination / 'LEGGIMI-WINDOWS.md').write_bytes((ROOT / 'windows/README.md').read_bytes())
 with target.open('rb') as handle:
     sha = hashlib.sha256()
     for data in iter(lambda: handle.read(1048576), b''): sha.update(data)
@@ -52,11 +50,13 @@ with installer_target.open('rb') as handle:
 (destination / (installer_name + '.sha256')).write_text(sha.hexdigest() + '  ' + installer_name + '\n')
 print('Installer:', installer_target)
 
+# Note di sviluppo non pubblicate (escluse da Git): mai nello ZIP dei sorgenti.
+PRIVATE = {'RICHIESTA-DISEGNI.md', 'ELENCO.md', 'PROMPTS.json', 'VERIFICA.json'}
 with zipfile.ZipFile(sources, 'w', zipfile.ZIP_DEFLATED) as output:
     for directory in ['windows/lib', 'windows/renderer', 'windows/scripts', 'windows/test', 'characters', 'characters-src', 'spec', 'viewer']:
         for file in sorted((ROOT / directory).rglob('*')):
-            if file.is_file() and not file.is_symlink() and '__pycache__' not in file.parts and 'node_modules' not in file.parts and file.suffix in {'.cjs', '.js', '.css', '.html', '.json', '.py', '.ps1', '.png', '.md'}:
+            if file.is_file() and not file.is_symlink() and '__pycache__' not in file.parts and 'node_modules' not in file.parts and file.name not in PRIVATE and not file.name.startswith(('COLLAUDO-', 'REPORT-')) and file.suffix in {'.cjs', '.js', '.css', '.html', '.json', '.py', '.ps1', '.png', '.md'}:
                 output.write(file, file.relative_to(ROOT).as_posix())
-    for name in ['windows/main.cjs', 'windows/preload.cjs', 'windows/package.json', 'windows/package-lock.json', 'windows/README.md', 'windows/PROVA-STASERA.md', 'tools/export_windows.py', 'tools/build_all.py', 'tools/pixelkit.py', '.github/workflows/windows-release.yml']:
+    for name in ['windows/main.cjs', 'windows/preload.cjs', 'windows/package.json', 'windows/package-lock.json', 'windows/README.md', 'tools/export_windows.py', 'tools/build_all.py', 'tools/pixelkit.py', '.github/workflows/windows-release.yml']:
         output.write(ROOT / name, name)
 print('Sorgenti:', sources)

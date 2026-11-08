@@ -84,4 +84,4 @@ Apri `viewer/index.html` (nella repo) con il browser e trascina la cartella `cha
 
 - [PRIVACY.md](PRIVACY.md): quali dati escono dal computer e quali no.
 - [WINDOWS.md](WINDOWS.md): guida Windows.
-- Nella repo: `README.md` (panoramica), `windows/README.md` (comandi, limiti e prove), `PUBBLICAZIONE.md` (release).
+- Nella repo: `README.md` (panoramica), `windows/README.md` (comandi, limiti e prove).

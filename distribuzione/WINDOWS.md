@@ -59,7 +59,7 @@ In alternativa installa [Ollama per Windows](https://ollama.com/download/windows
 
 ## Stato delle prove
 
-Il trascinamento, l'interfaccia, l'aggiornamento con riavvio e la cattura di una finestra sintetica sono stati verificati su Windows. Gli invii remoti di testo e immagini sono stati collaudati con CLI simulate. Il codice comune modificato durante il porting su Mac (comandi locali, cartelle, motori locali, errore di Claude, ordine degli hook) richiede ancora un nuovo collaudo su un PC Windows reale prima del prossimo rilascio. Dettagli in `windows/README.md` e `windows/VERIFICA-GESTIONE.md` nella repo.
+Il trascinamento, l'interfaccia, l'aggiornamento con riavvio e la cattura di una finestra sintetica sono stati verificati su Windows. Gli invii remoti di testo e immagini sono stati collaudati con CLI simulate. Il codice comune modificato durante il porting su Mac (comandi locali, cartelle, motori locali, errore di Claude, ordine degli hook) richiede ancora un nuovo collaudo su un PC Windows reale prima del prossimo rilascio. Dettagli in `windows/README.md` nella repo.
 
 ## Rimuovere
 

@@ -42,8 +42,18 @@ events.json
 **/.ollama/
 *.log
 
-# Note private dell'autore (collegamento al Google Drive personale, non pubblicate)
+# Note di sviluppo dell'autore, non pubblicate
 /WORK-IN-PROGRESS.md
+/AGENTS.md
+/PUBBLICAZIONE.md
+/windows/COLLAUDO-*.md
+/windows/PROVA-STASERA.md
+/windows/REPORT-*
+/windows/VERIFICA-GESTIONE.md
+/characters-src/People/luma/RICHIESTA-DISEGNI.md
+/characters-src/People/luma/disegni/ELENCO.md
+/characters-src/People/luma/disegni/PROMPTS.json
+/characters-src/People/luma/disegni/VERIFICA.json
 
 # Disegni di Luma: in Git solo gli scontornati che usa il generatore; originali
 # su bianco, scarti e note di passaggio restano sul disco di chi li ha prodotti.
