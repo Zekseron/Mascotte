@@ -33,6 +33,8 @@ Per installare l'app già pronta: [LEGGIMI.md](LEGGIMI.md) (Mac e Windows) e [WI
 - **Cat → Rosso**: gattino in pixel art.
 - **People → Luma**: personaggio illustrato, con le gambe che seguono la direzione quando la trascini.
 
+I disegni dei personaggi inclusi sono stati generati con l'intelligenza artificiale. Si sta lavorando a un modo per aggiungere a Mascotte anche personaggi creati da altre persone, compresi quelli disegnati a mano.
+
 Il personaggio si sceglie dalle Impostazioni, diviso per categorie; la grandezza viene ricordata per ciascun personaggio. Le mascotte personali si aggiungono dall'app (**Impostazioni → Mascotte → Aggiungi mascotte…**) e restano nella cartella dati sul tuo computer, fuori dal repository: formato, creazione e prova nel visore sono spiegati in [PERSONAGGI.md](PERSONAGGI.md).
 
 ## Copyright
