@@ -1,21 +1,23 @@
-# Mascotte 0.9.1 — guida per chi riceve l'app
+# Mascotte — guida per chi riceve l'app
 
 Una mascotte animata con micro chat Claude/Codex, chat con IA locale, osservazione facoltativa di una finestra e reazioni agli eventi locali. Questa guida serve a chi riceve l'app già pronta. Gli account e le conversazioni del creatore non sono inclusi.
+
+**Versioni distribuite: Windows 0.9.1 · Mac Apple Silicon 0.9.0.** Le due piattaforme possono ricevere aggiornamenti in momenti diversi.
 
 ## Cosa funziona oggi
 
 | Sistema | Disponibile |
 | --- | --- |
-| **Mac Apple Silicon** (M1 o successivi) | App `Mascotte-Mac-<versione>-arm64.zip`. Provata su macOS 27.0.1; non sono state provate versioni precedenti |
+| **Mac Apple Silicon** (M1 o successivi) | App [Mascotte-Mac-0.9.0-arm64.zip](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.0). Provata su macOS 27.0.1; non sono state provate versioni precedenti |
 | **Mac Intel** | **Non supportato** dall'app attuale (scelta fatta: solo Apple Silicon). La vecchia app Swift in `app/` può essere compilata a mano, ma non è più sviluppata |
 | **Windows x64** | App `Mascotte-Windows-<versione>-x64.zip` (portatile) e, quando presente nella release, l'installer `Mascotte-Setup-<versione>-x64.exe`. Guida in [WINDOWS.md](WINDOWS.md) |
 | Windows ARM64, Linux | Non supportati |
 
-I pacchetti si scaricano dalla pagina **Releases** di `github.com/Zekseron/Mascotte`, solo quando una release è stata pubblicata. Sono la stessa app per i due sistemi: stesse funzioni, con le differenze elencate in fondo.
+I pacchetti si scaricano dalla pagina **Releases** di `github.com/Zekseron/Mascotte`, solo quando una release è stata pubblicata. La base dell’app è condivisa, ma le versioni distribuite e le funzioni più recenti possono differire tra i due sistemi.
 
 ## Installare su un Mac (Apple Silicon)
 
-1. Scarica `Mascotte-Mac-<versione>-arm64.zip` dalla pagina Releases ed estrailo (doppio clic): ottieni `Mascotte.app`.
+1. Scarica `Mascotte-Mac-0.9.0-arm64.zip` dalla [release Mac 0.9.0](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.0) ed estrailo (doppio clic): ottieni `Mascotte.app`.
 2. Trascina `Mascotte.app` nella cartella **Applicazioni**. Se vuoi che l'aggiornamento dall'app funzioni, tienila proprio in `/Applications/Mascotte.app`.
 3. **Primo avvio.** L'app non è notarizzata da Apple, quindi macOS la blocca. Aprila una volta (si chiude con un avviso), poi vai in **Impostazioni di Sistema → Privacy e sicurezza**, scorri in fondo e premi **Apri comunque** accanto a Mascotte, poi conferma. Fallo solo se ti fidi di chi ti ha mandato il pacchetto e hai scaricato lo ZIP dalla release ufficiale. Non disattivare Gatekeeper.
 4. Compare il gattino e un'icona nella barra dei menu in alto; l'app non ha icona nel Dock. Clic sul gattino (o sull'icona nella barra dei menu) apre la chat; clic destro apre il menu. **Esci** dal menu.
@@ -88,6 +90,10 @@ Apri `viewer/index.html` (nella repo) con il browser e trascina la cartella `cha
 
 ## Segnalare un problema o proporre un’idea
 
-Apri **Impostazioni → Feedback e suggerimenti** e premi **Segnala un problema o proponi un’idea**. Il modulo si apre nel browser e puoi scegliere italiano o inglese. Il contatto è facoltativo; non inserire password o conversazioni private. Mascotte non allega dati automaticamente.
+Su **Windows 0.9.1**, apri **Impostazioni → Feedback e suggerimenti** e premi **Segnala un problema o proponi un’idea**. Il modulo si apre nel browser e puoi scegliere italiano o inglese. Il contatto è facoltativo; non inserire password o conversazioni private. Mascotte non allega dati automaticamente.
 
 Per indicare quale copia usi, trovi versione e revisione della build in **Impostazioni → Aggiornamenti**. «Modifiche locali» indica una build preparata da sorgenti con cambiamenti non ancora salvati in un commit.
+
+### Aggiornamenti della copia Mac 0.9.0
+
+La copia Mac 0.9.0 cerca il pacchetto Mac nell’ultima release generale. Se questa contiene solo Windows può segnalare un pacchetto mancante: puoi continuare a usare la 0.9.0, scaricabile dalla sua pagina. La ricerca delle release per piattaforma arriverà sul Mac con una nuova build collaudata.

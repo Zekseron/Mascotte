@@ -36,5 +36,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $version = (Get-Content windows/package.json -Raw | ConvertFrom-Json).version
-          gh release create $env:GITHUB_REF_NAME "windows/dist/Mascotte-Windows-$version-x64.zip" "windows/dist/Mascotte-Setup-$version-x64.exe" --verify-tag --generate-notes
+          gh release create $env:GITHUB_REF_NAME "windows/dist/Mascotte-Windows-$version-x64.zip" "windows/dist/Mascotte-Setup-$version-x64.exe" --verify-tag --title "Mascotte $version — Windows" --notes-file RELEASE-NOTES.md
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

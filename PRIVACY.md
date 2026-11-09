@@ -1,10 +1,10 @@
-# Dati e limiti della versione 0.9.1
+# Dati e limiti — Windows 0.9.1 e Mac 0.9.0
 
 Questa pagina vale per l'app Electron attuale, su Windows x64 e su Mac Apple Silicon. Le differenze tra i due sistemi sono indicate dove ci sono. La vecchia app Swift per Mac (cartella `app/`) non è più distribuita e non è descritta qui.
 
 ## In generale
 
-- **Feedback facoltativo:** da Impostazioni → Feedback e suggerimenti puoi aprire un modulo Google Forms nel browser, disponibile in italiano e inglese. Mascotte apre soltanto il collegamento: non invia automaticamente versione, sistema operativo, chat, note, schermate o file. Scegli tu cosa scrivere e se inviare; il contatto è facoltativo. I dati inseriti sono trattati da Google e sono accessibili al gestore del modulo per migliorare Mascotte e rispondere alle segnalazioni. Non inserire password, chiavi API o conversazioni private.
+- **Feedback facoltativo (Windows 0.9.1):** da Impostazioni → Feedback e suggerimenti puoi aprire un modulo Google Forms nel browser, disponibile in italiano e inglese. Mascotte apre soltanto il collegamento: non invia automaticamente versione, sistema operativo, chat, note, schermate o file. Scegli tu cosa scrivere e se inviare; il contatto è facoltativo. I dati inseriti sono trattati da Google e sono accessibili al gestore del modulo per migliorare Mascotte e rispondere alle segnalazioni. Non inserire password, chiavi API o conversazioni private.
 
 - Le animazioni e gli eventi funzionano localmente. Il server ascolta solo su 127.0.0.1 (porta 8766) e richiede un token generato a ogni avvio sul computer del destinatario; rifiuta richieste con `Origin`, campi extra o token sbagliato.
 - Non ci sono microfono, registrazione generale della tastiera, screenshot automatici o telemetria aggiunti dalla mascotte. La cattura di una finestra esiste solo come funzione facoltativa e confermata, descritta più sotto.

@@ -1,4 +1,4 @@
-# Mascotte 0.9.1 — app comune per Windows e Mac (in preparazione)
+# Mascotte — Windows 0.9.1 e Mac 0.9.0
 
 La nuova [modalità Agente](../AGENTI.md) è verificata su Windows con Codex; Claude reale e le nuove funzioni comuni sul Mac restano da collaudare. La chat normale e quella locale restano disponibili separatamente.
 
@@ -10,13 +10,13 @@ Prima app Windows: gattino Rosso trasparente e trascinabile, menu nell'area di n
 
 Apri `Mascotte-Setup-0.9.1-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
 
-In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Entrambi i pacchetti sono creati dalla build Windows; saranno disponibili nella pagina delle release solo dopo la pubblicazione della prima release.
+In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Entrambi i pacchetti sono disponibili nella release Windows 0.9.1. Per il Mac resta disponibile il pacchetto 0.9.0.
 
 ### Feedback e identificazione della build
 
 In **Impostazioni → Feedback e suggerimenti** il pulsante apre il modulo Google Forms nel browser, con scelta tra italiano e inglese e contatto facoltativo. Il link non contiene dati precompilati e l’app non allega chat, note o file. In **Impostazioni → Aggiornamenti** sono visibili versione e revisione Git della build; «modifiche locali» distingue i pacchetti preparati da un albero di lavoro modificato. Le informazioni sono generate con `npm run resources`: per usarle nell’app installata non serve Git.
 
-Ogni nuovo pacchetto pubblico deve avere una versione superiore a quello precedente: il controllo aggiornamenti confronta `X.Y.Z`, quindi due build chiamate entrambe 0.9.0 non si aggiornano tra loro. La 0.9.1 è in preparazione e non è ancora una release pubblicata.
+Ogni nuovo pacchetto pubblico deve avere una versione superiore a quello precedente: il controllo aggiornamenti confronta `X.Y.Z`, quindi due build chiamate entrambe 0.9.0 non si aggiornano tra loro. La 0.9.1 è una release Windows; il Mac resta alla 0.9.0. Le nuove build cercano il pacchetto del proprio sistema nelle ultime 100 release se quella più recente riguarda solo l’altra piattaforma. La copia Mac 0.9.0 già installata conserva il vecchio comportamento: può segnalare un pacchetto mancante e continua a usare la 0.9.0.
 
 ### Personaggi e Impostazioni
 

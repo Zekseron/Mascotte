@@ -67,12 +67,38 @@ function getResponse(url, { signal, redirects = 0, metadata = false } = {}) {
     request.once('error', reject);
   });
 }
-async function latestRelease(signal, platform = process.platform) {
-  const response = await getResponse(API, { signal, metadata: true });
+async function releaseMetadata(url, signal, get) {
+  const response = await get(url, { signal, metadata: true });
   const chunks = []; let size = 0;
   for await (const chunk of response) { size += chunk.length; if (size > 1024 * 1024) { response.destroy(); throw new Error('Risposta della release troppo grande.'); } chunks.push(chunk); }
-  try { return parseRelease(JSON.parse(Buffer.concat(chunks).toString('utf8')), platform); }
-  catch (error) { if (error instanceof SyntaxError) throw new Error('Risposta della release non valida.'); throw error; }
+  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
+  catch { throw new Error('Risposta della release non valida.'); }
+}
+function stableRelease(release) {
+  return release && !release.draft && !release.prerelease && /^v\d+\.\d+\.\d+$/.test(release.tag_name || '');
+}
+function hasPlatformAsset(release, platform) {
+  const name = assetName(versionParts(release.tag_name).join('.'), platform);
+  if (!Array.isArray(release.assets)) throw new Error('La release pubblicata non contiene pacchetti.');
+  return release.assets.some(asset => asset.name === name);
+}
+async function latestRelease(signal, platform = process.platform, get = getResponse) {
+  assetName('0.0.0', platform); // rifiuta piattaforme non supportate prima della rete
+  const latest = await releaseMetadata(API, signal, get);
+  if (!stableRelease(latest)) return parseRelease(latest, platform);
+  if (hasPlatformAsset(latest, platform)) return parseRelease(latest, platform);
+  // Le due piattaforme possono essere pubblicate in momenti diversi. Si salta
+  // solo un pacchetto assente: metadati o impronte non validi restano un errore.
+  for (let page = 1; page <= 5; page++) {
+    const releases = await releaseMetadata(`https://api.github.com/repos/Zekseron/Mascotte/releases?per_page=20&page=${page}`, signal, get);
+    if (!Array.isArray(releases)) throw new Error('Elenco delle release non valido.');
+    const candidates = releases.filter(stableRelease).sort((a, b) => compareVersions(b.tag_name, a.tag_name));
+    for (const release of candidates) {
+      if (hasPlatformAsset(release, platform)) return parseRelease(release, platform);
+    }
+    if (releases.length < 20) break;
+  }
+  throw new Error(`Non è disponibile un pacchetto ${packageLabel(platform)} nelle release pubbliche controllate.`);
 }
 async function downloadRelease(release, directory, signal, get = getResponse) {
   const archive = path.join(directory, release.name), partial = archive + '.part';
