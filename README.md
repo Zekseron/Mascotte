@@ -4,7 +4,7 @@
 
 Una mascotte desktop per **Windows (x64)** e **Mac (Apple Silicon)** che reagisce con animazioni a Claude Code e Codex, e che all'occorrenza fa domande al volo, risponde con un'IA locale o guarda una finestra che scegli tu. Il personaggio è intercambiabile: sono inclusi il gattino in pixel art Rosso e Luma, illustrata.
 
-Versione attuale: **0.9.0**.
+Ultima versione pubblicata: **0.9.0**. In preparazione: **0.9.1**, con modulo feedback e revisione della build nelle Impostazioni.
 
 Progetto e decisioni: [DESIGN.md](DESIGN.md).
 

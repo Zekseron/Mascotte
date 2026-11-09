@@ -37,6 +37,7 @@ function startApplication() {
   const P = require('./resources/pack.js');
   const Characters = require('./lib/characters.cjs');
   const { buildChatSnapshot } = require('./lib/snapshot.cjs');
+  const buildInfo = require('./lib/build-info.cjs').read(path.join(__dirname, 'resources/build-info.json'));
   let mascot, chat, tray, controller, server, store, memory, pack, imageData, currentRun, hitMask, mouseTimer;
   let settings, engine = 'codex', engineTouched = false, notice = '', setupPreview, drag, quitting = false, mouseIgnored = true, localAvailable = false, managedOllama = null, installedCache = null, localScanning = false, engineStatus = null;
   let agents;
@@ -97,6 +98,7 @@ function startApplication() {
   });
   const chatSnapshot = () => {
     const snapshot = buildChatSnapshot(chatState());
+    snapshot.management.buildInfo = buildInfo;
     snapshot.agent = agents?.snapshot(engine);
     if (snapshot.agent?.enabled) snapshot.messages = agents.store.get(engine);
     return snapshot;
@@ -619,7 +621,7 @@ function startApplication() {
       }
       if (action === 'cli-guide') {
         const guides = { characters: 'https://github.com/Zekseron/Mascotte/blob/main/PERSONAGGI.md', codex: 'https://developers.openai.com/codex/cli/', claude: 'https://code.claude.com/docs/en/setup', ollama: can.ollamaGuide,
-          git: can.gitGuide, node: can.nodeGuide, feedback: 'https://docs.google.com/forms/d/18LgHz00zpDylwtGo8TW1guLL4-0snhxcqfn530SliN4/viewform' };
+          git: can.gitGuide, node: can.nodeGuide, feedback: 'https://docs.google.com/forms/d/e/1FAIpQLSe7d7oWbhqXN5HIFCbV0d99qnp-_qLjan7b4ERwIRNNyE7IDw/viewform' };
         if (Object.hasOwn(guides, data)) await shell.openExternal(guides[data]);
         return chatSnapshot();
       }

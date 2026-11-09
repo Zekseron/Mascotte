@@ -1,4 +1,4 @@
-# Mascotte 0.9.0 — guida per chi riceve l'app
+# Mascotte 0.9.1 — guida per chi riceve l'app
 
 Una mascotte animata con micro chat Claude/Codex, chat con IA locale, osservazione facoltativa di una finestra e reazioni agli eventi locali. Questa guida serve a chi riceve l'app già pronta. Gli account e le conversazioni del creatore non sono inclusi.
 
@@ -85,3 +85,9 @@ Apri `viewer/index.html` (nella repo) con il browser e trascina la cartella `cha
 - [PRIVACY.md](PRIVACY.md): quali dati escono dal computer e quali no.
 - [WINDOWS.md](WINDOWS.md): guida Windows.
 - Nella repo: `README.md` (panoramica), `windows/README.md` (comandi, limiti e prove).
+
+## Segnalare un problema o proporre un’idea
+
+Apri **Impostazioni → Feedback e suggerimenti** e premi **Segnala un problema o proponi un’idea**. Il modulo si apre nel browser e puoi scegliere italiano o inglese. Il contatto è facoltativo; non inserire password o conversazioni private. Mascotte non allega dati automaticamente.
+
+Per indicare quale copia usi, trovi versione e revisione della build in **Impostazioni → Aggiornamenti**. «Modifiche locali» indica una build preparata da sorgenti con cambiamenti non ancora salvati in un commit.

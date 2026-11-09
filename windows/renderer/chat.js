@@ -98,6 +98,7 @@ function render(value) {
   const packageName = management.packageName || 'Windows';
   $('app-hint').textContent = packageName === 'Windows' ? 'X riduce a icona · Esci dal menu mascotte' : 'Hook e aggiornamenti: ingranaggio in alto';
   $('app-version').textContent = `MASCOTTE ${packageName.toUpperCase()} ${management.version || ''}`.trim();
+  $('app-build').textContent = management.buildInfo ? `Build ${management.buildInfo.revision.slice(0, 12)}${management.buildInfo.modified ? ' · modifiche locali' : ''}` : 'Revisione della build non disponibile';
   $('update-intro').textContent = packageName === 'Mac'
     ? 'Controlla le versioni pubblicate e installa l’ultimo pacchetto Mac in Applicazioni. Se in Applicazioni c’è un’altra app Mascotte (la vecchia app Swift), ne viene fatto prima un backup ZIP; poi Mascotte si riavvia.'
     : 'Controlla le versioni pubblicate e installa l’ultimo pacchetto Windows. La versione precedente viene conservata come backup.';

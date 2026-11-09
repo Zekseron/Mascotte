@@ -4,6 +4,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '../..');
 const dest = path.join(root, 'windows/resources');
 fs.mkdirSync(dest, { recursive: true });
+fs.writeFileSync(path.join(dest, 'build-info.json'), JSON.stringify(require('../lib/build-info.cjs').collect(root)) + '\n');
 for (const name of ['characters', 'spec']) {
   fs.rmSync(path.join(dest, name), { recursive: true, force: true });
   fs.cpSync(path.join(root, name), path.join(dest, name), { recursive: true });

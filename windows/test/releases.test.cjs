@@ -19,6 +19,7 @@ function release() {
 test('selects only stable official Windows release with a valid digest', () => {
   assert.equal(parseRelease(release(), 'win32').version, '0.7.0');
   assert.equal(compareVersions('0.10.0', '0.9.9'), 1);
+  assert.equal(compareVersions('0.9.1', '0.9.0'), 1);
   assert.equal(compareVersions('0.7.0', 'v0.7.0'), 0);
   assert.equal(compareVersions('0.6.9', '0.7.0'), -1);
   for (const mutate of [
