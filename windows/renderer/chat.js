@@ -467,6 +467,7 @@ $('character-select').addEventListener('change', async () => render(await invoke
 $('character-scale').addEventListener('change', async () => render(await invoke('character-scale', Number($('character-scale').value))));
 onClickRender('character-add', 'character-add');
 $('guide-characters').addEventListener('click', () => invoke('cli-guide', 'characters'));
+$('send-feedback').addEventListener('click', () => invoke('cli-guide', 'feedback'));
 onClickRender('local-scan', 'local-scan');
 onClickRender('folders-add', 'folders-add');
 onClickRender('choose-repo', 'repo-select');

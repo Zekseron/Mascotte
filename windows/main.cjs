@@ -619,7 +619,7 @@ function startApplication() {
       }
       if (action === 'cli-guide') {
         const guides = { characters: 'https://github.com/Zekseron/Mascotte/blob/main/PERSONAGGI.md', codex: 'https://developers.openai.com/codex/cli/', claude: 'https://code.claude.com/docs/en/setup', ollama: can.ollamaGuide,
-          git: can.gitGuide, node: can.nodeGuide };
+          git: can.gitGuide, node: can.nodeGuide, feedback: 'https://docs.google.com/forms/d/18LgHz00zpDylwtGo8TW1guLL4-0snhxcqfn530SliN4/viewform' };
         if (Object.hasOwn(guides, data)) await shell.openExternal(guides[data]);
         return chatSnapshot();
       }
