@@ -17,7 +17,12 @@ Dalla pagina **Releases** di `github.com/Zekseron/Mascotte` (solo dopo che una r
 1. **Installer** `Mascotte-Setup-<versione>-x64.exe`: installa Mascotte nel tuo profilo Windows (`%LOCALAPPDATA%\Programs\Mascotte`, oppure la cartella scelta nella procedura) e crea i collegamenti nel menu Start e sul Desktop. Include il runtime Electron, Rosso e Luma; non servono installazioni separate di Node.js, Python o Git. Non richiede diritti di amministratore. Per rimuoverla: **Impostazioni → App → Mascotte → Disinstalla**.
 2. **Versione portatile** `Mascotte-Windows-<versione>-x64.zip`: estrai tutta la cartella in una posizione stabile e apri `Mascotte.exe`. Mantieni insieme tutti i suoi file. Per rimuoverla elimina la cartella.
 
-L'app e l'installer **non sono firmati digitalmente**: Windows (SmartScreen) può chiedere una verifica della provenienza. Procedi solo se hai scaricato i file dalla release ufficiale. Lo ZIP è circa 150 MB perché include il runtime Electron.
+L'app e l'installer **non sono ancora firmati digitalmente**, quindi Windows li tratta come app di provenienza sconosciuta. Procedi solo se hai scaricato i file dalla release ufficiale.
+
+- **SmartScreen** mostra «PC protetto da Windows»: premi **Ulteriori informazioni** e poi **Esegui comunque**. Anche il browser può segnalare il download come poco comune.
+- Con **Controllo intelligente delle app** (Smart App Control, Windows 11) attivo, Mascotte viene bloccata e non si può autorizzare la singola app. Per usarla bisogna disattivare la funzione in **Sicurezza di Windows → Controllo app e browser**: è una tua scelta, perché la protezione si toglie per tutte le app. Sugli aggiornamenti recenti di Windows 11 si può riattivare dalla stessa schermata; sulle versioni precedenti solo reimpostando Windows.
+
+Lo ZIP è circa 150 MB perché include il runtime Electron.
 
 Le impostazioni, la chat e le note restano in `%LOCALAPPDATA%\Mascotte` anche dopo la disinstallazione: cancellale solo se vuoi eliminare la cronologia. All'avvio si apre la chat con il pulsante nella barra principale di Windows. **X riduce la chat a icona**, mantenendo il pulsante e la mascotte attivi; riaprila dalla barra o cliccando sulla mascotte. Per tenere il collegamento anche quando l'app è chiusa, clic destro sul pulsante → **Aggiungi alla barra delle applicazioni**. Rimane anche l'icona nell'area di notifica. **Esci**, dal menu della mascotte o dell'icona, chiude l'app.
 

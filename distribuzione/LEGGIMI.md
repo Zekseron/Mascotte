@@ -29,7 +29,7 @@ Senza account IA il gattino si anima, si trascina e consente di provare gli stat
 
 ## Installare su Windows
 
-Vedi [WINDOWS.md](WINDOWS.md): estrai lo ZIP (oppure apri l'installer), apri `Mascotte.exe`. L'app non è firmata digitalmente: Windows può chiedere una verifica della provenienza.
+Vedi [WINDOWS.md](WINDOWS.md): estrai lo ZIP (oppure apri l'installer), apri `Mascotte.exe`. L'app non è ancora firmata digitalmente: SmartScreen chiede conferma («Ulteriori informazioni» → «Esegui comunque») e, se è attivo il Controllo intelligente delle app di Windows 11, Mascotte viene bloccata finché non lo disattivi (dettagli in WINDOWS.md).
 
 ## Collegare i propri account
 

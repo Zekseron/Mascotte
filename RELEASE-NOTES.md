@@ -14,11 +14,14 @@ Questa release aggiorna **Windows x64** e **Mac Apple Silicon**. Il pacchetto Wi
 - Per la versione portatile estrai tutto `Mascotte-Windows-0.9.1-x64.zip` in una cartella stabile.
 - Dalla 0.9.0 puoi usare **Impostazioni → Aggiornamenti → Controlla aggiornamenti**. Impostazioni e conversazioni restano nella cartella dati del tuo utente.
 
-I pacchetti Windows non sono firmati digitalmente. Scaricali da questa pagina; non disattivare le protezioni di Windows.
+I pacchetti Windows non sono ancora firmati digitalmente, quindi Windows li tratta come app di provenienza sconosciuta. Scaricali solo da questa pagina.
+
+- **SmartScreen** mostra «PC protetto da Windows»: premi **Ulteriori informazioni** e poi **Esegui comunque**. Anche il browser può segnalare il download come poco comune.
+- Con **Controllo intelligente delle app** (Smart App Control, Windows 11) attivo, Mascotte viene bloccata e non si può autorizzare la singola app. Per usarla bisogna disattivare la funzione in **Sicurezza di Windows → Controllo app e browser**: è una tua scelta, perché la protezione si toglie per tutte le app. Sugli aggiornamenti recenti di Windows 11 si può riattivare dalla stessa schermata; sulle versioni precedenti solo reimpostando Windows.
 
 ## Installare o aggiornare Mac
 
 - Scarica `Mascotte-Mac-0.9.1-arm64.zip`, estrailo con doppio clic e sposta `Mascotte.app` in Applicazioni. Al primo avvio segui le istruzioni del [LEGGIMI](https://github.com/Zekseron/Mascotte/blob/main/LEGGIMI.md) («Apri comunque»).
 - Dalla 0.9.0 puoi usare **Impostazioni → Aggiornamenti → Controlla aggiornamenti**: il pacchetto è firmato con lo stesso certificato personale della 0.9.0 e l’app ne verifica impronta SHA-256 e firma prima di sostituirsi.
 
-Il pacchetto Mac non è notarizzato da Apple.
+Il pacchetto Mac è già firmato: chi lo scarica non deve creare certificati né firmare nulla. Non essendo notarizzato da Apple, macOS lo blocca al primo avvio; «Apri comunque» va fatto una sola volta e gli aggiornamenti dall’app non lo richiedono di nuovo.
