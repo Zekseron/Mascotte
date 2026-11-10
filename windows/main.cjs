@@ -39,7 +39,7 @@ function startApplication() {
   const { buildChatSnapshot } = require('./lib/snapshot.cjs');
   const buildInfo = require('./lib/build-info.cjs').read(path.join(__dirname, 'resources/build-info.json'));
   let mascot, chat, tray, controller, server, store, memory, pack, imageData, currentRun, hitMask, mouseTimer;
-  let settings, engine = 'codex', engineTouched = false, notice = '', setupPreview, drag, quitting = false, mouseIgnored = true, localAvailable = false, managedOllama = null, installedCache = null, localScanning = false, engineStatus = null;
+  let settings, engine = 'codex', engineTouched = false, notice = '', infoNotice = '', chatPlacedAt = null, setupPreview, drag, quitting = false, mouseIgnored = true, localAvailable = false, managedOllama = null, installedCache = null, localScanning = false, engineStatus = null;
   let agents;
   let characters = [], includedCharacters = [], characterWarnings = [], characterStatus = '', characterStatusFailed = false;
   let attachment = 'free', singing = false, follower, captureFollower, captureTimer, anchorTimer, anchorDisplay, anchorFraction = .8, targetBounds, concealed = false, userVisible = true;
@@ -59,7 +59,7 @@ function startApplication() {
     // Una notifica che non si può mostrare non blocca il resto: un promemoria ricade sull'avviso in chat, una sveglia suona comunque.
     let shown = false;
     try { if (Notification.isSupported()) { new Notification({ title: item.alarm ? 'Mascotte · sveglia' : 'Mascotte · promemoria', body, silent: false }).show(); shown = true; } } catch {}
-    if (!shown && !item.alarm) { notice = `⏰ ${body}`; showChat(); broadcast(); }
+    if (!shown && !item.alarm) { notice = infoNotice = `⏰ ${body}`; showChat(); broadcast(); }
     // Sveglia (non troppo in ritardo): finestra con «Ferma» e «Rimanda», suono a ripetizione nella chat per al massimo 3 minuti, gattino in attesa.
     if (item.alarm && Date.now() - item.when < 10 * 60000) {
       stopAlarm(); activeAlarm = { id: item.id, text: item.text, when: item.when };
@@ -88,7 +88,7 @@ function startApplication() {
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
   // Stato per la chat in due tempi: chatState raccoglie qui lo stato (variabili, motori, elenchi); lib/snapshot.cjs lo trasforma, senza leggere nulla.
   const chatState = () => ({
-    engine, messages: store.get(engine), currentRun, localDownload, localDownloadStatus, notice, localAvailable, settings,
+    engine, messages: store.get(engine), currentRun, localDownload, localDownloadStatus, notice, noticeInfo: Boolean(notice) && notice === infoNotice, localAvailable, settings,
     cliEngines: CLI.ENGINES.filter(e => CLI.findCLI(e)), defaultModel: LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(),
     localEngineLabel: LocalEngines.label(settings?.localEngine), localManaged: LocalEngines.get(LocalEngines.MANAGED).status(), engineStatus, localCatalog: LocalAI.uiCatalog(), installedCache, localScanning,
     deviceName: can.deviceName, memories: memory.list(), pendingAction, setupPreview, reminders: reminders ? reminders.list() : null, activeAlarm, lastFrame, watchAvailable: can.watch,
@@ -351,16 +351,28 @@ function startApplication() {
   }
   function showChat() {
     if (!chat || chat.isDestroyed()) {
-      chat = safeWindow('chat', { width: 440, height: 680, minWidth: 400, minHeight: 600, show: false, skipTaskbar: false, title: 'Mascotte · micro chat', alwaysOnTop: true, autoHideMenuBar: true, backgroundColor: '#191b22' });
+      // Grandezza ricordata dall'ultima volta (normalizzata in lib/settings.cjs), altrimenti 440×680.
+      chat = safeWindow('chat', { width: settings.chat?.width || 440, height: settings.chat?.height || 680, minWidth: 400, minHeight: 600, show: false, skipTaskbar: false, title: 'Mascotte · micro chat', alwaysOnTop: true, autoHideMenuBar: true, backgroundColor: '#191b22' });
       // Mac: app senza Dock, la chat deve comparire sulla scrivania/tutto schermo corrente e non riportare altrove.
       if (can.allSpaces) chat.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
       chat.once('ready-to-show', () => { if (can.hideDock) app.focus({ steal: true }); chat.show(); chat.focus(); });
       chat.on('close', event => { if (!quitting) { event.preventDefault(); currentRun?.stop(); if (process.platform === 'win32') chat.minimize(); else chat.hide(); } });
       chat.webContents.on('render-process-gone', stopWatching);
+      // Grandezza e posizione scelte a mano restano per la prossima apertura. Gli spostamenti fatti da showChat non contano.
+      let resizeTimer = null;
+      chat.on('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (chat.isDestroyed()) return; const { width, height } = chat.getBounds(); settings.chat = { ...settings.chat, width, height }; saveSettings(); }, 400); });
+      chat.on('moved', () => {
+        const { x, y } = chat.getBounds();
+        if (chatPlacedAt && chatPlacedAt.x === x && chatPlacedAt.y === y) return;
+        settings.chat = { ...settings.chat, x, y }; saveSettings();
+      });
     }
-    const b = mascot.getBounds(), d = screen.getDisplayMatching(b).workArea;
-    const pos = clampPosition({ x: b.x - 410, y: b.y }, chat.getBounds().width, chat.getBounds().height, [d]);
-    chat.setPosition(pos.x, pos.y);
+    // Se l'utente ha spostato la chat si riapre lì (se quel punto è ancora su uno schermo), altrimenti accanto alla mascotte.
+    const { width, height } = chat.getBounds();
+    let pos;
+    if (Number.isFinite(settings.chat?.x) && Number.isFinite(settings.chat?.y)) pos = clampPosition({ x: settings.chat.x, y: settings.chat.y }, width, height, displayAreas());
+    else { const b = mascot.getBounds(), d = screen.getDisplayMatching(b).workArea; pos = clampPosition({ x: b.x - 410, y: b.y }, width, height, [d]); }
+    chatPlacedAt = pos; chat.setPosition(pos.x, pos.y);
     if (can.hideDock) app.focus({ steal: true }); // Mac: app accessoria (LSUIElement), senza questo la tastiera può restare all'app precedente
     if (chat.isMinimized()) chat.restore();
     chat.show(); chat.focus(); broadcast();
@@ -430,7 +442,7 @@ function startApplication() {
     settings = require('./lib/settings.cjs').normalizeSettings(raw, { LocalEngines, LocalAI, ExtraFolders, Characters, AlarmSound, managedModel: require('./lib/llama-runtime.cjs').MODELS[0].id, platform: process.platform, home: os.homedir(), dataDir: dataDirectory });
     if (legacyImport) {
       const count = Object.values(legacyImport.messages).reduce((sum, n) => sum + n, 0);
-      notice = `Importato dalla vecchia Mascotte per Mac: ${[legacyImport.settings.length ? 'impostazioni' : '', count ? `${count} messaggi` : ''].filter(Boolean).join(' e ') || 'nessun dato da trasferire'}. La vecchia app e i suoi dati restano invariati.`;
+      notice = infoNotice = `Importato dalla vecchia Mascotte per Mac: ${[legacyImport.settings.length ? 'impostazioni' : '', count ? `${count} messaggi` : ''].filter(Boolean).join(' e ') || 'nessun dato da trasferire'}. La vecchia app e i suoi dati restano invariati.`;
     }
     prepareLocal().then(note => { localAvailable = true; if (note) notice = note; if (!currentRun && !engineTouched) engine = 'locale'; broadcast(); }).catch(() => { localAvailable = false; broadcast(); });
     const resultFile = path.join(dataDirectory, 'update-result.json'), updateResult = Updater.takeUpdateResult(resultFile);
@@ -506,7 +518,7 @@ function startApplication() {
         const selectedEngine = engine;
         const selected = await pickFolder('Cartella di lavoro per ' + engine, agents.entry(engine).cwd);
         if (!selected.canceled && selected.filePaths[0] && !currentRun) {
-          try { agents.choose(selectedEngine, selected.filePaths[0]); notice = 'Cartella scelta. La nuova sessione agente userà questa cartella.'; }
+          try { agents.choose(selectedEngine, selected.filePaths[0]); notice = infoNotice = 'Cartella scelta. La nuova sessione agente userà questa cartella.'; }
           catch (error) { notice = error.message; }
         }
         return chatSnapshot();
@@ -596,17 +608,17 @@ function startApplication() {
         finally { localDownload = null; broadcast(); }
         return chatSnapshot();
       }
-      if ((action === 'local-check' || action === 'local-model' || action === 'local-engine') && !localDownload) { localDownloadStatus = ''; try { notice = (await prepareLocal()) || 'Modello locale pronto.'; localAvailable = true; } catch (error) { localAvailable = false; notice = error.message; } return chatSnapshot(); }
-      if (action === 'memory-add' && !currentRun && !updateRunning) { try { memory.add(data?.text, data?.source); notice = `Nota salvata sul ${can.deviceName}.`; } catch (error) { notice = error.message; } return chatSnapshot(); }
-      if (action === 'memory-remove' && !currentRun && !updateRunning && typeof data === 'string') { try { memory.remove(data); notice = 'Nota rimossa.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
-      if (action === 'pc-action-cancel') { pendingAction = null; notice = 'Azione annullata.'; return chatSnapshot(); }
+      if ((action === 'local-check' || action === 'local-model' || action === 'local-engine') && !localDownload) { localDownloadStatus = ''; try { const note = await prepareLocal(); notice = note || (infoNotice = 'Modello locale pronto.'); localAvailable = true; } catch (error) { localAvailable = false; notice = error.message; } return chatSnapshot(); }
+      if (action === 'memory-add' && !currentRun && !updateRunning) { try { memory.add(data?.text, data?.source); notice = infoNotice = `Nota salvata sul ${can.deviceName}.`; } catch (error) { notice = error.message; } return chatSnapshot(); }
+      if (action === 'memory-remove' && !currentRun && !updateRunning && typeof data === 'string') { try { memory.remove(data); notice = infoNotice = 'Nota rimossa.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
+      if (action === 'pc-action-cancel') { pendingAction = null; notice = infoNotice = 'Azione annullata.'; return chatSnapshot(); }
       if (action === 'pc-action-confirm' && pendingAction && data === pendingAction.id) {
         const selectedAction = pendingAction; pendingAction = null;
         try {
-          if (selectedAction.kind === 'remember') { memory.add(selectedAction.text, 'manuale'); notice = `Nota salvata sul ${can.deviceName}.`; }
+          if (selectedAction.kind === 'remember') { memory.add(selectedAction.text, 'manuale'); notice = infoNotice = `Nota salvata sul ${can.deviceName}.`; }
           else if (selectedAction.kind === 'reminder') {
             if (selectedAction.when <= Date.now()) throw new Error('l’orario è già passato.');
-            reminders.add(selectedAction); scheduleReminders(); notice = `${selectedAction.alarm ? 'Sveglia impostata' : 'Promemoria impostato'} per ${Reminders.formatWhen(selectedAction.when)}.`;
+            reminders.add(selectedAction); scheduleReminders(); notice = infoNotice = `${selectedAction.alarm ? 'Sveglia impostata' : 'Promemoria impostato'} per ${Reminders.formatWhen(selectedAction.when)}.`;
             // Notifica di conferma subito: la prima volta il sistema chiede qui il permesso, così quella alla scadenza non va persa.
             if (Notification.isSupported()) new Notification({ title: 'Mascotte', body: notice, silent: true }).show();
           }
@@ -614,7 +626,7 @@ function startApplication() {
             if (!LocalCommands.validateTarget(selectedAction.target, { extraFolders: settings.extraFolders, dataDir: dataDirectory })) throw new Error(selectedAction.extraName ? ExtraFolders.goneMessage(selectedAction.extraName) : 'l’app o la cartella non è più disponibile o non è in una posizione ammessa.');
             const error = await shell.openPath(selectedAction.target);
             if (error) throw new Error(error);
-            notice = 'Azione completata.';
+            notice = infoNotice = 'Azione completata.';
           }
         } catch (error) { notice = `Azione non riuscita: ${error.message}`; }
         return chatSnapshot();
@@ -735,17 +747,18 @@ function startApplication() {
         watchSource = source; notice = ''; broadcast(); return { id: source.id, name: source.name };
       }
       if (action === 'watch-disable') { stopWatching(); return chatSnapshot(); }
+      if (action === 'chat-hide') { if (chat && !chat.isDestroyed() && !currentRun) { if (process.platform === 'win32') chat.minimize(); else chat.hide(); } return null; }
       if (action === 'engine' && !currentRun && [...CLI.ENGINES, 'locale'].includes(data)) { engine = data; engineTouched = true; notice = ''; return chatSnapshot(); }
       // Sveglie e promemoria nelle Impostazioni: elenco con eliminazione, suono (bip o file scelto dal selettore di sistema) e volume.
       if (action === 'reminder-remove' && typeof data === 'string') { reminders.remove(data); scheduleReminders(); return chatSnapshot(); }
       if (action === 'alarm-volume' && typeof data === 'number') { settings.alarmVolume = AlarmSound.normalizeVolume(data); saveSettings(); return chatSnapshot(); }
       if (action === 'alarm-sound-data') return settings.alarmSound === 'custom' ? AlarmSound.readSound(dataDirectory) : null;
-      if (action === 'alarm-sound-remove') { AlarmSound.removeSound(dataDirectory); settings.alarmSound = 'beep'; settings.alarmSoundName = ''; saveSettings(); notice = 'Suono della sveglia: tornato al bip.'; return chatSnapshot(); }
+      if (action === 'alarm-sound-remove') { AlarmSound.removeSound(dataDirectory); settings.alarmSound = 'beep'; settings.alarmSoundName = ''; saveSettings(); notice = infoNotice = 'Suono della sveglia: tornato al bip.'; return chatSnapshot(); }
       if (action === 'alarm-sound-choose') {
         const selected = await dialog.showOpenDialog(chat, { title: 'Scegli il suono della sveglia', properties: ['openFile'], filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'm4a', 'aac', 'ogg', 'flac'] }] });
         if (!selected.canceled && selected.filePaths[0]) {
           const result = AlarmSound.importSound(selected.filePaths[0], dataDirectory);
-          if (result.ok) { settings.alarmSound = 'custom'; settings.alarmSoundName = result.name; saveSettings(); notice = `Suono della sveglia: «${result.name}».`; }
+          if (result.ok) { settings.alarmSound = 'custom'; settings.alarmSoundName = result.name; saveSettings(); notice = infoNotice = `Suono della sveglia: «${result.name}».`; }
           else notice = result.reason;
         }
         return chatSnapshot();
@@ -756,7 +769,7 @@ function startApplication() {
         const snoozed = Reminders.snoozeAlarm(reminders, activeAlarm, { delay: SNOOZE });
         if (snoozed.error) { notice = snoozed.error; return chatSnapshot(); }
         stopAlarm(); scheduleReminders();
-        if (!currentRun) controller.set('idle'); notice = `Sveglia rimandata a ${Reminders.formatWhen(snoozed.item.when)}.`; return chatSnapshot();
+        if (!currentRun) controller.set('idle'); notice = infoNotice = `Sveglia rimandata a ${Reminders.formatWhen(snoozed.item.when)}.`; return chatSnapshot();
       }
       if (action === 'new' && !currentRun) { if (agents.snapshot(engine).enabled) agents.reset(engine); else store.set(engine, []); if (engine === 'locale') clearLastFrame(); notice = ''; return chatSnapshot(); }
       // Anteprima del fotogramma conservato, solo per la finestra di conferma del secondo parere.
@@ -773,7 +786,7 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'setup-apply' && setupPreview) {
-        try { Setup.applyHooks(setupPreview.paths, setupPreview.before, setupPreview.after, path.join(dataDirectory, 'hook-installation.json')); notice = 'Hook installati con backup. In Codex controlla e approva gli hook (in CLI: /hooks), poi apri una nuova sessione Codex. Mantieni il pacchetto in questa cartella.'; setupPreview = null; }
+        try { Setup.applyHooks(setupPreview.paths, setupPreview.before, setupPreview.after, path.join(dataDirectory, 'hook-installation.json')); notice = infoNotice = 'Hook installati con backup. In Codex controlla e approva gli hook (in CLI: /hooks), poi apri una nuova sessione Codex. Mantieni il pacchetto in questa cartella.'; setupPreview = null; }
         catch (e) { notice = e.message; }
         return chatSnapshot();
       }

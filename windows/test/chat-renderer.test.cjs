@@ -155,7 +155,7 @@ test('A3: invio locale automatico preservato; remoto richiede conferma senza inv
     const value = chatFixture({ engine, watching: true, localVision: true, watchName: 'Prova' });
     setHandler(action => action === 'snapshot' ? value : undefined);
     render(value); element('input').value = 'domanda';
-    evaluate("watchStream = {}; document.createElement = () => ({ getContext: () => ({ drawImage() {} }), toDataURL: () => 'data:image/jpeg;base64,fixture' })");
+    evaluate("watchStream = {}; document.createElement = () => ({ getContext: () => ({ drawImage() {} }), toDataURL: () => 'data:image/jpeg;base64,fixture', append() {}, addEventListener() {} })");
     element('watch-video').videoWidth = 640; element('watch-video').videoHeight = 480;
     await evaluate('submit()');
     const sent = calls.filter(([action]) => action === 'send');

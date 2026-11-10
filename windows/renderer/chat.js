@@ -87,6 +87,29 @@ async function startWatching() {
 }
 // I dettagli di motore e modello restano nelle Impostazioni.
 function localTitle() { return 'Locale'; }
+// Chat vuota: saluto del personaggio e, con il motore locale, esempi delle funzioni che altrimenti si scoprono solo nelle Impostazioni.
+// Un esempio riempie il campo senza inviare: il testo si può completare o correggere prima di premere Invio.
+const LOCAL_EXAMPLES = ['Sveglia tra 20 minuti', 'Ricordami alle 15:30 di ', 'Che file ho in Download?', 'Che promemoria ho?'];
+const characterName = value => value.characters?.list.find(c => c.id === value.characters.current)?.name || '';
+function useExample(text) {
+  const input = $('input'); input.value = text; input.dispatchEvent(new Event('input')); input.focus();
+  input.setSelectionRange?.(text.length, text.length);
+}
+function emptyChat(value, name) {
+  const box = document.createElement('div'); box.className = 'intro';
+  const hello = document.createElement('p');
+  const who = name ? `Ciao, sono ${name}! ` : 'Ciao! ';
+  hello.textContent = value.engine === 'locale'
+    ? `${who}Scrivimi qui: rispondo dal tuo ${value.deviceName || 'computer'}, senza inviare nulla in rete. Puoi anche provare:`
+    : `${who}Scrivimi qui: il messaggio va a ${SERVICE_NAMES[value.engine]} con il tuo account. Ogni IA ha la sua conversazione.`;
+  box.append(hello);
+  if (value.engine === 'locale') {
+    const examples = document.createElement('div'); examples.className = 'examples';
+    examples.append(...LOCAL_EXAMPLES.map(text => listButton(text.trim(), () => useExample(text), Boolean(value.busy))));
+    box.append(examples);
+  }
+  return box;
+}
 function render(value) {
   if (!value) return;
   current = value;
@@ -223,11 +246,8 @@ function render(value) {
   $('account-hint').textContent = value.engine === 'locale' ? `Sul tuo ${value.deviceName || 'PC'}` : `Invio a ${SERVICE_NAMES[value.engine]}`;
   $('engine').disabled = $('new').disabled = $('input').disabled = locked;
   $('messages').replaceChildren();
-  if (!value.messages.length) {
-    const intro = document.createElement('p'); intro.className = 'intro';
-    intro.textContent = 'Ciao! Scegli Locale, Codex o Claude e scrivimi qui. Le conversazioni restano separate.';
-    $('messages').append(intro);
-  }
+  if (!value.messages.length && !value.agent?.enabled) $('messages').append(emptyChat(value, characterName(value)));
+  else if (!value.messages.length) { const intro = document.createElement('p'); intro.className = 'intro'; intro.textContent = 'Scegli la cartella e descrivi il lavoro da fare.'; $('messages').append(intro); }
   for (const [index, message] of value.messages.entries()) {
     const appMessage = message.role === 'assistant' && message.kind === 'app';
     const item = document.createElement('section'); item.className = 'message ' + message.role + (appMessage ? ' app' : '');
@@ -262,7 +282,7 @@ function render(value) {
   $('messages').scrollTop = $('messages').scrollHeight;
   $('status').textContent = value.busy ? 'Sta pensando…' : value.notice || (value.available.includes(value.engine) ? 'Pronto · ' + (SERVICE_NAMES[value.engine] || localTitle(value, true)) : value.engine === 'locale' ? (value.localEngine !== 'ollama' ? `${value.localEngineLabel} o il modello non sono disponibili: controlla nelle Impostazioni (ingranaggio in alto).` : 'Installa Ollama e il modello nelle Impostazioni (ingranaggio in alto).') : 'Installa e accedi alla CLI ' + value.engine);
   if (value.agent?.requests?.length) $('status').textContent = 'L’agente attende una tua risposta.';
-  $('status').className = value.notice ? 'error' : '';
+  $('status').className = value.notice ? (value.noticeTone === 'info' ? 'info' : 'error') : '';
   $('send').textContent = value.busy ? 'Interrompi' : 'Invia ↗';
   $('send').disabled = management.running || (!value.busy && !$('input').value.trim());
   if (value.agent?.enabled && !value.agent.workspace && !value.busy) $('send').disabled = true;
@@ -348,6 +368,7 @@ function renderCharacters(value, locked) {
   $('character-scale').value = String(info.scale);
   const currentName = info.list.find(c => c.id === info.current)?.name || '';
   $('sum-mascotte').textContent = `${currentName} · ${info.scale}×`; $('character-eyebrow').textContent = currentName.toUpperCase();
+  $('input').placeholder = currentName ? `Scrivi a ${currentName}…` : 'Scrivi un messaggio…';
   const personal = info.list.filter(c => c.personal);
   $('character-list').replaceChildren(...personal.map(c => {
     const row = document.createElement('div'); row.className = 'folder-row';
@@ -457,6 +478,14 @@ function prepareShare() {
 }
 $('composer').addEventListener('submit', event => { event.preventDefault(); submit(); });
 $('input').addEventListener('keydown', event => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); submit(); } });
+// Esc: dalle Impostazioni torna alla chat; dalla chat nasconde la finestra (su Windows la riduce a icona).
+// Non agisce se è aperta una finestra di conferma (la chiude il browser) o se una risposta è in corso, per non perderla di vista.
+window.addEventListener('keydown', event => {
+  if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('dialog[open]')) return;
+  if (selectedTab === 'settings') { event.preventDefault(); selectTab('chat'); return; }
+  if (current?.busy || current?.alarm || current?.agent?.requests?.length) return;
+  event.preventDefault(); invoke('chat-hide');
+});
 $('input').addEventListener('input', () => { if (current) drafts[current.engine] = $('input').value; $('send').disabled = !current?.busy && !$('input').value.trim(); });
 $('engine').addEventListener('change', async () => { const next = await invoke('engine', $('engine').value); if (!next) { if (current) $('engine').value = current.engine; return; } $('input').value = drafts[next.engine] || ''; render(next); $('input').focus(); });
 $('agent-mode').addEventListener('change', async () => { remoteConfirmed.clear(); render(await invoke('agent-mode', $('agent-mode').value === 'agent')); });

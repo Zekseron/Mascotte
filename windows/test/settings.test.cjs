@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const LocalAI = require('../lib/local-ai.cjs'), LocalEngines = require('../lib/local-engines.cjs');
 const ExtraFolders = require('../lib/extra-folders.cjs'), Characters = require('../lib/characters.cjs'), AlarmSound = require('../lib/alarm-sound.cjs');
-const { normalizeSettings } = require('../lib/settings.cjs');
+const { normalizeSettings, normalizeChat } = require('../lib/settings.cjs');
 
 // Funzione di riferimento: copia TESTUALE dell'espressione che stava in main.cjs (whenReady) prima dell'estrazione
 // in lib/settings.cjs, con le stesse dipendenze. Il test confronta la nuova funzione con questa su molti casi.
@@ -17,6 +17,8 @@ function reference(raw, dataDirectory) {
   if (startEngine !== 'ollama' && !(raw.localModelSource === 'installed' && LocalAI.validName(raw.localModel))) startEngine = 'ollama';
   const startModel = startEngine === 'ollama' ? LocalAI.normalizeModel(raw.localModel, undefined, raw.localModelSource) : raw.localModel;
   const settings = {scale:Characters.SCALES.includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localEngine:startEngine,localModel:startModel,localModelSource:startEngine==='ollama'&&LocalAI.isModel(startModel)?'catalog':'installed',extraFolders:ExtraFolders.normalizeExtraFolders(raw.extraFolders,ExtraFolders.realOpts({platform:process.platform,home:os.homedir(),dataDir:dataDirectory})),alarmSound:raw.alarmSound==='custom'?'custom':'beep',alarmSoundName:typeof raw.alarmSoundName==='string'?raw.alarmSoundName.slice(0,120):'',alarmVolume:AlarmSound.normalizeVolume(raw.alarmVolume)};
+  // Aggiunta voluta del 10 novembre 2026: grandezza e posizione ricordate della chat (provate a parte qui sotto).
+  settings.chat = normalizeChat(raw.chat);
   return settings;
 }
 
@@ -77,4 +79,13 @@ test('motore locale alla prima installazione: llama.cpp (Mascotte) su Windows, O
   assert.equal(normalizeSettings({}, ctx('darwin')).localEngine, 'ollama');
   // Chi aveva già scelto Ollama (o un valore non valido) non viene spostato.
   for (const localEngine of ['ollama', null, 3, 'sconosciuto']) assert.equal(normalizeSettings({ localEngine }, ctx('win32')).localEngine, 'ollama', String(localEngine));
+});
+
+test('normalizeChat tiene solo grandezze e posizioni plausibili', () => {
+  assert.deepEqual(normalizeChat({ width: 500, height: 700, x: 10.4, y: -20 }), { width: 500, height: 700, x: 10, y: -20 });
+  assert.deepEqual(normalizeChat({ width: 399, height: 601 }), { height: 601 });
+  assert.deepEqual(normalizeChat({ width: 450.5, height: 9000 }), {});
+  assert.deepEqual(normalizeChat({ x: 5 }), {});
+  assert.deepEqual(normalizeChat({ x: NaN, y: 3, width: 401 }), { width: 401 });
+  for (const value of [null, undefined, 'x', 4, []]) assert.deepEqual(normalizeChat(value), {});
 });
