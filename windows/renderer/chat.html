@@ -36,19 +36,21 @@
     <div id="agent-requests" aria-live="polite"></div>
   </section>
   <main id="messages" aria-label="Conversazione" aria-live="polite"></main>
-  <details id="watch-panel" aria-label="Anteprima della finestra">
-    <summary id="watch-summary">Finestra da condividere</summary>
-    <div class="watch-content">
-    <p id="watch-help" class="hint"></p>
-    <div class="watch-controls"><button id="refresh-watch" type="button" title="Aggiorna l’elenco delle finestre">Aggiorna elenco</button><select id="watch-source" aria-label="Finestra da osservare"><option value="">Scegli una finestra</option></select><button id="toggle-watch" type="button" disabled>Osserva</button><button id="stop-watch" type="button" hidden>Smetti</button></div>
-    <div id="watch-state" role="status">Osservazione spenta · acquisizione solo locale</div>
-    <button id="watch-permission" type="button" hidden>Apri Impostazioni di Sistema</button>
-    <video id="watch-video" muted autoplay playsinline></video>
-    <button id="share-view" type="button" disabled>Allega fotogramma…</button>
-    </div>
-  </details>
   <div id="status" role="status">Pronto</div>
-  <form id="composer"><small id="account-hint">Sul tuo PC</small><small id="image-status" role="status" aria-live="polite" tabindex="0" hidden></small><textarea id="input" aria-label="Messaggio" placeholder="Scrivi al tuo piccolo amico…" maxlength="8000" rows="1"></textarea><div class="send-row"><small>Invio invia · ⇧Invio va a capo</small><button id="send" type="submit">Invia ↗</button></div></form>
+  <form id="composer">
+    <div id="watch-panel" class="watch-pop" role="dialog" aria-label="Finestra da condividere" hidden>
+      <div class="watch-head"><strong id="watch-title">Finestra da condividere</strong><button id="watch-close" type="button" class="icon-btn small" aria-label="Chiudi" title="Chiudi (Esc)">✕</button></div>
+      <div class="watch-controls"><select id="watch-source" aria-label="Finestra da osservare"><option value="">Scegli una finestra</option></select><button id="refresh-watch" type="button" class="icon-btn small" aria-label="Aggiorna l’elenco delle finestre" title="Aggiorna l’elenco delle finestre">↻</button></div>
+      <div class="watch-preview"><img id="watch-thumb" alt="Anteprima della finestra scelta" hidden><video id="watch-video" muted autoplay playsinline></video><p id="watch-empty" class="hint">L’anteprima compare quando scegli una finestra.</p></div>
+      <div id="watch-state" role="status">Osservazione spenta · acquisizione solo locale</div>
+      <button id="watch-permission" type="button" hidden>Apri Impostazioni di Sistema</button>
+      <div class="watch-actions"><button id="toggle-watch" type="button" disabled>Osserva</button><button id="stop-watch" type="button" hidden>Smetti</button><button id="share-view" type="button" disabled>Allega fotogramma…</button></div>
+      <p id="watch-help" class="hint"></p>
+    </div>
+    <div id="attach-menu" class="attach-menu" role="menu" aria-label="Allega" hidden><button id="attach-screen" type="button" role="menuitem"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg><span>Condividi schermata</span></button></div>
+    <small id="account-hint">Sul tuo PC</small>
+    <div id="watch-chip" hidden><button id="watch-chip-open" type="button" title="Apri il pannello della finestra osservata"><video id="watch-chip-video" muted autoplay playsinline aria-hidden="true"></video><span class="live-dot" aria-hidden="true">●</span><span id="watch-chip-name"></span></button><button id="watch-chip-stop" type="button" aria-label="Smetti di osservare" title="Smetti di osservare">✕</button></div>
+    <small id="image-status" role="status" aria-live="polite" tabindex="0" hidden></small><textarea id="input" aria-label="Messaggio" placeholder="Scrivi un messaggio…" maxlength="8000" rows="1"></textarea><div class="send-row"><button id="watch-toggle" type="button" class="icon-btn small" aria-label="Allega" aria-haspopup="menu" aria-expanded="false" aria-controls="attach-menu" title="Allega" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><small id="send-hint">Invio invia · ⇧Invio va a capo</small><button id="send" type="submit">Invia ↗</button></div></form>
   <footer><span id="app-hint">Hook e aggiornamenti: ingranaggio in alto</span></footer>
   <dialog id="setup-dialog"><h2>Collega le sessioni IA</h2><p>Queste modifiche riguardano i tuoi file di configurazione. Gli hook e il notify di altri programmi vengono conservati; quelli di Mascotte già presenti, anche della vecchia app per Mac, vengono sostituiti. Prima di applicare salviamo i backup.</p><label>Claude <pre id="claude-preview"></pre></label><label>Codex <pre id="codex-preview"></pre></label><div class="dialog-actions"><button id="dismiss" type="button">Annulla</button><button id="apply" type="button">Applica con backup</button></div></dialog>
   <dialog id="share-dialog"><h2>Condividere questo fotogramma?</h2><p id="share-notice">Il fotogramma resta sul dispositivo finché non confermi. Confermando, viene inviato al servizio selezionato con il tuo account. Non viene salvato nella cronologia Mascotte.</p><img id="share-preview" alt="Anteprima del fotogramma selezionato"><div class="dialog-actions"><button id="cancel-share" type="button">Annulla</button><button id="confirm-share" type="button">Conferma e invia</button></div></dialog>

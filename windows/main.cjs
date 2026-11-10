@@ -740,6 +740,13 @@ function startApplication() {
       }
       if (action === 'watch-sources' && can.watch) return watchSources();
       if (action === 'watch-permission-settings' && can.watch && process.platform === 'darwin') { await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'); return; }
+      // Miniatura della finestra scelta, solo per l'anteprima nella chat: presa qui, mai salvata né inviata.
+      if (action === 'watch-thumbnail' && can.watch && typeof data?.id === 'string') {
+        if (screenPermission() !== 'granted') return null;
+        const sources = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 480, height: 300 }, fetchWindowIcons: false });
+        const source = sources.find(item => item.id === data.id);
+        return source && !source.thumbnail.isEmpty() ? 'data:image/jpeg;base64,' + source.thumbnail.toJPEG(70).toString('base64') : null;
+      }
       if (action === 'watch-enable' && can.watch && typeof data?.id === 'string') {
         if (screenPermission() !== 'granted') { notice = permissionMessage(screenPermission()); return chatSnapshot(); }
         const sources = await windowSources(), source = sources.find(item => item.id === data.id);

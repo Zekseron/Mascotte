@@ -26,7 +26,9 @@ function selectTab(tab) {
   for (const id of ['messages', 'status', 'composer']) $(id).hidden = settingsOpen;
   $('chat-controls').hidden = settingsOpen;
   document.querySelector('footer').hidden = settingsOpen;
-  $('watch-panel').hidden = settingsOpen || !current?.watchAvailable;
+  $('watch-toggle').hidden = settingsOpen || !current?.watchAvailable;
+  if (settingsOpen) { openWatchPanel(false); openAttachMenu(false); }
+  $('watch-chip').hidden = settingsOpen || !current?.watching;
   $('agent-panel').hidden = settingsOpen || current?.engine === 'locale';
   $('settings-toggle').setAttribute('aria-pressed', String(settingsOpen));
 }
@@ -50,23 +52,52 @@ function clearPendingImage() {
 }
 function stopWatchLocal() {
   for (const track of watchStream?.getTracks() || []) track.stop();
-  watchStream = null; $('watch-video').srcObject = null; $('watch-video').classList.remove('active');
+  watchStream = null; $('watch-video').srcObject = null; $('watch-video').classList.remove('active'); $('watch-chip-video').srcObject = null;
   $('watch-state').textContent = 'Osservazione spenta · acquisizione solo locale';
+  showThumbnail($('watch-source').value);
   clearPendingImage();
   updateImageStatus();
 }
 async function stopWatching() { stopWatchLocal(); render(await invoke('watch-disable')); }
+// Pannellino della finestra da condividere: si apre dal pulsante accanto al campo di testo, sopra la conversazione,
+// e si chiude con ✕, Esc o un clic fuori. Aprendolo l'elenco delle finestre si aggiorna da solo.
+// Menu «+» accanto al campo di testo: oggi contiene solo «Condividi schermata», pensato per altri allegati futuri.
+function openAttachMenu(open) {
+  const menu = $('attach-menu'); if (menu.hidden === !open) return;
+  menu.hidden = !open; $('watch-toggle').setAttribute('aria-expanded', String(open));
+  if (open) $('attach-screen').focus?.();
+}
+function openWatchPanel(open) {
+  const panel = $('watch-panel'); if (panel.hidden === !open) return;
+  if (open) openAttachMenu(false);
+  panel.hidden = !open;
+  if (open && !current?.watching) refreshWatchSources();
+  if (open) $('watch-source').focus?.();
+}
+// Anteprima della finestra scelta prima di osservarla: una miniatura presa sul dispositivo, mai inviata ai servizi.
+let thumbnailRequest = 0;
+async function showThumbnail(id) {
+  const request = ++thumbnailRequest, image = $('watch-thumb');
+  if (watchStream) return;
+  if (!id) { image.hidden = true; image.removeAttribute('src'); $('watch-empty').hidden = false; return; }
+  const data = await invoke('watch-thumbnail', { id });
+  if (request !== thumbnailRequest || watchStream) return;
+  if (typeof data === 'string' && data.startsWith('data:image/')) { image.src = data; image.hidden = false; $('watch-empty').hidden = true; }
+  else { image.hidden = true; image.removeAttribute('src'); $('watch-empty').hidden = false; }
+}
 async function refreshWatchSources() {
   const sources = await invoke('watch-sources');
   $('watch-permission').hidden = !sources?.permission;
   if (sources?.permission) { $('watch-state').textContent = sources.message; return; }
   if (!Array.isArray(sources)) return;
-  const select = $('watch-source'); select.replaceChildren(new Option('Scegli una finestra', ''));
+  const select = $('watch-source'), previous = select.value; select.replaceChildren(new Option('Scegli una finestra', ''));
   for (const source of sources) select.add(new Option(source.name, source.id));
-  select.disabled = false; $('toggle-watch').disabled = !select.value;
+  // La finestra già scelta resta selezionata se è ancora aperta, con la sua anteprima aggiornata.
+  if (previous && sources.some(source => source.id === previous)) select.value = previous;
+  select.disabled = false; $('toggle-watch').disabled = !select.value; showThumbnail(select.value);
   $('watch-state').textContent = sources.length ? `Seleziona una finestra. L’elenco resta su questo ${current?.deviceName || 'PC'}.` : 'Non trovo finestre da osservare.';
   // Su Mac si possono osservare solo le finestre sullo schermo: non quelle ridotte nel Dock o in un altro gruppo di Stage Manager.
-  if (current?.deviceName === 'Mac') $('watch-state').textContent += ' Manca una finestra? Portala in primo piano (non ridotta nel Dock né in un altro gruppo di Stage Manager) e premi «Aggiorna elenco».';
+  if (current?.deviceName === 'Mac') $('watch-state').textContent += ' Manca una finestra? Portala in primo piano (non ridotta nel Dock né in un altro gruppo di Stage Manager) e premi ↻.';
 }
 async function startWatching() {
   const id = $('watch-source').value; if (!id) return;
@@ -76,7 +107,8 @@ async function startWatching() {
     watchStream = await navigator.mediaDevices.getDisplayMedia({ audio: false, video: {
       width: { max: 1600 }, height: { max: 900 }, frameRate: { max: 5 }
     } });
-    $('watch-video').srcObject = watchStream; $('watch-video').classList.add('active');
+    $('watch-video').srcObject = watchStream; $('watch-video').classList.add('active'); $('watch-chip-video').srcObject = watchStream;
+    $('watch-thumb').hidden = true; $('watch-empty').hidden = true;
     await $('watch-video').play(); $('watch-state').textContent = `Osservazione locale attiva · ${source.name}`;
     for (const track of watchStream.getTracks()) track.addEventListener('ended', () => { if (watchStream) stopWatching(); }, { once: true });
     render(await invoke('snapshot'));
@@ -286,14 +318,17 @@ function render(value) {
   $('send').textContent = value.busy ? 'Interrompi' : 'Invia ↗';
   $('send').disabled = management.running || (!value.busy && !$('input').value.trim());
   if (value.agent?.enabled && !value.agent.workspace && !value.busy) $('send').disabled = true;
-  $('watch-summary').textContent = value.watching
+  $('watch-title').textContent = value.watching
     ? (value.engine === 'locale' ? (value.localVision ? 'Osservazione attiva · immagine automatica locale' : 'Anteprima attiva · modello solo testo') : 'Anteprima attiva · allega un fotogramma')
     : 'Finestra da condividere';
-  $('watch-summary').title = value.watching ? value.watchName : '';
+  $('watch-toggle').hidden = selectedTab === 'settings' || !value.watchAvailable;
+  $('watch-toggle').setAttribute('aria-pressed', String(Boolean(value.watching)));
+  $('watch-chip').hidden = selectedTab === 'settings' || !value.watching;
+  $('watch-chip-name').textContent = value.watchName || 'Finestra osservata'; $('watch-chip-open').title = value.watchName ? `Osservi «${value.watchName}» · apri il pannello` : 'Apri il pannello';
   $('watch-help').textContent = value.engine === 'locale' && !value.localVision
     ? `I modelli locali disponibili leggono solo testo: questa anteprima non viene vista da ${value.localEngineLabel || 'Ollama'}. Per fare una domanda su un fotogramma, scegli Codex o Claude e allegalo: ogni invio richiede conferma.`
     : value.engine === 'locale' ? 'Mentre osservi, ogni messaggio alla chat locale include il fotogramma attuale della finestra (non un video in diretta). Il fotogramma resta sul ' + value.deviceName + ' e non viene salvato nella cronologia. Per fermare la cattura usa Smetti.'
-    : `L'anteprima resta sul ${value.deviceName}. Il servizio vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Chiudere questa sezione nasconde l'anteprima ma non ferma la cattura: usa Smetti.`;
+    : `L'anteprima resta sul ${value.deviceName}. Il servizio vede solo il fotogramma che alleghi e confermi, non la finestra in diretta. Chiudere il pannello non ferma la cattura: usa Smetti o la ✕ accanto al nome.`;
   $('share-view').disabled = (value.engine === 'locale' && !value.localVision) || !value.watching || locked || !watchStream;
   updateImageStatus();
   $('share-view').title = value.engine === 'locale' && !value.localVision ? `Scegli ${localCatalog.visionChoice} nelle Impostazioni per analizzare immagini.` : '';
@@ -482,6 +517,8 @@ $('input').addEventListener('keydown', event => { if (event.key === 'Enter' && !
 // Non agisce se è aperta una finestra di conferma (la chiude il browser) o se una risposta è in corso, per non perderla di vista.
 window.addEventListener('keydown', event => {
   if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('dialog[open]')) return;
+  if (!$('attach-menu').hidden) { event.preventDefault(); openAttachMenu(false); $('watch-toggle').focus?.(); return; }
+  if (!$('watch-panel').hidden) { event.preventDefault(); openWatchPanel(false); $('watch-toggle').focus?.(); return; }
   if (selectedTab === 'settings') { event.preventDefault(); selectTab('chat'); return; }
   if (current?.busy || current?.alarm || current?.agent?.requests?.length) return;
   event.preventDefault(); invoke('chat-hide');
@@ -540,9 +577,19 @@ onClickRender('dismiss', 'setup-dismiss');
 $('setup-dialog').addEventListener('cancel', () => invoke('setup-dismiss'));
 $('refresh-watch').addEventListener('click', refreshWatchSources);
 // L'elenco delle finestre si aggiorna da solo quando si apre la sezione (non durante l'osservazione).
-$('watch-panel').addEventListener('toggle', () => { if ($('watch-panel').open && !current?.watching) refreshWatchSources(); });
+$('watch-toggle').addEventListener('click', () => { if (!$('watch-panel').hidden) openWatchPanel(false); else openAttachMenu($('attach-menu').hidden); });
+$('attach-screen').addEventListener('click', () => openWatchPanel(true));
+$('watch-close').addEventListener('click', () => openWatchPanel(false));
+$('watch-chip-open').addEventListener('click', () => openWatchPanel(true));
+$('watch-chip-stop').addEventListener('click', stopWatching);
+// Clic fuori dal pannello (e fuori dai pulsanti che lo aprono) lo chiude. Le finestre di conferma restano escluse.
+window.addEventListener('pointerdown', event => {
+  if (!$('attach-menu').hidden && ![$('attach-menu'), $('watch-toggle')].some(item => item.contains?.(event.target))) openAttachMenu(false);
+  const panel = $('watch-panel'); if (panel.hidden || document.querySelector('dialog[open]')) return;
+  if (![panel, $('watch-toggle'), $('watch-chip')].some(item => item.contains?.(event.target))) openWatchPanel(false);
+});
 $('watch-permission').addEventListener('click', () => invoke('watch-permission-settings'));
-$('watch-source').addEventListener('change', () => { $('toggle-watch').disabled = !$('watch-source').value; });
+$('watch-source').addEventListener('change', () => { $('toggle-watch').disabled = !$('watch-source').value; showThumbnail($('watch-source').value); });
 $('toggle-watch').addEventListener('click', startWatching);
 $('stop-watch').addEventListener('click', stopWatching);
 $('share-view').addEventListener('click', prepareShare);
