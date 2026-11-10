@@ -1,6 +1,6 @@
-# Mascotte 0.9.1 — Windows
+# Mascotte 0.9.1 — Windows e Mac
 
-Questa release aggiorna **Windows x64**. Per **Mac Apple Silicon** resta disponibile la [0.9.0](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.0): non è incluso un pacchetto Mac 0.9.1.
+Questa release aggiorna **Windows x64** e **Mac Apple Silicon**. Il pacchetto Windows è uscito il 9 novembre 2026; il pacchetto Mac 0.9.1 è stato aggiunto il 10 novembre 2026, dopo la compilazione e le prove sul Mac.
 
 ## Novità
 
@@ -16,6 +16,9 @@ Questa release aggiorna **Windows x64**. Per **Mac Apple Silicon** resta disponi
 
 I pacchetti Windows non sono firmati digitalmente. Scaricali da questa pagina; non disattivare le protezioni di Windows.
 
-## Mac
+## Installare o aggiornare Mac
 
-La copia Mac 0.9.0 resta invariata. Il suo vecchio controllo aggiornamenti può segnalare che manca il pacchetto Mac nell’ultima release Windows: in questo caso continua a usare la 0.9.0. La ricerca delle release per piattaforma sarà disponibile sul Mac quando verrà distribuita una nuova build collaudata.
+- Scarica `Mascotte-Mac-0.9.1-arm64.zip`, estrailo con doppio clic e sposta `Mascotte.app` in Applicazioni. Al primo avvio segui le istruzioni del [LEGGIMI](https://github.com/Zekseron/Mascotte/blob/main/LEGGIMI.md) («Apri comunque»).
+- Dalla 0.9.0 puoi usare **Impostazioni → Aggiornamenti → Controlla aggiornamenti**: il pacchetto è firmato con lo stesso certificato personale della 0.9.0 e l’app ne verifica impronta SHA-256 e firma prima di sostituirsi.
+
+Il pacchetto Mac non è notarizzato da Apple.
