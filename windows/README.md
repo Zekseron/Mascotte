@@ -1,4 +1,4 @@
-# Mascotte — Windows e Mac 0.9.1
+# Mascotte — Windows 0.9.2 e Mac 0.9.1
 
 La nuova [modalità Agente](../AGENTI.md) è verificata su Windows con Codex; Claude reale e le nuove funzioni comuni sul Mac restano da collaudare. La chat normale e quella locale restano disponibili separatamente.
 
@@ -8,9 +8,9 @@ Prima app Windows: gattino Rosso trasparente e trascinabile, menu nell'area di n
 
 ## Installare su Windows
 
-Apri `Mascotte-Setup-0.9.1-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
+Apri `Mascotte-Setup-0.9.2-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
 
-In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Entrambi i pacchetti Windows sono disponibili nella release 0.9.1, insieme al pacchetto Mac.
+In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Entrambi i pacchetti Windows sono disponibili nella release 0.9.2. Il pacchetto Mac Apple Silicon si scarica dalla release 0.9.1.
 
 ### Feedback e identificazione della build
 
@@ -34,7 +34,7 @@ Se manca spazio sopra una finestra massimizzata, la mascotte resta dentro l'area
 
 Il seguito della finestra usa un processo PowerShell locale con API User32/DWM e legge solo coordinate, PID e visibilità: l'aggancio non acquisisce immagini o testo. La chat offre separatamente l'osservazione locale di una finestra, che resta spenta finché non la attivi. Cattura, arresto e conferma del fotogramma sono stati verificati su Windows con una finestra sintetica e CLI simulate locali; le risposte visive dei servizi IA con account reali restano da provare.
 
-1. Per la versione portatile, estrai **tutto** `Mascotte-Windows-0.9.1-x64.zip` in una cartella stabile del tuo utente, per esempio `Mascotte` dentro la tua cartella utente. Non eseguire l'exe dentro lo ZIP. Mantieni accanto all'exe DLL, `resources/` e gli altri file.
+1. Per la versione portatile, estrai **tutto** `Mascotte-Windows-0.9.2-x64.zip` in una cartella stabile del tuo utente, per esempio `Mascotte` dentro la tua cartella utente. Non eseguire l'exe dentro lo ZIP. Mantieni accanto all'exe DLL, `resources/` e gli altri file.
 2. Apri `Mascotte.exe`. Non serve avviarlo come amministratore. Il pacchetto non è ancora firmato: SmartScreen chiede conferma (**Ulteriori informazioni** → **Esegui comunque**) e il Controllo intelligente delle app di Windows 11, se attivo, blocca Mascotte finché non lo disattivi (vedi [WINDOWS.md](../WINDOWS.md)). Verifica provenienza e pacchetto prima di autorizzarlo.
 3. Il gattino compare in basso a destra. Trascinalo per spostarlo. Clic sinistro apre la micro chat; clic destro e icona nell'area di notifica aprono il menu con grandezza, stati, mostra/nascondi ed Esci.
 4. Per la chat scegli Ollama locale oppure installa **Codex CLI e/o Claude Code nativi Windows** e accedi con il tuo account. Per i servizi remoti non basta il solo accesso nel browser; questa anteprima non collega automaticamente le CLI dentro WSL.
@@ -144,14 +144,14 @@ Questa è la procedura per chi ha scaricato il sorgente da GitHub o come archivi
    npm.cmd run build:win
    ```
 
-   La build crea `dist\Mascotte-Windows-0.9.1-x64.zip` e `dist\Mascotte-Setup-0.9.1-x64.exe`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
+   La build crea `dist\Mascotte-Windows-0.9.2-x64.zip` e `dist\Mascotte-Setup-0.9.2-x64.exe`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
 
 2. Estrai **tutto** lo ZIP in una cartella che non sposterai, ad esempio `%LOCALAPPDATA%\Programs\Mascotte`. In PowerShell, dalla cartella `windows`:
 
    ```powershell
    $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Mascotte'
    New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-   Expand-Archive -LiteralPath '.\dist\Mascotte-Windows-0.9.1-x64.zip' -DestinationPath $installDir -Force
+   Expand-Archive -LiteralPath '.\dist\Mascotte-Windows-0.9.2-x64.zip' -DestinationPath $installDir -Force
    ```
 
    Avvia `Mascotte.exe` da quella cartella, non dallo ZIP. Mantieni lì anche DLL e `resources`. Scegli un percorso stabile; non deve contenere `%`, virgolette o ritorni a capo. Spostare o cancellare la cartella dopo aver collegato gli hook ne interrompe l'avvio: in quel caso estrai di nuovo in un percorso stabile e ripeti il collegamento.
@@ -179,7 +179,7 @@ Per sostituire una copia estratta con lo ZIP appena creato, prima esci da Mascot
 
 ```powershell
 Set-Location .\windows
-npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.1-x64.zip" --install-dir "$env:LOCALAPPDATA\Programs\Mascotte"
+npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.2-x64.zip" --install-dir "$env:LOCALAPPDATA\Programs\Mascotte"
 ```
 
 `--install-dir` deve indicare la cartella che contiene la vecchia `Mascotte.exe`; usa il percorso effettivo se l'hai estratta altrove. Il comando rifiuta di procedere se Mascotte è ancora aperta, prepara l'aggiornamento in una cartella temporanea e conserva la cartella precedente come `Mascotte.backup-<data>`. Non cancella i dati in `%LOCALAPPDATA%\Mascotte`.
@@ -192,7 +192,7 @@ Comandi rapidi PowerShell, sempre dalla cartella `windows`:
 | Avviare il sorgente | `npm.cmd start` |
 | Eseguire i test automatici | `npm.cmd test` |
 | Creare lo ZIP Windows x64 | `npm.cmd run build:win` |
-| Aggiornare una cartella estratta | `npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.1-x64.zip" --install-dir "<cartella-installazione>"` |
+| Aggiornare una cartella estratta | `npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.2-x64.zip" --install-dir "<cartella-installazione>"` |
 
 `resources` copia gli asset dalla radice della repo; non modificarli qui. Su Mac l'anteprima usa una cartella separata e `MASCOTTE_PREVIEW=1` sceglie una porta libera, preservando la mascotte nativa attiva. I test principali sono offline; `npm.cmd test` li esegue. `npm.cmd run test:codex-policy` usa opzionalmente la CLI Codex reale contro un mock locale con CODEX_HOME vuoto, senza login.
 
