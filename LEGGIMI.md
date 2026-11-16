@@ -2,13 +2,13 @@
 
 Una mascotte animata con micro chat Claude/Codex, chat con IA locale, osservazione facoltativa di una finestra e reazioni agli eventi locali. Questa guida serve a chi riceve l'app già pronta. Gli account e le conversazioni del creatore non sono inclusi.
 
-**Versioni distribuite: 0.9.2 per Windows e 0.9.1 per Mac Apple Silicon.** Le due piattaforme possono ricevere aggiornamenti in momenti diversi.
+**Versione distribuita: 0.9.2 per Windows e Mac Apple Silicon.** Le due piattaforme possono ricevere aggiornamenti in momenti diversi.
 
 ## Cosa funziona oggi
 
 | Sistema | Disponibile |
 | --- | --- |
-| **Mac Apple Silicon** (M1 o successivi) | App [Mascotte-Mac-0.9.1-arm64.zip](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.1). Provata su macOS 27.0.1 e 27.2; non sono state provate versioni precedenti |
+| **Mac Apple Silicon** (M1 o successivi) | App [Mascotte-Mac-0.9.2-arm64.zip](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.2). Provata su macOS 27.0.1 e 27.2; non sono state provate versioni precedenti |
 | **Mac Intel** | **Non supportato** dall'app attuale (scelta fatta: solo Apple Silicon). La vecchia app Swift in `app/` può essere compilata a mano, ma non è più sviluppata |
 | **Windows x64** | App `Mascotte-Windows-<versione>-x64.zip` (portatile) e, quando presente nella release, l'installer `Mascotte-Setup-<versione>-x64.exe`. Guida in [WINDOWS.md](WINDOWS.md) |
 | Windows ARM64, Linux | Non supportati |
@@ -17,7 +17,7 @@ I pacchetti si scaricano dalla pagina **Releases** di `github.com/Zekseron/Masco
 
 ## Installare su un Mac (Apple Silicon)
 
-1. Scarica `Mascotte-Mac-0.9.1-arm64.zip` dalla [release 0.9.1](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.1) ed estrailo (doppio clic): ottieni `Mascotte.app`.
+1. Scarica `Mascotte-Mac-0.9.2-arm64.zip` dalla [release 0.9.2](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.2) ed estrailo (doppio clic): ottieni `Mascotte.app`.
 2. Trascina `Mascotte.app` nella cartella **Applicazioni**. Se vuoi che l'aggiornamento dall'app funzioni, tienila proprio in `/Applications/Mascotte.app`.
 3. **Primo avvio.** L'app non è notarizzata da Apple, quindi macOS la blocca. Aprila una volta (si chiude con un avviso), poi vai in **Impostazioni di Sistema → Privacy e sicurezza**, scorri in fondo e premi **Apri comunque** accanto a Mascotte, poi conferma. Fallo solo se ti fidi di chi ti ha mandato il pacchetto e hai scaricato lo ZIP dalla release ufficiale. Non disattivare Gatekeeper.
 4. Compare il gattino e un'icona nella barra dei menu in alto; l'app non ha icona nel Dock. Clic sul gattino (o sull'icona nella barra dei menu) apre la chat; clic destro apre il menu. **Esci** dal menu.
@@ -51,7 +51,7 @@ Puoi anche usare modelli già presenti in Ollama o altri motori locali già avvi
 ## Altre funzioni
 
 - **Note e azioni:** «ricorda: …» salva una nota; «apri la calcolatrice» o «apri download» chiedono conferma e poi aprono. Su Mac si possono aprire anche altre app («apri Safari»).
-- **Osservazione di una finestra:** su Windows apri **+ → Condividi schermata** e scegli la finestra per vedere l'anteprima, poi premi «Osserva». Su Mac 0.9.1 apri la sezione «Finestra da condividere», scegli la finestra e premi «Osserva»; «Allega fotogramma…» invia **un solo fotogramma, dopo la tua conferma**. Con la chat locale e un modello che legge le immagini, mentre osservi ogni messaggio include da solo il fotogramma attuale (resta sul computer).
+- **Osservazione di una finestra:** apri **+ → Condividi schermata** e scegli la finestra per vedere l'anteprima, poi premi «Osserva» (sulla copia Mac 0.9.1 la sezione si chiama ancora «Finestra da condividere»); «Allega fotogramma…» invia **un solo fotogramma, dopo la tua conferma**. Con la chat locale e un modello che legge le immagini, mentre osservi ogni messaggio include da solo il fotogramma attuale (resta sul computer).
 - **Promemoria e sveglie** (chat locale): «ricordami alle 15:30 di chiamare Marco», «sveglia tra 20 minuti», «che promemoria ho?», «cancella promemoria 2». Conferma prima di impostarli, notifica di sistema alla scadenza. Le **sveglie** («sveglia…», «timer…», «svegliami…») alla scadenza aprono anche la finestra di Mascotte con «Ferma» e «Rimanda 5 minuti» e suonano a ripetizione finché non le fermi (al massimo 3 minuti); i promemoria normali sono solo una notifica. Nelle Impostazioni, sezione «Sveglie e promemoria», trovi l'elenco con «Elimina», il volume della sveglia e la scelta di un audio personalizzato (MP3, WAV, M4A, OGG o FLAC, fino a 10 MB) al posto del bip.
 - **Aggiornamenti:** **Impostazioni → Controlla aggiornamenti** cerca una release più recente su GitHub e, dopo la tua conferma, la scarica e riavvia l'app.
 
@@ -90,10 +90,10 @@ Apri `viewer/index.html` (nella repo) con il browser e trascina la cartella `cha
 
 ## Segnalare un problema o proporre un’idea
 
-Su **Windows 0.9.1**, apri **Impostazioni → Feedback e suggerimenti** e premi **Segnala un problema o proponi un’idea**. Il modulo si apre nel browser e puoi scegliere italiano o inglese. Il contatto è facoltativo; non inserire password o conversazioni private. Mascotte non allega dati automaticamente.
+Dalla **0.9.1**, su Windows e Mac, apri **Impostazioni → Feedback e suggerimenti** e premi **Segnala un problema o proponi un’idea**. Il modulo si apre nel browser e puoi scegliere italiano o inglese. Il contatto è facoltativo; non inserire password o conversazioni private. Mascotte non allega dati automaticamente.
 
 Per indicare quale copia usi, trovi versione e revisione della build in **Impostazioni → Aggiornamenti**. «Modifiche locali» indica una build preparata da sorgenti con cambiamenti non ancora salvati in un commit.
 
 ### Aggiornamenti del Mac
 
-Dalla 0.9.1 anche la copia Mac cerca il pacchetto del proprio sistema nelle release recenti, se quella più recente riguarda solo Windows. La copia Mac 0.9.0 cerca invece soltanto nell’ultima release: se questa non contiene il pacchetto Mac può segnalarne la mancanza. Aggiornala alla 0.9.1 da **Impostazioni → Aggiornamenti → Controlla aggiornamenti** oppure scaricando lo ZIP dalla release.
+Dalla 0.9.1 anche la copia Mac cerca il pacchetto del proprio sistema nelle release recenti, se quella più recente riguarda solo Windows. La copia Mac 0.9.0 cerca invece soltanto nell’ultima release: se questa non contiene il pacchetto Mac può segnalarne la mancanza. Aggiornala alla versione più recente da **Impostazioni → Aggiornamenti → Controlla aggiornamenti** oppure scaricando lo ZIP dalla release.

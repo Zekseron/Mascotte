@@ -4,7 +4,7 @@
 
 Una mascotte desktop per **Windows (x64)** e **Mac (Apple Silicon)** che reagisce con animazioni a Claude Code e Codex, e che all'occorrenza fa domande al volo, risponde con un'IA locale o guarda una finestra che scegli tu. Il personaggio è intercambiabile: sono inclusi il gattino in pixel art Rosso e Luma, illustrata.
 
-Versioni distribuite: [Windows 0.9.2](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.2) e [Mac Apple Silicon 0.9.1](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.1). I due pacchetti possono essere aggiornati in momenti diversi.
+Versione distribuita: [0.9.2 per Windows e Mac Apple Silicon](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.2). I due pacchetti possono essere aggiornati in momenti diversi.
 
 Progetto e decisioni: [DESIGN.md](DESIGN.md).
 
@@ -23,7 +23,7 @@ Progetto e decisioni: [DESIGN.md](DESIGN.md).
 - **Secondo parere:** sotto una risposta locale, «Chiedi a Codex o Claude…» manda domanda e risposta per una verifica; «Secondo parere con schermata…» aggiunge il fotogramma che ha visto il modello locale (conservato in memoria 10 minuti) o quello della finestra osservata. Sempre con anteprima e conferma.
 - **Hook:** dalle **Impostazioni** si collegano le sessioni di Claude Code e Codex, così la mascotte reagisce a ciò che fanno. Anteprima prima di applicare, con backup.
 - **Aggiornamenti:** dalle **Impostazioni** si controllano e si installano le nuove versioni pubblicate. Dalla 0.9.1 la ricerca tiene conto del sistema operativo.
-- **Feedback (Windows 0.9.1):** dalle Impostazioni puoi segnalare un problema o proporre un’idea con un modulo in italiano e inglese. Contatto facoltativo; nessun dato viene allegato automaticamente.
+- **Feedback (dalla 0.9.1):** dalle Impostazioni puoi segnalare un problema o proporre un’idea con un modulo in italiano e inglese. Contatto facoltativo; nessun dato viene allegato automaticamente.
 
 Il dettaglio di ogni funzione, con limiti e prove, è in [windows/README.md](windows/README.md). Cosa esce dal computer e cosa no: [PRIVACY.md](PRIVACY.md).
 
