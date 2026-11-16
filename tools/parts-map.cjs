@@ -24,6 +24,8 @@ const LUMA_PARTS = ['capelli', 'pelle', 'giacca', 'salopette', 'cuoio', 'collett
 function lumaGuess(r, g, b) {
   const [h, s, v] = rgbToHsv(r, g, b);
   if (v < 0.28) return 'contorno';
+  // Azzurro chiaro: goccia di sudore e riflessi degli effetti, mai ricolorati (la salopette è petrolio scuro).
+  if (h >= 160 && h <= 225 && s > 0.2 && v >= 0.72) return 'contorno';
   if (h >= 160 && h <= 225 && s > 0.2) return 'salopette';
   if (s < 0.16 && v > 0.82) return 'colletto';
   if (h >= 8 && h <= 42 && s < 0.48 && v > 0.84) return 'pelle';

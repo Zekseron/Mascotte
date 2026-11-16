@@ -30,7 +30,7 @@ function loadCharacter(value){
   canvas.style.imageRendering=(pack.pixelRatio||1)>1?'auto':'pixelated';
   canvas.setAttribute('aria-label',pack.name+': clic per aprire la micro chat');
   partsReady=false;partsCanvas.width=pack.frame.width;partsCanvas.height=pack.frame.height;setColors(value.colors);
-  if(pack.parts&&value.partsData){partsImage.onload=()=>{partsReady=true;previous=null;if(!loading)tick();};partsImage.src=value.partsData;}else partsImage.removeAttribute('src');
+  if(pack.parts&&value.partsData){partsImage.onload=()=>{partsReady=true;previous=null;if(!loading)tick();};partsImage.onerror=()=>{partsReady=false;};partsImage.src=value.partsData;}else partsImage.removeAttribute('src');
   image.onload=()=>{loading=false;play(pendingAnimation||value.animation);};
   image.src=value.imageData;
 }

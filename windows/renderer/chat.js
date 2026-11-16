@@ -417,23 +417,34 @@ function renderCharacters(value, locked) {
   renderColors(info, busy);
 }
 // Colori delle parti: l'elenco si ricostruisce solo cambiando personaggio, così il selettore aperto non si chiude mentre scegli.
-let colorInputs = {}, colorTimer = null, colorPending = null;
+// Ogni richiesta porta l'id del personaggio da cui parte: se intanto cambi personaggio, il processo principale la ignora.
+// Un ripristino annulla il colore ancora in coda, così non viene riapplicato dopo.
+let colorInputs = {}, colorTimer = null, colorPending = null, colorCharacter = null;
 function sendColor(part, color) {
-  colorPending = { part, color };
+  colorPending = { character: colorCharacter, part, color };
   if (colorTimer) return;
   colorTimer = setTimeout(async () => { colorTimer = null; const next = colorPending; colorPending = null; if (next) render(await invoke('character-colors', next)); }, 120);
+}
+function cancelPendingColor(part) {
+  if (colorPending && (!part || colorPending.part === part)) colorPending = null;
+  if (!colorPending && colorTimer) { clearTimeout(colorTimer); colorTimer = null; }
+}
+async function resetColors(part) {
+  cancelPendingColor(part);
+  render(await invoke('character-colors', part ? { character: colorCharacter, part, color: null } : { character: colorCharacter, reset: true }));
 }
 function renderColors(info, busy) {
   const parts = info.parts || [], list = $('character-colors'), signature = info.current + '|' + parts.map(part => part.id).join(',');
   $('colors-section').hidden = !parts.length;
   if (list.dataset.signature !== signature) {
+    cancelPendingColor(); colorCharacter = info.current;
     list.dataset.signature = signature; colorInputs = {};
     list.replaceChildren(...parts.map(part => {
       const row = document.createElement('label'); row.className = 'color-row';
       const name = document.createElement('span'); name.textContent = part.name;
       const input = document.createElement('input'); input.type = 'color'; input.setAttribute('aria-label', `Colore: ${part.name}`);
       input.addEventListener('input', () => sendColor(part.id, input.value));
-      const reset = listButton('↺', async () => render(await invoke('character-colors', { part: part.id, color: null })));
+      const reset = listButton('↺', () => resetColors(part.id));
       reset.title = `Colore originale di ${part.name}`; reset.setAttribute('aria-label', reset.title);
       colorInputs[part.id] = { input, reset };
       row.append(name, input, reset); return row;
@@ -567,7 +578,7 @@ $('new').addEventListener('click', async () => { $('input').value = ''; drafts[c
 $('settings-back').addEventListener('click', () => selectTab('chat'));
 $('settings-toggle').addEventListener('click', async () => { if (selectedTab === 'settings') { selectTab('chat'); $('input').focus(); return; } selectTab('settings'); render(await invoke('local-scan')); });
 $('character-select').addEventListener('change', async () => render(await invoke('character-select', $('character-select').value)));
-$('colors-reset').addEventListener('click', async () => render(await invoke('character-colors', { reset: true })));
+$('colors-reset').addEventListener('click', () => resetColors(null));
 $('character-scale').addEventListener('change', async () => render(await invoke('character-scale', Number($('character-scale').value))));
 onClickRender('character-add', 'character-add');
 $('guide-characters').addEventListener('click', () => invoke('cli-guide', 'characters'));

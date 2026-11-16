@@ -218,7 +218,14 @@ function startApplication() {
   function readCharacters(reloadIncluded = false) {
     if (reloadIncluded || !includedCharacters.length) includedCharacters = Characters.readIncluded(P, path.join(__dirname, 'resources/characters'));
     const personal = Characters.readPersonal(P, personalDirectory, includedCharacters.map(c => c.id));
-    characterWarnings = personal.warnings; for (const warning of personal.warnings) console.warn(warning);
+    characterWarnings = personal.warnings;
+    // Mappa dei colori che non si riesce a decodificare: il personaggio resta, senza la sezione Colori, con un avviso.
+    for (const character of [...includedCharacters, ...personal.characters]) {
+      if (!character.partsData || !character.pack.parts) continue;
+      let ok = false; try { ok = !nativeImage.createFromDataURL(character.partsData).isEmpty(); } catch {}
+      if (!ok) { delete character.partsData; delete character.pack.parts; characterWarnings.push(`Mascotte «${character.name}»: parts.png non è leggibile, i colori personalizzati sono disattivati.`); }
+    }
+    for (const warning of characterWarnings) console.warn(warning);
     return [...includedCharacters, ...personal.characters];
   }
   // Stato dei collegamenti agli hook, ricavato dal file di registrazione: 'active', 'moved' (app spostata) oppure 'none'.
@@ -502,6 +509,8 @@ function startApplication() {
     if (kitty) {
       if (action === 'init') return { pack, imageData, partsData, colors: characterColors(), scale: settings.scale, animation: stateAnimation() };
       if (action === 'mask' && (Array.isArray(data)||data instanceof Uint8Array) && data.length === pack.frame.width * pack.frame.height && data.every(x => x === 0 || x === 1)) { hitMask = data; updateHit(); return; }
+      // Maschera di un personaggio appena sostituito (dimensioni diverse): superata, si ignora senza errore.
+      if (action === 'mask' && (Array.isArray(data)||data instanceof Uint8Array)) return;
       if (action === 'chat') { if (!currentRun) controller.set('listening'); showChat(); return; }
       if (action === 'menu') { prepareWindowCapture(); menu().popup({ window: mascot }); return; }
       if (action === 'drag-start') { detach(); drag = { position: mascot.getBounds(), cursor: screen.getCursorScreenPoint(), resume: controller.state }; controller.set('drag', true); mouseIgnored = false; mascot.setIgnoreMouseEvents(false); return; }
@@ -686,7 +695,9 @@ function startApplication() {
       if (action === 'character-select' && typeof data === 'string' && characters.some(c => c.id === data)) { selectCharacter(data); characterStatus = ''; characterStatusFailed = false; return chatSnapshot(); }
       // Stessi valori e limiti del menu «Grandezza» della mascotte.
       // Colore di una parte ({ part, color }), ripristino di una parte ({ part, color: null }) o di tutte ({ reset: true }).
-      if (action === 'character-colors' && pack?.parts && data && typeof data === 'object') {
+      // `character` è l'id del personaggio da cui parte la scelta: se nel frattempo è cambiato, la richiesta superata si ignora.
+      if (action === 'character-colors') {
+        if (!pack?.parts || !data || typeof data !== 'object' || data.character !== pack.id) return chatSnapshot();
         const own = { ...(settings.colors[pack.id] || {}) };
         if (data.reset === true) for (const key of Object.keys(own)) delete own[key];
         else {
