@@ -1,4 +1,4 @@
-# Mascotte — Windows 0.9.2 e Mac 0.9.5
+# Mascotte — Windows 0.9.2 e Mac 0.9.6
 
 La nuova [modalità Agente](../AGENTI.md) è verificata su Windows con Codex; Claude reale e le nuove funzioni comuni sul Mac restano da collaudare. La chat normale e quella locale restano disponibili separatamente.
 
@@ -10,13 +10,13 @@ Prima app Windows: gattino Rosso trasparente e trascinabile, menu nell'area di n
 
 Apri `Mascotte-Setup-0.9.2-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
 
-In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Entrambi i pacchetti Windows sono disponibili nella release 0.9.2. Il pacchetto Mac Apple Silicon più recente è nella release 0.9.5.
+In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Entrambi i pacchetti Windows sono disponibili nella release 0.9.2. Il pacchetto Mac Apple Silicon più recente è nella release 0.9.6.
 
 ### Feedback e identificazione della build
 
 In **Impostazioni → Feedback e suggerimenti** il pulsante apre il modulo Google Forms nel browser, con scelta tra italiano e inglese e contatto facoltativo. Il link non contiene dati precompilati e l’app non allega chat, note o file. In **Impostazioni → Aggiornamenti** sono visibili versione e revisione Git della build; «modifiche locali» distingue i pacchetti preparati da un albero di lavoro modificato. Le informazioni sono generate con `npm run resources`: per usarle nell’app installata non serve Git.
 
-Ogni nuovo pacchetto pubblico deve avere una versione superiore a quello precedente: il controllo aggiornamenti confronta `X.Y.Z`, quindi due build chiamate entrambe 0.9.0 non si aggiornano tra loro. La 0.9.1 è uscita prima per Windows; il pacchetto Mac 0.9.1 è stato aggiunto alla stessa release il 10 novembre 2026. Dalla 0.9.1 le build cercano il pacchetto del proprio sistema nelle ultime 100 release se quella più recente riguarda solo l’altra piattaforma. La copia Mac 0.9.0 cerca soltanto nell’ultima release: può segnalare un pacchetto mancante se questa contiene solo Windows. La 0.9.2 è uscita prima per Windows (11 novembre) e il pacchetto Mac è stato aggiunto alla stessa release il 16 novembre 2026. La 0.9.3 è uscita solo per Mac (16 novembre 2026): il tag non costruisce Windows perché la release esiste già; i pacchetti Windows si aggiungono dopo il collaudo avviando a mano il workflow «Release Windows» con il tag della release. Anche la 0.9.4 (correzioni di «apri») e la 0.9.5 (colori delle mascotte) sono uscite solo per Mac.
+Ogni nuovo pacchetto pubblico deve avere una versione superiore a quello precedente: il controllo aggiornamenti confronta `X.Y.Z`, quindi due build chiamate entrambe 0.9.0 non si aggiornano tra loro. La 0.9.1 è uscita prima per Windows; il pacchetto Mac 0.9.1 è stato aggiunto alla stessa release il 10 novembre 2026. Dalla 0.9.1 le build cercano il pacchetto del proprio sistema nelle ultime 100 release se quella più recente riguarda solo l’altra piattaforma. La copia Mac 0.9.0 cerca soltanto nell’ultima release: può segnalare un pacchetto mancante se questa contiene solo Windows. La 0.9.2 è uscita prima per Windows (11 novembre) e il pacchetto Mac è stato aggiunto alla stessa release il 16 novembre 2026. La 0.9.3 è uscita solo per Mac (16 novembre 2026): il tag non costruisce Windows perché la release esiste già; i pacchetti Windows si aggiungono dopo il collaudo avviando a mano il workflow «Release Windows» con il tag della release. Anche la 0.9.4 (correzioni di «apri») la 0.9.5 (colori delle mascotte) e la 0.9.6 (correzioni dei colori di Luma) sono uscite solo per Mac.
 
 ### Personaggi e Impostazioni
 

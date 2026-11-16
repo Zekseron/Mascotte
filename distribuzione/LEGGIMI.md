@@ -2,13 +2,13 @@
 
 Una mascotte animata con micro chat Claude/Codex, chat con IA locale, osservazione facoltativa di una finestra e reazioni agli eventi locali. Questa guida serve a chi riceve l'app già pronta. Gli account e le conversazioni del creatore non sono inclusi.
 
-**Versioni distribuite: 0.9.5 per Mac Apple Silicon e 0.9.2 per Windows.** Le due piattaforme possono ricevere aggiornamenti in momenti diversi.
+**Versioni distribuite: 0.9.6 per Mac Apple Silicon e 0.9.2 per Windows.** Le due piattaforme possono ricevere aggiornamenti in momenti diversi.
 
 ## Cosa funziona oggi
 
 | Sistema | Disponibile |
 | --- | --- |
-| **Mac Apple Silicon** (M1 o successivi) | App [Mascotte-Mac-0.9.5-arm64.zip](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.5). Provata su macOS 27.0.1 e 27.2; non sono state provate versioni precedenti |
+| **Mac Apple Silicon** (M1 o successivi) | App [Mascotte-Mac-0.9.6-arm64.zip](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.6). Provata su macOS 27.0.1 e 27.2; non sono state provate versioni precedenti |
 | **Mac Intel** | **Non supportato** dall'app attuale (scelta fatta: solo Apple Silicon). La vecchia app Swift in `app/` può essere compilata a mano, ma non è più sviluppata |
 | **Windows x64** | App `Mascotte-Windows-<versione>-x64.zip` (portatile) e, quando presente nella release, l'installer `Mascotte-Setup-<versione>-x64.exe`. Guida in [WINDOWS.md](WINDOWS.md) |
 | Windows ARM64, Linux | Non supportati |
@@ -17,7 +17,7 @@ I pacchetti si scaricano dalla pagina **Releases** di `github.com/Zekseron/Masco
 
 ## Installare su un Mac (Apple Silicon)
 
-1. Scarica `Mascotte-Mac-0.9.5-arm64.zip` dalla [release 0.9.5](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.5) ed estrailo (doppio clic): ottieni `Mascotte.app`.
+1. Scarica `Mascotte-Mac-0.9.6-arm64.zip` dalla [release 0.9.6](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.6) ed estrailo (doppio clic): ottieni `Mascotte.app`.
 2. Trascina `Mascotte.app` nella cartella **Applicazioni**. Se vuoi che l'aggiornamento dall'app funzioni, tienila proprio in `/Applications/Mascotte.app`.
 3. **Primo avvio.** L'app non è notarizzata da Apple, quindi macOS la blocca. Aprila una volta (si chiude con un avviso), poi vai in **Impostazioni di Sistema → Privacy e sicurezza**, scorri in fondo e premi **Apri comunque** accanto a Mascotte, poi conferma. Fallo solo se ti fidi di chi ti ha mandato il pacchetto e hai scaricato lo ZIP dalla release ufficiale. Non disattivare Gatekeeper.
 4. Compare il gattino e un'icona nella barra dei menu in alto; l'app non ha icona nel Dock. Clic sul gattino (o sull'icona nella barra dei menu) apre la chat; clic destro apre il menu. **Esci** dal menu.
@@ -66,7 +66,7 @@ Se sposti l'app (per esempio nella cartella Applicazioni dopo aver fatto gli hoo
 
 - **Aggancio:** al Dock su Mac, alla barra delle applicazioni su Windows. L'aggancio alla finestra attiva c'è su entrambi.
 - **IA locale:** i modelli proposti sono diversi (su Mac Gemma 4 e Qwen3.5, tutti in grado di leggere le immagini; su Windows Qwen3 e Qwen3-VL). Su Windows il motore predefinito è llama.cpp (Mascotte), su Mac Ollama. Ollama gestito dall'app solo su Windows.
-- **Azioni:** su Mac 0.9.5 app installate, cartelle e file nelle cartelle note; su Windows 0.9.2 solo Calcolatrice e cartelle, con conferma.
+- **Azioni:** su Mac 0.9.6 app installate, cartelle e file nelle cartelle note; su Windows 0.9.2 solo Calcolatrice e cartelle, con conferma.
 - **Distribuzione:** su Mac solo ZIP, firmato con un certificato personale e non notarizzato (serve «Apri comunque»); su Windows ZIP e installer, non firmati.
 - **Permessi:** solo su Mac serve «Registrazione schermo» per l'osservazione.
 
