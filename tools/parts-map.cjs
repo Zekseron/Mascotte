@@ -29,9 +29,13 @@ function lumaGuess(r, g, b) {
   if (h >= 160 && h <= 225 && s > 0.2) return 'salopette';
   if (s < 0.16 && v > 0.82) return 'colletto';
   if (h >= 8 && h <= 42 && s < 0.48 && v > 0.84) return 'pelle';
-  if (h >= 15 && h <= 45 && s < 0.62 && v < 0.66) return 'cuoio';
-  if (h >= 31 && h <= 60 && s > 0.5) return 'giacca';
-  if ((h < 25 || h > 340) && s > 0.55) return 'capelli';
+  // Misure sul foglio (16/11/2026): capelli tonalità 9–21 molto saturi; giacca 27–39 comprese le pieghe (27–30, saturazione 0,8–0,9);
+  // stivali e cinghie spenti (saturazione 0,4–0,55); polsini e ombre scure delle maniche arancio-bruno (18–26, saturazione 0,6–0,75).
+  if (h >= 15 && h <= 45 && s < 0.56 && v < 0.66) return 'cuoio';
+  if (h >= 26 && h <= 60 && s > 0.5) return 'giacca';
+  if ((h < 17 || h > 340) && s > 0.55) return 'capelli';
+  if (h < 22 && s > 0.55 && v >= 0.66) return 'capelli';
+  // Toni scuri o di confine (polsini, pieghe profonde, ciocche in ombra): decide la zona in cui stanno.
   return 'dubbio';
 }
 
@@ -91,6 +95,12 @@ function lumaFrame(data, w, h) {
     for (const i of cells) {
       const l = label[i];
       let part = mixed && l !== 'dubbio' ? l : main;
+      // In una zona di giacca le pieghe arancioni e i polsini restano giacca anche se il singolo pixel somiglia a capelli o cuoio.
+      if (main === 'giacca' && (part === 'capelli' || part === 'cuoio')) part = 'giacca';
+      // Mani e gambe: le ombre delle dita somigliano al cuoio, e sotto la testa la pelle non ha capelli sopra senza contorno.
+      // (solo fino a tre quarti della figura: più in basso ci sono gli stivali, che possono toccare le gambe senza contorno).
+      const rel = (Math.floor(i / w) - top) / height;
+      if (main === 'pelle' && rel < 0.75 && (part === 'cuoio' || (part === 'capelli' && rel > 0.45))) part = 'pelle';
       if (part === 'capelli' && (Math.floor(i / w) - top) / height > 0.56) part = 'cuoio';
       result[i] = part;
     }
@@ -98,6 +108,8 @@ function lumaFrame(data, w, h) {
   }
   // Nelle zone miste (capelli che toccano la pelle senza contorno) le macchie piccole prendono la parte attorno:
   // lentiggini e rossore restano pelle, i riflessi isolati restano capelli.
+  leatherOnOveralls(result, region, id, data, w, h);
+  heldObjects(result, region, id, w, h, top, height);
   cleanSmallBlobs(result, w, h, 150, top, height, data);
   for (let i = 0; i < n; i++) if (result[i] === 'dubbio') result[i] = null;
   markIrises(result, data, label, w, h, top, height);
@@ -208,6 +220,53 @@ function markIrises(result, data, label, w, h, top, height) {
   });
 }
 
+// Cintura e borsa hanno un marrone-arancio simile ai polsini scuri della giacca. Una zona chiusa «giacca» piuttosto scura
+// che attorno (oltre il contorno, entro 4 pixel) ha soprattutto salopette o cuoio, e quasi niente pelle, è cuoio.
+function leatherOnOveralls(result, region, count, data, w, h) {
+  const n = w * h, stats = Array.from({ length: count }, () => ({ v: 0, px: 0, around: {} }));
+  for (let i = 0; i < n; i++) {
+    const r = region[i]; if (r < 0 || result[i] !== 'giacca') continue;
+    const st = stats[r]; st.px++; st.v += Math.max(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]) / 255;
+    const x = i % w, y = (i - x) / w;
+    for (const [dx, dy] of [[4, 0], [-4, 0], [0, 4], [0, -4], [3, 3], [-3, 3], [3, -3], [-3, -3]]) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      const j = ny * w + nx; if (region[j] === r || !result[j]) continue;
+      st.around[result[j]] = (st.around[result[j]] || 0) + 1;
+    }
+  }
+  const leather = new Uint8Array(count);
+  stats.forEach((st, r) => {
+    if (!st.px) return;
+    const total = Object.values(st.around).reduce((a, b) => a + b, 0); if (!total) return;
+    const share = k => (st.around[k] || 0) / total;
+    if (st.v / st.px < 0.75 && share('salopette') + share('cuoio') >= 0.45 && share('pelle') < 0.1) leather[r] = 1;
+  });
+  for (let i = 0; i < n; i++) if (region[i] >= 0 && leather[region[i]] && result[i] === 'giacca') result[i] = 'cuoio';
+}
+
+// Oggetti tenuti in mano (copertina del libro, manico rosso degli attrezzi): zona «capelli» sotto la testa che non confina
+// con altri capelli (le ciocche confinano sempre con altre ciocche). Non è una parte di Luma: resta del suo colore.
+function heldObjects(result, region, count, w, h, top, height) {
+  const n = w * h, stats = Array.from({ length: count }, () => ({ px: 0, y: 0, around: {} }));
+  for (let i = 0; i < n; i++) {
+    const r = region[i]; if (r < 0 || result[i] !== 'capelli') continue;
+    const st = stats[r]; st.px++; st.y += Math.floor(i / w);
+    const x = i % w, y = (i - x) / w;
+    for (const [dx, dy] of [[4, 0], [-4, 0], [0, 4], [0, -4], [3, 3], [-3, 3], [3, -3], [-3, -3]]) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      const j = ny * w + nx; if (region[j] === r || !result[j]) continue;
+      st.around[result[j]] = (st.around[result[j]] || 0) + 1;
+    }
+  }
+  const held = new Uint8Array(count);
+  stats.forEach((st, r) => {
+    if (!st.px || (st.y / st.px - top) / height < 0.36) return;
+    const total = Object.values(st.around).reduce((a, b) => a + b, 0); if (!total) return;
+    if ((st.around.capelli || 0) / total < 0.08 && st.px >= 40) held[r] = 1;
+  });
+  for (let i = 0; i < n; i++) if (region[i] >= 0 && held[region[i]] && result[i] === 'capelli') result[i] = null;
+}
+
 function cleanSmallBlobs(result, w, h, limit, top, height, data) {
   const n = w * h, seen = new Uint8Array(n), stack = new Int32Array(n);
   for (let start = 0; start < n; start++) {
@@ -230,6 +289,17 @@ function cleanSmallBlobs(result, w, h, limit, top, height, data) {
     const relY = (sumY / cells.length - top) / height;
     // Viso: macchie «capelli» dentro la pelle nella parte alta. Ambra (tonalità ≥ 18°) = occhi; rosso o rosa = bocca e rossore, che restano pelle.
     const face = ['capelli', 'giacca', 'dubbio'].includes(part) && ['pelle', 'colletto'].includes(best?.[0]) && cells.length >= 6 && cells.length <= 600 && relY < 0.34;
+    // Bocca aperta (anche grande, o più in basso quando salta): zona rossa racchiusa dalla pelle → pelle.
+    if (!face && part === 'capelli' && best?.[0] === 'pelle' && cells.length <= 2500 && relY < 0.48) {
+      const [hue] = rgbToHsv(sumR / cells.length, sumG / cells.length, sumB / cells.length);
+      const share = best[1] / Object.values(around).reduce((a, b) => a + b, 0);
+      if ((hue < 14 || hue > 340) && share > 0.5) { for (const i of cells) result[i] = 'pelle'; continue; }
+    }
+    // Ombra del collo sotto il mento: zona «capelli» fra pelle e colletto, sotto la faccia.
+    if (!face && part === 'capelli' && ['pelle', 'colletto'].includes(best?.[0]) && cells.length <= 2500 && relY >= 0.26 && relY < 0.5) {
+      const share = ((around.pelle || 0) + (around.colletto || 0)) / Object.values(around).reduce((a, b) => a + b, 0);
+      if (share > 0.45) { for (const i of cells) result[i] = 'pelle'; continue; }
+    }
     // Bianco degli occhi: piccole zone chiare nel viso. Non si ricolora (non è il colletto).
     if (part === 'colletto' && cells.length <= 150 && relY < 0.42) { for (const i of cells) result[i] = null; continue; }
     if (face) {
@@ -261,6 +331,20 @@ const CHARACTERS = {
   rosso: { dir: 'characters/Cat/rosso', parts: ROSSO_PARTS, frame: rossoFrame,
     names: { pelo: 'Pelo', strisce: 'Strisce', pancia: 'Pancia e muso', rosa: 'Orecchie e naso' } }
 };
+
+function applyFixes(fixes, cell, labels, frame, fw) {
+  for (const fix of fixes) {
+    if (!fix.cells?.includes(cell)) continue;
+    const [x0, y0, x1, y1] = fix.rect;
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const i = y * fw + x, label = labels[i]; if (!label) continue;
+      let clear = fix.clear?.includes(label);
+      // Carta e pagine: chiare e crema-gialle (tonalità oltre 32°), mentre la pelle è pesca (15–25°).
+      if (!clear && fix.clearPale && label === 'pelle') { const [hue, s, v] = rgbToHsv(frame[i * 4], frame[i * 4 + 1], frame[i * 4 + 2]); clear = v > 0.75 && (s < 0.2 || (hue >= 32 && s < 0.5)); }
+      if (clear) labels[i] = null;
+    }
+  }
+}
 
 // Aggiunge o sostituisce la sola voce "parts" in character.json, senza riformattare il resto del file.
 function withParts(text, parts) {
@@ -297,6 +381,9 @@ async function main() {
   ctx.drawImage(image, 0, 0);
   const sheet = ctx.getImageData(0, 0, W, H).data;
   const map = new Uint8Array(W * H);
+  // Correzioni manuali facoltative, accanto ai sorgenti del personaggio.
+  const fixFile = path.join(ROOT, 'characters-src', path.relative('characters', config.dir), 'parts-fix.json');
+  const fixes = fs.existsSync(fixFile) ? JSON.parse(fs.readFileSync(fixFile, 'utf8')).fix || [] : [];
   const cols = Math.floor(W / fw), rows = Math.floor(H / fh);
   for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
     const frame = new Uint8ClampedArray(fw * fh * 4);
@@ -308,6 +395,7 @@ async function main() {
     for (let i = 3; i < frame.length; i += 4) if (frame[i]) { any = true; break; }
     if (!any) continue;
     const labels = config.frame(frame, fw, fh);
+    applyFixes(fixes, `${col}:${row}`, labels, frame, fw);
     for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) {
       const part = labels[y * fw + x], index = part ? config.parts.indexOf(part) + 1 : 0;
       if (index > 0) map[(row * fh + y) * W + col * fw + x] = index;
@@ -358,7 +446,7 @@ async function writePreview(id, config, sheet, map, W, H, fw, fh, cols, rows) {
   // Prova di colore (solo controllo, non è uno stile dell'app): stessa funzione usata dalla mascotte.
   const Recolor = require(path.join(ROOT, 'windows', 'renderer', 'recolor.js'));
   const pack = JSON.parse(fs.readFileSync(path.join(ROOT, config.dir, 'character.json'), 'utf8'));
-  const demo = { capelli: '#3a2448', pelle: '#f4e6e6', giacca: '#232026', salopette: '#43264a', cuoio: '#262325', colletto: '#ece6ee', occhi: '#7a2f8a', pelo: '#3b3a40', strisce: '#232227', pancia: '#cfcbd6', rosa: '#b07ab8' };
+  const demo = process.env.PARTS_DEMO ? JSON.parse(process.env.PARTS_DEMO) : { capelli: '#3a2448', pelle: '#f4e6e6', giacca: '#232026', salopette: '#43264a', cuoio: '#262325', colletto: '#ece6ee', occhi: '#7a2f8a', pelo: '#3b3a40', strisce: '#232227', pancia: '#cfcbd6', rosa: '#b07ab8' };
   const transforms = Recolor.prepare(config.parts.map(part => { const item = pack.parts.list.find(entry => entry.id === part); return item && demo[part] ? { base: item.color, target: demo[part] } : null; }));
   const demoOut = createCanvas(tw * 2 * 6, th * Math.ceil(pick.length / 6)), dctx = demoOut.getContext('2d');
   dctx.fillStyle = '#ffffff'; dctx.fillRect(0, 0, demoOut.width, demoOut.height);

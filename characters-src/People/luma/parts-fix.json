@@ -1,0 +1,75 @@
+{
+  "nota": "Correzioni manuali della mappa delle parti (tools/parts-map.cjs), applicate dopo il calcolo automatico. Coordinate in pixel della cella 320×512. «clear»: parti che dentro il riquadro diventano «nessuna parte»; «clearPale»: anche i pixel chiari quasi senza colore (pagine) classificati pelle.",
+  "fix": [
+    {
+      "motivo": "libro tenuto in mano nelle pose di lettura: copertina e pagine non sono parti di Luma",
+      "cells": [
+        "10:3",
+        "11:3",
+        "12:3",
+        "13:3",
+        "14:3",
+        "15:3"
+      ],
+      "rect": [
+        100,
+        257,
+        196,
+        326
+      ],
+      "clear": [
+        "giacca",
+        "capelli",
+        "cuoio",
+        "colletto"
+      ],
+      "clearPale": true
+    },
+    {
+      "motivo": "libro mentre gira pagina (la pagina alzata arriva più in alto)",
+      "cells": [
+        "0:4",
+        "1:4"
+      ],
+      "rect": [
+        104,
+        249,
+        200,
+        328
+      ],
+      "clear": [
+        "giacca",
+        "capelli",
+        "cuoio",
+        "colletto"
+      ],
+      "clearPale": true
+    },
+    {
+      "motivo": "blocco per appunti e matita nelle pose di scrittura: la carta crema somiglia alla pelle",
+      "cells": [
+        "2:4",
+        "3:4",
+        "4:4",
+        "5:4",
+        "6:4",
+        "7:4",
+        "8:4",
+        "9:4"
+      ],
+      "rect": [
+        110,
+        258,
+        207,
+        327
+      ],
+      "clear": [
+        "giacca",
+        "capelli",
+        "cuoio",
+        "colletto"
+      ],
+      "clearPale": true
+    }
+  ]
+}
