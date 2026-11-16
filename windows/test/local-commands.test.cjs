@@ -239,3 +239,33 @@ test('Mac: app web dei browser in «Chrome Apps.localized» dentro Applicazioni 
   assert.equal(validateTarget(chat.target, opts), true);
   assert.equal(parseLocalCommand('apri nascosta', opts).type, 'reply');
 });
+
+// --- Colori delle mascotte: ricolorazione per parti (16 novembre 2026) ---
+test('ricolorazione: solo le parti con un colore scelto, luci e ombre conservate', () => {
+  const R = require('../renderer/recolor.js');
+  const base = '#c86432', target = '#3a2448';
+  const transforms = R.prepare([{ base, target }, { base: '#eebca3', target: '#eebca3' }]);
+  assert.equal(transforms[1], null); // colore uguale all'originale: parte non toccata
+  const data = new Uint8ClampedArray([200, 100, 50, 255, 230, 130, 80, 255, 120, 50, 20, 255, 238, 188, 163, 255, 200, 100, 50, 0]);
+  const map = new Uint8ClampedArray([1, 0, 0, 255, 1, 0, 0, 255, 1, 0, 0, 255, 2, 0, 0, 255, 1, 0, 0, 255]);
+  const out = R.apply(Uint8ClampedArray.from(data), map, transforms);
+  assert.deepEqual([...out.slice(0, 3)], R.hexToRgb(target)); // il colore base diventa esattamente quello scelto
+  const v = i => R.rgbToHsv(out[i], out[i + 1], out[i + 2])[2];
+  assert.ok(v(4) > v(0) && v(0) > v(8), 'la luce resta più chiara e l’ombra più scura');
+  assert.deepEqual([...out.slice(12, 16)], [238, 188, 163, 255]); // pelle invariata
+  assert.deepEqual([...out.slice(16, 20)], [200, 100, 50, 0]); // pixel trasparente invariato
+  const lighter = R.apply(Uint8ClampedArray.from(data.slice(0, 12)), map.slice(0, 12), R.prepare([{ base, target: '#f0f0f0' }]));
+  assert.ok(R.rgbToHsv(lighter[4], lighter[5], lighter[6])[2] >= R.rgbToHsv(lighter[0], lighter[1], lighter[2])[2], 'verso il bianco le luci non si invertono');
+});
+
+test('personaggi inclusi: mappa delle parti valida, grande quanto il foglio, colori originali esadecimali', () => {
+  const P = require('../../viewer/pack.js'), { loadPack } = require('../lib/characters.cjs');
+  for (const folder of ['People/luma', 'Cat/rosso']) {
+    const loaded = loadPack(P, path.join(__dirname, '..', '..', 'characters', folder));
+    assert.ok(loaded.pack.parts && loaded.parts, folder);
+    assert.ok(loaded.pack.parts.list.length >= 4, folder);
+    assert.deepEqual(P.pngSize(loaded.parts), P.pngSize(loaded.bytes), folder);
+  }
+  const broken = P.validatePack({ ...JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'characters', 'Cat', 'rosso', 'character.json'), 'utf8')), parts: { sheet: '../x.png', list: [] } }, 192, 480);
+  assert.equal(broken.pack.parts, undefined); assert.ok(broken.warnings.some(w => w.startsWith('parts:')));
+});

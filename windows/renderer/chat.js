@@ -414,6 +414,37 @@ function renderCharacters(value, locked) {
   $('character-add').disabled = busy || personal.length >= info.max;
   $('character-warnings').textContent = info.warnings.join('\n'); $('character-warnings').hidden = !info.warnings.length;
   $('character-status').textContent = info.status || ''; $('character-status').className = info.failed ? 'error' : '';
+  renderColors(info, busy);
+}
+// Colori delle parti: l'elenco si ricostruisce solo cambiando personaggio, così il selettore aperto non si chiude mentre scegli.
+let colorInputs = {}, colorTimer = null, colorPending = null;
+function sendColor(part, color) {
+  colorPending = { part, color };
+  if (colorTimer) return;
+  colorTimer = setTimeout(async () => { colorTimer = null; const next = colorPending; colorPending = null; if (next) render(await invoke('character-colors', next)); }, 120);
+}
+function renderColors(info, busy) {
+  const parts = info.parts || [], list = $('character-colors'), signature = info.current + '|' + parts.map(part => part.id).join(',');
+  $('colors-section').hidden = !parts.length;
+  if (list.dataset.signature !== signature) {
+    list.dataset.signature = signature; colorInputs = {};
+    list.replaceChildren(...parts.map(part => {
+      const row = document.createElement('label'); row.className = 'color-row';
+      const name = document.createElement('span'); name.textContent = part.name;
+      const input = document.createElement('input'); input.type = 'color'; input.setAttribute('aria-label', `Colore: ${part.name}`);
+      input.addEventListener('input', () => sendColor(part.id, input.value));
+      const reset = listButton('↺', async () => render(await invoke('character-colors', { part: part.id, color: null })));
+      reset.title = `Colore originale di ${part.name}`; reset.setAttribute('aria-label', reset.title);
+      colorInputs[part.id] = { input, reset };
+      row.append(name, input, reset); return row;
+    }));
+  }
+  for (const part of parts) {
+    const item = colorInputs[part.id]; if (!item) continue;
+    if (document.activeElement !== item.input && !colorPending) item.input.value = part.color;
+    item.input.disabled = busy; item.reset.disabled = busy || part.color === part.original;
+  }
+  $('colors-reset').disabled = busy || parts.every(part => part.color === part.original);
 }
 // Suono della sveglia: il file scelto nelle Impostazioni in ciclo, oppure due bip generati ogni 1,2 secondi. Il volume viene dalle Impostazioni.
 let alarmAudio = null, alarmBeeps = null, alarmPlayer = null, alarmUrl = null, alarmTesting = false;
@@ -536,6 +567,7 @@ $('new').addEventListener('click', async () => { $('input').value = ''; drafts[c
 $('settings-back').addEventListener('click', () => selectTab('chat'));
 $('settings-toggle').addEventListener('click', async () => { if (selectedTab === 'settings') { selectTab('chat'); $('input').focus(); return; } selectTab('settings'); render(await invoke('local-scan')); });
 $('character-select').addEventListener('change', async () => render(await invoke('character-select', $('character-select').value)));
+$('colors-reset').addEventListener('click', async () => render(await invoke('character-colors', { reset: true })));
 $('character-scale').addEventListener('change', async () => render(await invoke('character-scale', Number($('character-scale').value))));
 onClickRender('character-add', 'character-add');
 $('guide-characters').addEventListener('click', () => invoke('cli-guide', 'characters'));

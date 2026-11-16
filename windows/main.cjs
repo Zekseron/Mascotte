@@ -38,7 +38,7 @@ function startApplication() {
   const Characters = require('./lib/characters.cjs');
   const { buildChatSnapshot } = require('./lib/snapshot.cjs');
   const buildInfo = require('./lib/build-info.cjs').read(path.join(__dirname, 'resources/build-info.json'));
-  let mascot, chat, tray, controller, server, store, memory, pack, imageData, currentRun, hitMask, mouseTimer;
+  let mascot, chat, tray, controller, server, store, memory, pack, imageData, partsData = null, currentRun, hitMask, mouseTimer;
   let settings, engine = 'codex', engineTouched = false, notice = '', infoNotice = '', chatPlacedAt = null, setupPreview, drag, quitting = false, mouseIgnored = true, localAvailable = false, managedOllama = null, installedCache = null, localScanning = false, engineStatus = null;
   let agents;
   let characters = [], includedCharacters = [], characterWarnings = [], characterStatus = '', characterStatusFailed = false;
@@ -196,15 +196,20 @@ function startApplication() {
     mascot.setBounds({ x: Math.round(x), y: Math.round(y), ...mascotSize(pack, settings.scale) });
   }
   function updatePose() { if(controller && mascot && !mascot.isDestroyed() && !quitting) mascot.webContents.send('mascotte-state',{animation:stateAnimation()}); }
+  // Colori personalizzati del personaggio attuale: { parte: '#rrggbb' } solo per le parti che ha davvero.
+  function characterColors() {
+    const saved = settings.colors?.[pack?.id] || {};
+    return Object.fromEntries((pack?.parts?.list || []).filter(part => saved[part.id]).map(part => [part.id, saved[part.id]]));
+  }
   function selectCharacter(id, initial = false) {
     const selected = characters.find(c=>c.id===id); if(!selected) return;
-    controller?.close(); singing=false; pack=selected.pack;imageData=selected.imageData;hitMask=null;
+    controller?.close(); singing=false; pack=selected.pack;imageData=selected.imageData;partsData=selected.partsData||null;hitMask=null;
     settings.character=id;
     settings.scale=settings.scales[id] || (id==='rosso'?settings.scale:pack.scale);
     if(!Characters.SCALES.includes(settings.scale)||Math.max(pack.frame.width,pack.frame.height)*displayScale()>2048)settings.scale=pack.scale;
     controller=new StateController(pack,P,value=>mascot.webContents.send('mascotte-state',{...value,animation:effectiveAnimation(value.animation,value.state)}));
     if(!initial){
-      mascot.webContents.send('mascotte-state',{character:{pack,imageData,animation:effectiveAnimation(pack.animations.idle,'idle')}});
+      mascot.webContents.send('mascotte-state',{character:{pack,imageData,partsData,colors:characterColors(),animation:effectiveAnimation(pack.animations.idle,'idle')}});
       setScale(settings.scale);controller.set(currentRun?'thinking':'idle',Boolean(currentRun));saveSettings();broadcast();
     }
   }
@@ -495,7 +500,7 @@ function startApplication() {
     const expected = pathToFileURL(views(kitty ? 'mascot' : 'chat')).href;
     if ((!kitty && !chatting) || event.senderFrame !== event.sender.mainFrame || event.senderFrame.url !== expected) throw new Error('Interfaccia non autorizzata.');
     if (kitty) {
-      if (action === 'init') return { pack, imageData, scale: settings.scale, animation: stateAnimation() };
+      if (action === 'init') return { pack, imageData, partsData, colors: characterColors(), scale: settings.scale, animation: stateAnimation() };
       if (action === 'mask' && (Array.isArray(data)||data instanceof Uint8Array) && data.length === pack.frame.width * pack.frame.height && data.every(x => x === 0 || x === 1)) { hitMask = data; updateHit(); return; }
       if (action === 'chat') { if (!currentRun) controller.set('listening'); showChat(); return; }
       if (action === 'menu') { prepareWindowCapture(); menu().popup({ window: mascot }); return; }
@@ -680,6 +685,21 @@ function startApplication() {
       }
       if (action === 'character-select' && typeof data === 'string' && characters.some(c => c.id === data)) { selectCharacter(data); characterStatus = ''; characterStatusFailed = false; return chatSnapshot(); }
       // Stessi valori e limiti del menu «Grandezza» della mascotte.
+      // Colore di una parte ({ part, color }), ripristino di una parte ({ part, color: null }) o di tutte ({ reset: true }).
+      if (action === 'character-colors' && pack?.parts && data && typeof data === 'object') {
+        const own = { ...(settings.colors[pack.id] || {}) };
+        if (data.reset === true) for (const key of Object.keys(own)) delete own[key];
+        else {
+          const part = pack.parts.list.find(item => item.id === data.part);
+          if (!part) return chatSnapshot();
+          if (data.color === null || (typeof data.color === 'string' && data.color.toLowerCase() === part.color)) delete own[part.id];
+          else if (typeof data.color === 'string' && /^#[0-9a-f]{6}$/i.test(data.color)) own[part.id] = data.color.toLowerCase();
+          else return chatSnapshot();
+        }
+        if (Object.keys(own).length) settings.colors[pack.id] = own; else delete settings.colors[pack.id];
+        saveSettings(); mascot?.webContents.send('mascotte-state', { colors: characterColors() });
+        return chatSnapshot();
+      }
       if (action === 'character-scale' && Characters.allowedScales(pack).includes(data)) { setScale(data); return chatSnapshot(); }
       if (action === 'character-add' && !currentRun && !localDownload && !updateRunning && !setupPreview) {
         // Mascotte personali: cartella scelta solo dal selettore di sistema, convalidata per intero prima di copiare solo character.json e sprites.png.

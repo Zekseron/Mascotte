@@ -47,7 +47,7 @@
   const MAX_FRAMES = 1000; // protezione: "frames": 1000000000 non deve riempire la memoria
 
   const TOP_FIELDS = ['format', 'id', 'name', 'author', 'license', 'sheet', 'frame',
-    'scale', 'bubble', 'animations', 'fallbacks', 'perch', 'pixelRatio'];
+    'scale', 'bubble', 'animations', 'fallbacks', 'perch', 'pixelRatio', 'parts'];
   const ANIM_FIELDS = ['row', 'frames', 'fps', 'durations', 'loop', 'frameRows'];
 
   // ------------------------------------------------------------ utilità
@@ -653,6 +653,14 @@
     };
     if(perch) pack.perch=perch;
     if(has(json,'pixelRatio'))pack.pixelRatio=pixelRatio;
+    // Parti personalizzabili (facoltative): mappa «parts.png» grande quanto il foglio, indice della parte nel canale rosso.
+    if(has(json,'parts')){
+      const value=json.parts, list=isObject(value)&&Array.isArray(value.list)?value.list:null;
+      const ids=new Set();
+      const valid=list&&value.sheet==='parts.png'&&list.length>=1&&list.length<=12&&list.every(item=>isObject(item)&&typeof item.id==='string'&&/^[a-z0-9-]{1,24}$/.test(item.id)&&!ids.has(item.id)&&ids.add(item.id)&&typeof item.name==='string'&&item.name.trim().length>=1&&item.name.length<=40&&typeof item.color==='string'&&/^#[0-9a-f]{6}$/i.test(item.color));
+      if(valid) pack.parts={sheet:'parts.png',list:list.map(item=>({id:item.id,name:item.name.trim(),color:item.color.toLowerCase()}))};
+      else warnings.push('parts: elenco delle parti non valido, colori personalizzabili disattivati');
+    }
     return { errors, warnings, pack };
   }
 

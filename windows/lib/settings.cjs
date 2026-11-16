@@ -13,6 +13,18 @@ function normalizeChat(chat) {
   for (const key of Object.keys(result)) if (result[key] === undefined) delete result[key];
   return result;
 }
+// Colori personalizzati: { idPersonaggio: { idParte: '#rrggbb' } }. Le parti che il personaggio non ha vengono ignorate all'uso.
+function normalizeColors(colors) {
+  const result = {};
+  if (!colors || typeof colors !== 'object' || Array.isArray(colors)) return result;
+  for (const [character, parts] of Object.entries(colors).slice(0, 60)) {
+    if (!/^[a-z0-9][a-z0-9-]{0,39}$/.test(character) || !parts || typeof parts !== 'object' || Array.isArray(parts)) continue;
+    const own = {};
+    for (const [part, color] of Object.entries(parts).slice(0, 12)) if (/^[a-z0-9-]{1,24}$/.test(part) && typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color)) own[part] = color.toLowerCase();
+    if (Object.keys(own).length) result[character] = own;
+  }
+  return result;
+}
 function normalizeSettings(raw, ctx) {
   const { LocalEngines, LocalAI, ExtraFolders, Characters, AlarmSound } = ctx;
   // Un file valido ma non oggetto (null, un elenco, un numero) vale come «nessuna impostazione salvata».
@@ -24,6 +36,6 @@ function normalizeSettings(raw, ctx) {
   let startEngine = LocalEngines.normalizeEngine(raw.localEngine);
   if (startEngine !== 'ollama' && !(raw.localModelSource === 'installed' && LocalAI.validName(raw.localModel))) startEngine = 'ollama';
   const startModel = startEngine === 'ollama' ? LocalAI.normalizeModel(raw.localModel, undefined, raw.localModelSource) : raw.localModel;
-  return {scale:Characters.SCALES.includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localEngine:startEngine,localModel:startModel,localModelSource:startEngine==='ollama'&&LocalAI.isModel(startModel)?'catalog':'installed',extraFolders:ExtraFolders.normalizeExtraFolders(raw.extraFolders,ExtraFolders.realOpts({platform:ctx.platform,home:ctx.home,dataDir:ctx.dataDir})),alarmSound:raw.alarmSound==='custom'?'custom':'beep',alarmSoundName:typeof raw.alarmSoundName==='string'?raw.alarmSoundName.slice(0,120):'',alarmVolume:AlarmSound.normalizeVolume(raw.alarmVolume),chat:normalizeChat(raw.chat)};
+  return {scale:Characters.SCALES.includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localEngine:startEngine,localModel:startModel,localModelSource:startEngine==='ollama'&&LocalAI.isModel(startModel)?'catalog':'installed',extraFolders:ExtraFolders.normalizeExtraFolders(raw.extraFolders,ExtraFolders.realOpts({platform:ctx.platform,home:ctx.home,dataDir:ctx.dataDir})),alarmSound:raw.alarmSound==='custom'?'custom':'beep',alarmSoundName:typeof raw.alarmSoundName==='string'?raw.alarmSoundName.slice(0,120):'',alarmVolume:AlarmSound.normalizeVolume(raw.alarmVolume),chat:normalizeChat(raw.chat),colors:normalizeColors(raw.colors)};
 }
-module.exports = { normalizeSettings, normalizeChat };
+module.exports = { normalizeSettings, normalizeChat, normalizeColors };

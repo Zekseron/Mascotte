@@ -7,6 +7,7 @@
     <details class="sec" id="sec-mascotte"><summary><span class="sec-title">Mascotte</span><span class="sec-sum" id="sum-mascotte"></span></summary><div class="sec-body"><label class="field" for="character-select">Personaggio</label><select id="character-select" aria-label="Personaggio"></select>
 <label class="field" for="character-scale">Grandezza di base</label><select id="character-scale" aria-label="Grandezza di base della mascotte"></select>
 <p class="hint">La grandezza si ricorda per ogni personaggio. Anche il clic destro sulla mascotte ha gli stessi menu.</p>
+<div id="colors-section" hidden><h3>Colori</h3><p class="hint">Scegli il colore di ogni parte: luci e ombre del disegno restano, contorno ed effetti non cambiano. I colori si ricordano per ogni personaggio.</p><div id="character-colors" class="color-list"></div><div class="management-actions"><button id="colors-reset" type="button">Ripristina i colori originali</button></div></div>
 <h3>Mascotte personali</h3><p>Aggiungi altri personaggi: scegli una cartella con <code>character.json</code> e <code>sprites.png</code>. Mascotte li controlla, ne copia i due file e li mette tra i personaggi. Restano sul tuo <span class="device">computer</span>.</p>
 <div class="management-actions"><button id="character-add" type="button">Aggiungi mascotte…</button><button id="guide-characters" type="button">Come creare una mascotte</button></div>
 <div id="character-list"></div><p id="character-warnings" class="hint" hidden></p><p id="character-status" role="status" aria-live="polite"></p>

@@ -92,5 +92,6 @@
       "frames": [0, 1, 2, 1],
       "fps": 6
     }
-  }
+  },
+  "parts": {"sheet":"parts.png","list":[{"id":"pelo","name":"Pelo","color":"#f0a04b"},{"id":"strisce","name":"Strisce","color":"#cf6d2e"},{"id":"pancia","name":"Pancia e muso","color":"#fae6c1"},{"id":"rosa","name":"Orecchie e naso","color":"#f587a1"}]}
 }

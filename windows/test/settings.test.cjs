@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const LocalAI = require('../lib/local-ai.cjs'), LocalEngines = require('../lib/local-engines.cjs');
 const ExtraFolders = require('../lib/extra-folders.cjs'), Characters = require('../lib/characters.cjs'), AlarmSound = require('../lib/alarm-sound.cjs');
-const { normalizeSettings, normalizeChat } = require('../lib/settings.cjs');
+const { normalizeSettings, normalizeChat, normalizeColors } = require('../lib/settings.cjs');
 
 // Funzione di riferimento: copia TESTUALE dell'espressione che stava in main.cjs (whenReady) prima dell'estrazione
 // in lib/settings.cjs, con le stesse dipendenze. Il test confronta la nuova funzione con questa su molti casi.
@@ -19,6 +19,8 @@ function reference(raw, dataDirectory) {
   const settings = {scale:Characters.SCALES.includes(raw.scale)?raw.scale:6,scales:raw.scales&&typeof raw.scales==='object'?raw.scales:{},position:raw.position,attachment:raw.attachment==='bar'?'bar':'free',updateRepoPath:typeof raw.updateRepoPath==='string'?raw.updateRepoPath:'',localEngine:startEngine,localModel:startModel,localModelSource:startEngine==='ollama'&&LocalAI.isModel(startModel)?'catalog':'installed',extraFolders:ExtraFolders.normalizeExtraFolders(raw.extraFolders,ExtraFolders.realOpts({platform:process.platform,home:os.homedir(),dataDir:dataDirectory})),alarmSound:raw.alarmSound==='custom'?'custom':'beep',alarmSoundName:typeof raw.alarmSoundName==='string'?raw.alarmSoundName.slice(0,120):'',alarmVolume:AlarmSound.normalizeVolume(raw.alarmVolume)};
   // Aggiunta voluta del 10 novembre 2026: grandezza e posizione ricordate della chat (provate a parte qui sotto).
   settings.chat = normalizeChat(raw.chat);
+  // Aggiunta voluta del 16 novembre 2026: colori personalizzati delle mascotte (provati a parte qui sotto).
+  settings.colors = normalizeColors(raw.colors);
   return settings;
 }
 
@@ -88,4 +90,9 @@ test('normalizeChat tiene solo grandezze e posizioni plausibili', () => {
   assert.deepEqual(normalizeChat({ x: 5 }), {});
   assert.deepEqual(normalizeChat({ x: NaN, y: 3, width: 401 }), { width: 401 });
   for (const value of [null, undefined, 'x', 4, []]) assert.deepEqual(normalizeChat(value), {});
+});
+
+test('normalizeColors tiene solo personaggi, parti e colori validi', () => {
+  assert.deepEqual(normalizeColors({ luma: { capelli: '#3A2448', pelle: 'rosso', '../x': '#000000' }, 'Non Valido': { a: '#000000' }, rosso: {} }), { luma: { capelli: '#3a2448' } });
+  for (const value of [null, 'x', [], 4]) assert.deepEqual(normalizeColors(value), {});
 });

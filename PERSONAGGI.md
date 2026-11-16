@@ -14,10 +14,11 @@ In breve:
 ```
 la-mia-mascotte/
 ├── character.json    obbligatorio
-└── sprites.png       obbligatorio (si chiama proprio così)
+├── sprites.png       obbligatorio (si chiama proprio così)
+└── parts.png         facoltativo: mappa delle parti per i colori personalizzati
 ```
 
-Gli altri file nella cartella vengono ignorati: Mascotte copia solo questi due e non esegue mai nulla.
+Gli altri file nella cartella vengono ignorati: Mascotte copia solo questi e non esegue mai nulla.
 
 ### `sprites.png`
 
@@ -68,6 +69,7 @@ Campi:
 | `bubble` | no | Punto del fotogramma (`x`, `y` in pixel) da cui parte il fumetto. Predefinito: centro, in alto. |
 | `pixelRatio` | no | Intero da 1 a 8 per sprite disegnati più grandi del necessario: grandezza in punti = fotogramma × scala ÷ pixelRatio. Predefinito 1. |
 | `fallbacks`, `perch` | no | Ripieghi propri e posa seduta sul bordo di una finestra o della barra: per usi avanzati, vedi [DESIGN.md](DESIGN.md). |
+| `parts` | no | Parti di cui si può scegliere il colore (Impostazioni → Mascotte → Colori): `{"sheet": "parts.png", "list": [{"id": "capelli", "name": "Capelli", "color": "#c96134"}]}`, da 1 a 12 parti. `parts.png` è grande quanto `sprites.png`: nel canale rosso di ogni pixel c'è il numero della parte (1 = la prima dell'elenco, 0 = nessuna), alfa pieno dove c'è una parte. `color` è il tono medio originale della parte. Per Rosso e Luma la mappa si genera con `node tools/parts-map.cjs rosso` (o `luma`). Se manca o non è valida, la mascotte funziona lo stesso, senza colori personalizzabili. |
 
 Il fotogramma ingrandito non può superare 2048 punti per lato: con fotogrammi grandi i valori di grandezza troppo alti non sono disponibili.
 
@@ -158,7 +160,7 @@ Poi la mascotte compare nel menu **Personaggio** (clic destro sulla mascotte, ca
 
 Per toglierla: **Rimuovi** accanto al suo nome, nella stessa sezione (se era quella in uso torna Rosso). Rosso non si può rimuovere.
 
-Limiti: al massimo 30 mascotte personali; l'`id` non può coincidere con quello di Rosso né con un'altra tua mascotte; non sono ammessi collegamenti (link simbolici) al posto dei due file. Per correggere una mascotte già caricata, rimuovila e aggiungila di nuovo.
+Limiti: al massimo 30 mascotte personali; l'`id` non può coincidere con quello di Rosso né con un'altra tua mascotte; non sono ammessi collegamenti (link simbolici) al posto dei file. Per correggere una mascotte già caricata, rimuovila e aggiungila di nuovo.
 
 ## Diritti d'autore e riservatezza
 

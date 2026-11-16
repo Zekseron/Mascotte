@@ -7,7 +7,7 @@ const { assertRegularPath } = require('./storage.cjs');
 // Personaggi: quelli inclusi nell'app (resources/characters/index.json) e le mascotte personali dell'utente
 // (<cartella dati>/characters/<id>/ con solo character.json e sprites.png). Stesse validazioni per tutti.
 const MAX_PNG = 16777216, MAX_SIDE = 8192, MAX_PIXELS = 33554432, MAX_JSON = 262144, MAX_PERSONAL = 30;
-const SHEET = 'sprites.png', CATEGORY = 'Personali';
+const SHEET = 'sprites.png', PARTS = 'parts.png', CATEGORY = 'Personali';
 // Il nome della cartella personale coincide con l'id: solo minuscole, cifre e trattini, così non può uscire dalla cartella.
 const ID_PATTERN = /^[a-z0-9][a-z0-9-]{0,39}$/;
 const SCALES = [1, 2, 3, 4, 5, 6];
@@ -34,9 +34,19 @@ function loadPack(P, folder, { strict = false, folderName } = {}) {
   const result = P.validatePack(parsed.json, size.width, size.height, folderName ? { folderName } : undefined);
   if (result.errors.length) throw new Error('Personaggio non valido: ' + result.errors.join('; '));
   if (strict && P.normalizePath(result.pack.sheet).toLowerCase() !== SHEET) throw new Error('«sheet» deve valere "sprites.png".');
-  return { pack: result.pack, bytes, text };
+  // Mappa delle parti per i colori personalizzati: facoltativa. Se manca o non è valida il personaggio resta usabile, senza «Colori».
+  let parts = null;
+  if (result.pack.parts) {
+    try {
+      const partsBytes = read(PARTS, MAX_PNG, PARTS), partsSize = P.pngSize(partsBytes);
+      if (!partsSize || partsSize.width !== size.width || partsSize.height !== size.height) throw new Error('dimensioni diverse da sprites.png');
+      parts = partsBytes;
+    } catch { delete result.pack.parts; }
+  }
+  return { pack: result.pack, bytes, text, parts };
 }
-const toCharacter = (loaded, category, personal) => ({ id: loaded.pack.id, name: loaded.pack.name, category, personal, pack: loaded.pack, imageData: 'data:image/png;base64,' + loaded.bytes.toString('base64') });
+const toCharacter = (loaded, category, personal) => ({ id: loaded.pack.id, name: loaded.pack.name, category, personal, pack: loaded.pack, imageData: 'data:image/png;base64,' + loaded.bytes.toString('base64'),
+  ...(loaded.parts ? { partsData: 'data:image/png;base64,' + loaded.parts.toString('base64') } : {}) });
 
 // Personaggi inclusi nell'app: un errore blocca l'avvio, come prima.
 function readIncluded(P, directory) {
@@ -91,6 +101,7 @@ function importFolder(P, source, userDirectory, { includedIds = [], personalIds 
     try {
       fs.writeFileSync(path.join(temp, SHEET), loaded.bytes, { flag: 'wx', mode: 0o600 });
       fs.writeFileSync(path.join(temp, 'character.json'), loaded.text, { flag: 'wx', mode: 0o600 });
+      if (loaded.parts) fs.writeFileSync(path.join(temp, PARTS), loaded.parts, { flag: 'wx', mode: 0o600 });
       fs.renameSync(temp, target);
     } catch (error) { fs.rmSync(temp, { recursive: true, force: true }); throw error; }
     return { ok: true, id, name: loaded.pack.name };
