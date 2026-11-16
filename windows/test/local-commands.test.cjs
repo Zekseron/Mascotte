@@ -225,3 +225,17 @@ test('parseOpenRequest: solo «apri …», niente note, promemoria o domande sul
   assert.equal(parseOpenRequest('apri la calcolatrice', { platform: 'win32', home: opts.home, env: { SystemRoot: 'C:\\Windows' } }).type, 'open');
   for (const text of ['ricorda: comprare il latte', 'che file ho in download?', 'scrivimi una poesia', 'apri la mente e raccontami una storia lunga']) assert.equal(parseOpenRequest(text, opts), null, text);
 });
+
+test('Mac: app web dei browser in «Chrome Apps.localized» dentro Applicazioni dell\'utente', () => {
+  const { macAppDirs } = require('../lib/local-commands.cjs'); clearAppCache();
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte-webapp-'))), home = path.join(root, 'casa');
+  const web = path.join(home, 'Applications', 'Chrome Apps.localized'); fs.mkdirSync(path.join(web, 'Google Chat.app'), { recursive: true });
+  fs.mkdirSync(path.join(home, 'Applications', 'Altro', 'Nascosta.app'), { recursive: true });
+  const dirs = macAppDirs(home);
+  assert.ok(dirs.includes(web)); assert.ok(!dirs.some(dir => dir.endsWith('Altro')));
+  const opts = { platform: 'darwin', home, appDirs: dirs, appExtras: [] };
+  const chat = parseLocalCommand('apri google chat', opts);
+  assert.equal(chat.type, 'open'); assert.equal(chat.target, path.join(web, 'Google Chat.app'));
+  assert.equal(validateTarget(chat.target, opts), true);
+  assert.equal(parseLocalCommand('apri nascosta', opts).type, 'reply');
+});

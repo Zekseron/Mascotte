@@ -35,7 +35,10 @@ function folderEntries(platform = process.platform, home = os.homedir(), extra =
 }
 
 // Elenco delle app installate (solo Mac): un solo livello nelle cartelle ammesse, senza link simbolici che escono dalla cartella.
-const macAppDirs = (home = os.homedir()) => ['/Applications', '/Applications/Utilities', '/System/Applications', '/System/Applications/Utilities', path.join(home, 'Applications')];
+// Più le cartelle delle app web installate dai browser (Chrome Apps.localized, Edge Apps.localized, Brave Browser Apps.localized…),
+// che stanno un livello sotto Applicazioni: per esempio Google Chat installata da Chrome.
+const webAppDirs = roots => roots.flatMap(root => { try { return fs.readdirSync(root, { withFileTypes: true }).filter(entry => entry.isDirectory() && !entry.isSymbolicLink() && /\bApps\.localized$/i.test(entry.name)).map(entry => path.join(root, entry.name)); } catch { return []; } });
+const macAppDirs = (home = os.homedir()) => { const base = ['/Applications', '/Applications/Utilities', '/System/Applications', '/System/Applications/Utilities', path.join(home, 'Applications')]; return [...base, ...webAppDirs(['/Applications', path.join(home, 'Applications')])]; };
 const MAC_APP_EXTRAS = ['/System/Library/CoreServices/Finder.app'];
 const real = target => { try { return fs.realpathSync(target); } catch { return null; } };
 const inside = (child, parent) => child === parent || child.startsWith(parent.endsWith(path.sep) ? parent : parent + path.sep);

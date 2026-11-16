@@ -621,11 +621,13 @@ function startApplication() {
       if (action === 'memory-remove' && !currentRun && !updateRunning && typeof data === 'string') { try { memory.remove(data); notice = infoNotice = 'Nota rimossa.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
       if (action === 'pc-action-cancel') { pendingAction = null; notice = infoNotice = 'Azione annullata.'; return chatSnapshot(); }
       // Codex e Claude: «apri …» lo gestisce Mascotte prima dell'invio, sul computer. Il messaggio non parte e non entra nel contesto remoto.
-      // Non intercetta nulla in modalità Agente, con un'azione in attesa o se non trova un'app, una cartella o un file pertinenti.
+      // Non intercetta nulla in modalità Agente o con un'azione in attesa.
       if (action === 'open-request' && typeof data === 'string') {
         if (engine === 'locale' || currentRun || pendingAction || !can.localActions || agents?.snapshot(engine)?.enabled) return { handled: false };
         const command = LocalCommands.parseOpenRequest(data, { extraFolders: settings.extraFolders });
-        if (!command || command.notFound || !['open', 'reply'].includes(command.type)) return { handled: false };
+        // Anche «non trovo» resta locale: Codex e Claude non possono aprire nulla e risponderebbero solo con istruzioni manuali.
+        // Le frasi lunghe o non da «apri X» (per esempio «apri una discussione su…») restano null e vanno al servizio.
+        if (!command || !['open', 'reply'].includes(command.type)) return { handled: false };
         const answer = command.type === 'open' ? await openLocally(command) : command.text;
         store.set(engine, [...store.get(engine), { role: 'user', text: data.trim().slice(0, 8000), kind: 'local' }, { role: 'assistant', text: answer, kind: 'local' }]);
         notice = ''; broadcast(); return { handled: true };
