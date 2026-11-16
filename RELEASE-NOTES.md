@@ -6,7 +6,7 @@ Questa release aggiorna **Mac Apple Silicon**. Per **Windows x64** resta disponi
 
 - **Maniche e polsini** seguono il colore della giacca: prima, cambiando capelli o scarpe, si coloravano anche alcune pieghe delle maniche.
 - **Cintura e borsa** seguono «Cuoio e stivali», **bocca aperta, collo e dita** seguono la pelle.
-- **Libro e blocco per appunti** restano del loro colore: non sono parti di Luma.
+- **Libro, blocco per appunti e meccanismo** su cui lavora restano del loro colore: non sono parti di Luma.
 
 Le novità della [0.9.5](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.5) restano: colori personalizzati in **Impostazioni → Mascotte → Colori** e Luma seduta senza riquadri bianchi.
 

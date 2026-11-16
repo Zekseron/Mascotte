@@ -70,6 +70,51 @@
         "colletto"
       ],
       "clearPale": true
+    },
+    {
+      "motivo": "meccanismo e chiave inglese nelle pose di lavoro in piedi: oggetti tenuti in mano",
+      "cells": [
+        "4:3",
+        "5:3",
+        "6:3",
+        "7:3",
+        "8:3",
+        "9:3"
+      ],
+      "rect": [
+        98,
+        293,
+        172,
+        346
+      ],
+      "clear": [
+        "giacca",
+        "capelli",
+        "cuoio",
+        "colletto"
+      ],
+      "clearPale": false
+    },
+    {
+      "motivo": "meccanismo sulle ginocchia nelle pose di lavoro da seduta",
+      "cells": [
+        "6:10",
+        "7:10",
+        "8:10"
+      ],
+      "rect": [
+        106,
+        312,
+        194,
+        358
+      ],
+      "clear": [
+        "giacca",
+        "capelli",
+        "cuoio",
+        "colletto"
+      ],
+      "clearPale": false
     }
   ]
 }
