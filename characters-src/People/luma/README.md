@@ -10,6 +10,16 @@ python3 characters-src/People/luma/build.py
 
 Scrive `characters/People/luma/` e, in `work/previews/luma/`, `contact.png` con tutte le pose e una GIF per stato. Anche `python3 tools/build_all.py luma` lo esegue. Sostituisce il vecchio `build.ps1`, di cui conserva il respiro.
 
+Dopo ogni rigenerazione del foglio, nell'ordine (servono Node 22 e `windows/node_modules`):
+
+```bash
+node tools/parts-map.cjs luma        # mappa delle parti per i colori personalizzati
+node tools/clear-holes.cjs luma      # buchi bianchi rimasti dallo scontorno resi trasparenti
+node tools/parts-map.cjs luma        # mappa di nuovo, sul foglio corretto
+```
+
+I buchi sono zone di bianco pieno racchiuse dal contorno, rimaste dai fogli consegnati su fondo bianco (per esempio fra ricciolo, collo e giacca nelle pose sedute, celle 1–3, 6–8, 11–12 della riga 10 e 4 della riga 11 al 16 novembre 2026). `clear-holes` li riconosce perché toccano capelli o giacca e non pelle o occhi, quindi lascia intatti bianco degli occhi, denti, pagine e nuvolette; `--dry-run` li elenca senza cambiare nulla.
+
 ## Come nascono le pose
 
 Ci sono solo due disegni, quindi ogni posa deforma quei pixel e aggiunge bocca ed effetti nello stesso stile, con il contorno scuro dell'illustrazione:
