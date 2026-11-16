@@ -20,6 +20,8 @@ node tools/parts-map.cjs luma        # mappa di nuovo, sul foglio corretto
 
 I buchi sono zone di bianco pieno racchiuse dal contorno, rimaste dai fogli consegnati su fondo bianco (per esempio fra ricciolo, collo e giacca nelle pose sedute, celle 1–3, 6–8, 11–12 della riga 10 e 4 della riga 11 al 16 novembre 2026). `clear-holes` li riconosce perché toccano capelli o giacca e non pelle o occhi, quindi lascia intatti bianco degli occhi, denti, pagine e nuvolette; `--dry-run` li elenca senza cambiare nulla.
 
+`parts-fix.json` contiene le correzioni manuali della mappa delle parti (per esempio libro e blocco per appunti, che non sono parti di Luma), applicate da `parts-map.cjs` dopo il calcolo automatico. Per controllare la mappa con colori molto diversi: `PARTS_DEMO='{"capelli":"#1e90ff","cuoio":"#ff00cc"}' node tools/parts-map.cjs luma --preview`, poi `work/previews/luma/recolor-check.png`.
+
 ## Come nascono le pose
 
 Ci sono solo due disegni, quindi ogni posa deforma quei pixel e aggiunge bocca ed effetti nello stesso stile, con il contorno scuro dell'illustrazione:
