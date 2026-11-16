@@ -52,7 +52,9 @@ function readJSON(file, fallback, max = 1048576) {
 const MAX_TEXT = { user: 8000, notice: 8000, assistant: 32000 };
 const CUT_NOTE = '\n\n[… testo tagliato qui: superava il limite di caratteri conservati da Mascotte]';
 const limitText = (text, max) => text.length <= max ? text : text.slice(0, max - CUT_NOTE.length) + CUT_NOTE;
-const chatMessage = m => ({ role: m.role, text: limitText(m.text, MAX_TEXT[m.role] || 8000), ...(m.role === 'assistant' && m.kind === 'app' ? { kind: 'app' } : {}) });
+// kind 'app': risposta di Mascotte nella chat locale. kind 'local': richiesta «apri …» e risposta gestite sul computer con Codex/Claude,
+// da non mandare mai ai servizi remoti (vale sia per il messaggio dell'utente sia per la risposta).
+const chatMessage = m => ({ role: m.role, text: limitText(m.text, MAX_TEXT[m.role] || 8000), ...(m.role === 'assistant' && m.kind === 'app' ? { kind: 'app' } : ['user', 'assistant'].includes(m.role) && m.kind === 'local' ? { kind: 'local' } : {}) });
 class ChatStore {
   constructor(directory) { this.file = path.join(directory, 'history.json'); this.value = readJSON(this.file, {}); }
   get(engine) {

@@ -57,3 +57,12 @@ test('risposte lunghe: conservate fino a 32000 caratteri e tagli sempre dichiara
   const again = new ChatStore(directory); again.set('codex', again.get('codex'));
   assert.equal(new ChatStore(directory).get('codex')[2].text, long.text, 'il taglio non si ripete a ogni salvataggio');
 });
+
+test('ChatStore conserva kind local su domanda e risposta «apri …», e solo quello', () => {
+  const { ChatStore } = require('../lib/storage.cjs');
+  const dir = require('node:fs').mkdtempSync(require('node:path').join(require('node:os').tmpdir(), 'mascotte-local-'));
+  const store = new ChatStore(dir);
+  store.set('claude', [{ role: 'user', text: 'apri fattura.pdf', kind: 'local' }, { role: 'assistant', text: 'Apro «fattura.pdf».', kind: 'local' }, { role: 'user', text: 'ciao', kind: 'altro' }, { role: 'notice', text: 'n', kind: 'local' }]);
+  const again = new ChatStore(dir).get('claude');
+  assert.deepEqual(again.map(m => m.kind), ['local', 'local', undefined, undefined]);
+});

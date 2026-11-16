@@ -85,22 +85,22 @@ test('ambiguità, app inesistente con suggerimenti e frasi dubbie', () => {
   assert.ok(parseLocalCommand('apri code', mac.opts).target.endsWith('Visual Studio Code.app'));
   assert.equal(parseLocalCommand('apri docs', mac.opts).type, 'open');
   const missing = parseLocalCommand('puoi aprire Whatsapp?', mac.opts);
-  assert.deepEqual(missing, { type: 'reply', text: 'Non trovo un\'app chiamata «Whatsapp» sul Mac.' });
-  assert.match(parseLocalCommand('apri Spotfy', mac.opts).text, /^Non trovo un'app chiamata «Spotfy» sul Mac\. Forse intendevi: Spotify\?$/);
+  assert.deepEqual(missing, { type: 'reply', notFound: true, text: 'Non trovo un\'app, una cartella o un file chiamato «Whatsapp» sul Mac.' });
+  assert.match(parseLocalCommand('apri Spotfy', mac.opts).text, /^Non trovo un'app, una cartella o un file chiamato «Spotfy» sul Mac\. Forse intendevi: Spotify\?$/);
   assert.match(parseLocalCommand('apri Safary', mac.opts).text, /Safari/);
   assert.equal(parseLocalCommand('apri Intruso', mac.opts).type, 'reply');
   assert.match(parseLocalCommand('apri Intruso', mac.opts).text, /^Non trovo/);
   assert.equal(parseLocalCommand('apri Annidata', mac.opts).type, 'reply');
 });
 
-test('Windows: frasi naturali solo per Calcolatrice e cartelle, nessuna app', () => {
+test('Windows: Calcolatrice e cartelle; senza menu Start nessuna app, con risposta «non trovo»', () => {
   const win = { platform: 'win32', home: 'C:\\Users\\prova', env: { SystemRoot: 'C:\\Windows' } };
   assert.match(parseLocalCommand('puoi aprirmi la calcolatrice?', win).target, /calc\.exe$/);
   assert.match(parseLocalCommand('mi apri i download per favore', win).target, /Downloads$/);
   assert.match(parseLocalCommand('apri la cartella Documenti', win).target, /Documents$/);
   assert.match(parseLocalCommand('apri scrivania', win).target, /Desktop$/);
   assert.match(parseLocalCommand('lancia immagini', win).target, /Pictures$/);
-  for (const phrase of ['apri Safari', 'apri applicazioni', 'potresti avviare Spotify']) assert.equal(parseLocalCommand(phrase, win), null, phrase);
+  for (const phrase of ['apri Safari', 'potresti avviare Spotify']) assert.match(parseLocalCommand(phrase, win).text, /^Non trovo .* sul PC\.$/, phrase);
 });
 
 test('conferma: il percorso viene ricontrollato (esistenza e cartelle ammesse)', () => {
@@ -154,4 +154,74 @@ test('domande sulle cartelle: casi che NON scattano', () => {
   assert.equal(parseLocalCommand('quanti file ci sono in /etc', mac), null);
   assert.equal(parseLocalCommand('ricorda: quanti file in download', mac).type, 'remember');
   assert.deepEqual(parseLocalCommand('che note ho?', mac), { type: 'list-notes' });
+});
+
+// --- Apertura di app Windows (menu Start) e di file nelle cartelle note (16 novembre 2026) ---
+const { listWindowsApps, findFiles, blockedFile, parseOpenRequest } = require('../lib/local-commands.cjs');
+function fakeWindows() {
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte-win-')));
+  const common = path.join(root, 'ProgramData', 'Microsoft', 'Windows', 'Start Menu', 'Programs'), user = path.join(root, 'AppData', 'Microsoft', 'Windows', 'Start Menu', 'Programs');
+  for (const dir of [path.join(common, 'Microsoft Office'), path.join(user, 'Spotify'), path.join(common, 'Strumenti', 'Livello2', 'Livello3', 'Troppo')]) fs.mkdirSync(dir, { recursive: true });
+  for (const file of [path.join(common, 'Microsoft Office', 'Word.lnk'), path.join(common, 'Microsoft Office', 'Excel.lnk'), path.join(user, 'Spotify', 'Spotify.lnk'),
+    path.join(user, 'Spotify', 'Uninstall Spotify.lnk'), path.join(common, 'Notepad++.lnk'), path.join(common, 'Leggimi.txt'), path.join(common, 'Strumenti', 'Livello2', 'Livello3', 'Troppo', 'Profonda.lnk')]) fs.writeFileSync(file, '');
+  const home = path.join(root, 'Users', 'prova');
+  return { root, common, user, opts: { platform: 'win32', home, env: { SystemRoot: 'C:\\Windows', ProgramData: path.join(root, 'ProgramData'), APPDATA: path.join(root, 'AppData') } } };
+}
+function fakeHome(base) {
+  const home = path.join(base, 'casa');
+  const files = { 'Downloads/fattura.pdf': 'x', 'Downloads/setup.exe': 'x', 'Downloads/script.sh': 'x', 'Documents/fattura.pdf': 'x', 'Documents/Lavoro/relazione finale.docx': 'x',
+    'Documents/Lavoro/progetto.key': 'x', 'Desktop/foto mare.jpg': 'x', 'Desktop/.nascosto.txt': 'x', 'Pictures/a/b/c/profondo.png': 'x', 'Documents/node_modules/pacchetto.txt': 'x' };
+  for (const [name, content] of Object.entries(files)) { const file = path.join(home, ...name.split('/')); fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, content); }
+  return home;
+}
+
+test('Windows: app dai collegamenti del menu Start, senza disinstallazioni né file non .lnk', () => {
+  const win = fakeWindows(); clearAppCache();
+  const names = listWindowsApps([win.common, win.user]).map(app => app.name).sort();
+  assert.deepEqual(names, ['Excel', 'Notepad++', 'Spotify', 'Word']);
+  const word = parseLocalCommand('apri Word', win.opts);
+  assert.equal(word.type, 'open'); assert.equal(word.kind, 'app'); assert.equal(word.name, 'Word'); assert.ok(word.target.endsWith('Word.lnk'));
+  assert.ok(parseLocalCommand('potresti avviare spotify?', win.opts).target.endsWith('Spotify.lnk'));
+  assert.equal(validateTarget(word.target, win.opts), true);
+  assert.equal(validateTarget(path.join(win.common, 'Leggimi.txt'), win.opts), false);
+  const fuori = path.join(win.root, 'Fuori.lnk'); fs.writeFileSync(fuori, '');
+  assert.equal(validateTarget(fuori, win.opts), false);
+});
+
+test('file: uno solo si apre, più file si elencano, programmi e script mai', () => {
+  const mac = fakeMac(); clearAppCache();
+  const opts = { ...mac.opts, home: fakeHome(mac.root) };
+  const docx = parseLocalCommand('apri relazione finale.docx', opts);
+  assert.equal(docx.type, 'open'); assert.equal(docx.kind, 'file'); assert.equal(docx.name, 'relazione finale.docx');
+  assert.equal(validateTarget(docx.target, opts), true);
+  assert.equal(parseLocalCommand('apri il file relazione finale', opts).type, 'open');
+  assert.equal(parseLocalCommand('apri foto mare', opts).type, 'open'); // nessuna app con quel nome: si cerca tra i file
+  const many = parseLocalCommand('apri fattura.pdf', opts);
+  assert.equal(many.type, 'reply'); assert.match(many.text, /più file chiamati «fattura\.pdf»/); assert.match(many.text, /in Download/); assert.match(many.text, /in Documenti/);
+  const inDocs = parseLocalCommand('apri fattura.pdf in Documenti', opts);
+  assert.equal(inDocs.type, 'open'); assert.ok(inDocs.target.includes(`${path.sep}Documents${path.sep}`));
+  for (const phrase of ['apri setup.exe', 'esegui script.sh']) { const refused = parseLocalCommand(phrase, opts); assert.equal(refused.type, 'reply', phrase); assert.match(refused.text, /per sicurezza Mascotte non lo apre/, phrase); }
+  assert.equal(validateTarget(path.join(opts.home, 'Downloads', 'setup.exe'), opts), false);
+  assert.match(parseLocalCommand('apri il file relazion', opts).text, /Forse intendevi:\n- relazione finale\.docx \(in Documenti\)/);
+  assert.match(parseLocalCommand('apri nascosto.txt', opts).text, /^Non trovo il file/);
+  assert.match(parseLocalCommand('apri pacchetto.txt', opts).text, /^Non trovo il file/); // node_modules ignorata
+  assert.match(parseLocalCommand('apri profondo.png', opts).text, /^Non trovo il file/); // oltre tre livelli
+  const outside = path.join(mac.root, 'fuori', 'segreto.txt'); fs.writeFileSync(outside, 'x');
+  assert.equal(validateTarget(outside, opts), false);
+});
+
+test('blockedFile e findFiles: estensioni pericolose e solo nomi', () => {
+  for (const name of ['a.exe', 'b.BAT', 'c.ps1', 'd.command', 'e.app', 'f.pkg', 'g.lnk', 'h.py', 'i.msi', 'j.js']) assert.equal(blockedFile(name), true, name);
+  for (const name of ['a.pdf', 'b.docx', 'c.jpg', 'd.txt', 'e.key', 'f.xlsx', 'g']) assert.equal(blockedFile(name), false, name);
+  const home = fakeHome(fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte-file-'))));
+  const { exact } = findFiles('FATTURA', [{ display: 'Download', target: path.join(home, 'Downloads') }]);
+  assert.deepEqual(exact.map(item => item.name), ['fattura.pdf']);
+});
+
+test('parseOpenRequest: solo «apri …», niente note, promemoria o domande sulle cartelle', () => {
+  const mac = fakeMac(); clearAppCache();
+  const opts = { ...mac.opts, home: fakeHome(mac.root) };
+  assert.equal(parseOpenRequest('apri Safari', opts).type, 'open');
+  assert.equal(parseOpenRequest('apri la calcolatrice', { platform: 'win32', home: opts.home, env: { SystemRoot: 'C:\\Windows' } }).type, 'open');
+  for (const text of ['ricorda: comprare il latte', 'che file ho in download?', 'scrivimi una poesia', 'apri la mente e raccontami una storia lunga']) assert.equal(parseOpenRequest(text, opts), null, text);
 });

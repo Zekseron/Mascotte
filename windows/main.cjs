@@ -317,6 +317,14 @@ function startApplication() {
     const windows = await Capture.listMacWindows(Platform.macHelperPath(), process.pid);
     return windows ? Capture.filterMacWindows(list, windows) : list;
   }
+  // Apre subito app, cartella o file trovati da «apri …», dopo aver ricontrollato che il percorso sia ancora ammesso.
+  async function openLocally(command) {
+    const label = command.kind === 'file' ? `«${command.name}»` : command.kind === 'folder' ? `la cartella ${command.name}` : command.name || 'l’elemento richiesto';
+    if (!LocalCommands.validateTarget(command.target, { extraFolders: settings.extraFolders, dataDir: dataDirectory })) return command.extraName ? ExtraFolders.goneMessage(command.extraName) : `Non riesco più a trovare ${label}: forse è stato spostato o eliminato.`;
+    try { const error = await shell.openPath(command.target); if (error) return `Non sono riuscito ad aprire ${label}: ${error}`; }
+    catch (error) { return `Non sono riuscito ad aprire ${label}: ${error.message}`; }
+    return `Apro ${label}.`;
+  }
   function stopWatching() {
     watchSource = null;
     if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-watch-stop');
@@ -612,6 +620,16 @@ function startApplication() {
       if (action === 'memory-add' && !currentRun && !updateRunning) { try { memory.add(data?.text, data?.source); notice = infoNotice = `Nota salvata sul ${can.deviceName}.`; } catch (error) { notice = error.message; } return chatSnapshot(); }
       if (action === 'memory-remove' && !currentRun && !updateRunning && typeof data === 'string') { try { memory.remove(data); notice = infoNotice = 'Nota rimossa.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
       if (action === 'pc-action-cancel') { pendingAction = null; notice = infoNotice = 'Azione annullata.'; return chatSnapshot(); }
+      // Codex e Claude: «apri …» lo gestisce Mascotte prima dell'invio, sul computer. Il messaggio non parte e non entra nel contesto remoto.
+      // Non intercetta nulla in modalità Agente, con un'azione in attesa o se non trova un'app, una cartella o un file pertinenti.
+      if (action === 'open-request' && typeof data === 'string') {
+        if (engine === 'locale' || currentRun || pendingAction || !can.localActions || agents?.snapshot(engine)?.enabled) return { handled: false };
+        const command = LocalCommands.parseOpenRequest(data, { extraFolders: settings.extraFolders });
+        if (!command || command.notFound || !['open', 'reply'].includes(command.type)) return { handled: false };
+        const answer = command.type === 'open' ? await openLocally(command) : command.text;
+        store.set(engine, [...store.get(engine), { role: 'user', text: data.trim().slice(0, 8000), kind: 'local' }, { role: 'assistant', text: answer, kind: 'local' }]);
+        notice = ''; broadcast(); return { handled: true };
+      }
       if (action === 'pc-action-confirm' && pendingAction && data === pendingAction.id) {
         const selectedAction = pendingAction; pendingAction = null;
         try {
@@ -839,11 +857,8 @@ function startApplication() {
             if (command.question.kind !== 'model') return replyNow(FolderView.notice(view) + '\n\n' + FolderView.answer(view, command.question));
             folderRead = { notice: FolderView.notice(view), context: FolderView.modelContext(view) };
           }
-          if (command?.type === 'open') {
-            // Una cartella aggiunta dalle Impostazioni viene ricontrollata subito (e ancora alla conferma): se è sparita non si propone l'azione.
-            if (command.extraName && !LocalCommands.validateTarget(command.target, { extraFolders: settings.extraFolders, dataDir: dataDirectory })) return replyNow(ExtraFolders.goneMessage(command.extraName));
-            reply('Posso farlo: controlla e conferma l’azione.'); pendingAction = { id: randomUUID(), kind: 'open', description: command.description, target: command.target, extraName: command.extraName }; broadcast(); return chatSnapshot();
-          }
+          // «apri …» con una sola corrispondenza: la richiesta è già l'autorizzazione, si apre subito (decisione dell'utente, 16/11/2026).
+          if (command?.type === 'open') return openLocally(command).then(replyNow);
           if (command?.type === 'remember') { reply('Posso salvarla tra le note: controlla e conferma.'); pendingAction = { id: randomUUID(), kind: 'remember', description: `Salvare questa nota sul ${can.deviceName}: «${command.text}»`, text: command.text }; broadcast(); return chatSnapshot(); }
         }
         let image = null, imagePath = null, imageDirectory = null;

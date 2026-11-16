@@ -8,9 +8,9 @@ const Extra = require('./extra-folders.cjs');
 // Ogni azione e ogni nota passano da una conferma dell'utente (pendingAction in main.cjs).
 function openTargets(platform = process.platform, home = os.homedir(), env = process.env) {
   const calculator = platform === 'darwin'
-    ? { description: 'Aprire l’app Calcolatrice del Mac.', target: '/System/Applications/Calculator.app' }
-    : { description: 'Aprire la Calcolatrice di Windows.', target: path.join(env.SystemRoot || 'C:\\Windows', 'System32', 'calc.exe') };
-  const downloads = { description: 'Aprire la cartella Download del tuo utente.', target: path.join(home, 'Downloads') };
+    ? { kind: 'app', name: 'Calcolatrice', description: 'Aprire l’app Calcolatrice del Mac.', target: '/System/Applications/Calculator.app' }
+    : { kind: 'app', name: 'Calcolatrice', description: 'Aprire la Calcolatrice di Windows.', target: path.join(env.SystemRoot || 'C:\\Windows', 'System32', 'calc.exe') };
+  const downloads = { kind: 'folder', name: 'Download', description: 'Aprire la cartella Download del tuo utente.', target: path.join(home, 'Downloads') };
   return { 'apri calcolatrice': calculator, 'apri la calcolatrice': calculator, 'apri download': downloads, 'apri la cartella download': downloads };
 }
 const normalize = text => text.trim().toLocaleLowerCase('it').replace(/[.!?]+$/, '').replace(/\s+/g, ' ');
@@ -60,12 +60,35 @@ function listApps(dirs = macAppDirs(), extras = MAC_APP_EXTRAS) {
   for (const file of extras) { if (real(file)) add(path.basename(file).replace(/\.app$/i, ''), file); }
   return apps;
 }
+// Windows: le app installate sono i collegamenti (.lnk) del menu Start, di tutti gli utenti e dell'utente corrente.
+// Il collegamento punta al programma installato (di solito un .exe): così «apri Word» funziona senza aprire eseguibili sparsi.
+const windowsStartDirs = (env = process.env) => [env.ProgramData && path.join(env.ProgramData, 'Microsoft', 'Windows', 'Start Menu', 'Programs'),
+  env.APPDATA && path.join(env.APPDATA, 'Microsoft', 'Windows', 'Start Menu', 'Programs')].filter(Boolean);
+// Collegamenti di servizio da non proporre come app.
+const NOT_AN_APP = /\b(?:uninstall|disinstall\w*|readme|leggimi|help|guida|manual\w*|website|sito web|license|licenza|release notes|changelog|documentation|documentazione)\b/i;
+function listWindowsApps(dirs = windowsStartDirs(), { maxDepth = 3 } = {}) {
+  const apps = [], seen = new Set();
+  const walk = (dir, root, depth) => {
+    let entries; try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+      if (entry.name.startsWith('.') || entry.isSymbolicLink()) continue;
+      const file = path.join(dir, entry.name);
+      if (entry.isDirectory()) { if (depth < maxDepth) walk(file, root, depth + 1); continue; }
+      if (!entry.isFile() || !/\.lnk$/i.test(entry.name)) continue;
+      const name = entry.name.replace(/\.lnk$/i, '').trim();
+      if (!name || NOT_AN_APP.test(name) || seen.has(fold(name))) continue;
+      seen.add(fold(name)); apps.push({ name, path: file });
+    }
+  };
+  for (const dir of dirs) { const root = real(dir); if (root) walk(dir, root, 1); }
+  return apps;
+}
 // Cache con rilettura al massimo ogni 60 secondi, così un’app appena installata compare.
 const appCache = new Map();
-function getApps(dirs, extras = [], { ttl = 60000, now = Date.now() } = {}) {
-  const key = dirs.join('|') + '||' + extras.join('|'), cached = appCache.get(key);
+function getApps(dirs, extras = [], { ttl = 60000, now = Date.now(), platform = 'darwin' } = {}) {
+  const key = platform + '|' + dirs.join('|') + '||' + extras.join('|'), cached = appCache.get(key);
   if (cached && now - cached.time < ttl && now >= cached.time) return cached.apps;
-  const apps = listApps(dirs, extras);
+  const apps = platform === 'win32' ? listWindowsApps(dirs) : listApps(dirs, extras);
   appCache.set(key, { time: now, apps });
   return apps;
 }
@@ -89,6 +112,7 @@ function buildEntries(platform, home, env, apps, extra = []) {
     }
     for (const app of apps) entries.push({ key: fold(app.name), display: app.name, path: app.path });
   }
+  if (platform === 'win32') for (const app of apps) entries.push({ key: fold(app.name), display: app.name, path: app.path });
   // Calcolatrice di base (percorso fisso su Mac, calc.exe su Windows) se l’elenco non l’ha già trovata.
   if (!entries.some(entry => entry.key === 'calcolatrice')) entries.push({ key: 'calcolatrice', display: 'Calcolatrice', path: calc.target, description: calc.description });
   for (const entry of entries) entry.description ||= `Aprire l'app ${entry.display} (${entry.path}).`;
@@ -120,6 +144,42 @@ function suggestions(entries, query) {
     .sort((a, b) => distance(a.key, query) - distance(b.key, query)).filter(entry => !seen.has(entry.path) && seen.add(entry.path)).slice(0, 3).map(entry => entry.display);
 }
 
+// File che non si aprono mai da Mascotte: programmi, installer, script e collegamenti, perché aprirli vorrebbe dire eseguirli.
+// Le app installate passano dall'elenco delle app (Applicazioni su Mac, menu Start su Windows), non da qui.
+const BLOCKED_EXTENSIONS = new Set(['exe', 'com', 'scr', 'pif', 'msi', 'msix', 'msixbundle', 'appx', 'appxbundle', 'bat', 'cmd', 'ps1', 'psm1', 'psd1', 'vbs', 'vbe', 'js', 'jse', 'mjs', 'cjs',
+  'wsf', 'wsh', 'hta', 'cpl', 'reg', 'jar', 'lnk', 'url', 'sh', 'bash', 'zsh', 'fish', 'command', 'tool', 'app', 'pkg', 'mpkg', 'dmg', 'workflow', 'scpt', 'scptd', 'applescript', 'terminal',
+  'py', 'pyw', 'rb', 'pl', 'php', 'action', 'definition', 'inetloc', 'webloc', 'desktop', 'appimage', 'run', 'bin', 'out', 'elf', 'dll', 'sys', 'drv', 'ocx', 'msc', 'gadget', 'application', 'diagcab', 'library-ms', 'settingcontent-ms']);
+const extensionOf = name => { const match = /\.([^.\\/]+)$/.exec(name); return match ? match[1].toLowerCase() : ''; };
+const blockedFile = name => BLOCKED_EXTENSIONS.has(extensionOf(name));
+// Cartelle in cui si cercano i file: quelle note (senza Applicazioni) e quelle aggiunte nelle Impostazioni.
+const fileRoots = (platform, home, extra) => folderEntries(platform, home, extra).filter(folder => folder.target !== '/Applications');
+const SKIP_DIRS = new Set(['node_modules', '.git', '$recycle.bin', 'appdata', 'library']);
+// Cerca per nome nelle cartelle note, fino a tre livelli e al massimo 20.000 elementi: nessun file viene letto, solo i nomi.
+// Esatto = nome intero o nome senza estensione uguale alla richiesta (senza maiuscole e accenti).
+function findFiles(query, roots, { maxDepth = 3, maxEntries = 20000 } = {}) {
+  const wanted = fold(query), exact = [], partial = [];
+  let visited = 0;
+  const walk = (dir, folder, depth) => {
+    let entries; try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      if (++visited > maxEntries) return;
+      if (entry.name.startsWith('.') || entry.isSymbolicLink()) continue;
+      const file = path.join(dir, entry.name);
+      if (entry.isDirectory()) { if (depth < maxDepth && !SKIP_DIRS.has(entry.name.toLowerCase()) && !/\.app$/i.test(entry.name)) walk(file, folder, depth + 1); continue; }
+      if (!entry.isFile()) continue;
+      const name = fold(entry.name), stem = fold(entry.name.replace(/\.[^.]+$/, ''));
+      const item = { name: entry.name, path: file, folder: folder.display, blocked: blockedFile(entry.name) };
+      if (name === wanted || stem === wanted) exact.push(item);
+      else if (wanted.length >= 3 && name.includes(wanted) && partial.length < 20) partial.push(item);
+    }
+  };
+  for (const folder of roots) { if (visited > maxEntries) break; if (real(folder.target)) walk(folder.target, folder, 1); }
+  return { exact, partial };
+}
+const FILE_WORDS = /^(?:il |lo |la |l )?(?:file|documento|foto|immagine|pdf|video)\s+/;
+// «… in Documenti», «… nella cartella siti»: limita la ricerca dei file a quella cartella.
+const IN_FOLDER = /\s+(?:in|nel|nella|nei|nelle|dentro|da|dalla|dal)\s+(?:(?:mia|la|cartella)\s+)*([^\s].*)$/;
+
 const COURTESY_START = /^(?:ciao|ehi|scusa|se puoi|puoi|potresti|potrebbe|riesci a|riusciresti a|ti va di|mi|per favore|per piacere|per cortesia)(?=[\s,]|$)[\s,]*/;
 const COURTESY_END = /[\s,]+(?:per favore|per piacere|per cortesia|grazie mille|grazie|ciao)$/;
 const OPEN_VERB = /^(?:fai partire|aprimi|aprirmi|aprire|apri|avviami|avviarmi|avviare|avvia|lanciami|lanciarmi|lanciare|lancia|esegui)(?=\s|$)\s*/;
@@ -145,23 +205,62 @@ function parseOpenPhrase(text) {
   return { raw: original, name: words.join(' ') };
 }
 
+// Ricerca di un file per «apri …»: un solo file esatto → apertura; più file → elenco; file bloccato → rifiuto spiegato.
+// `found: false` quando non c'è niente di pertinente (la richiesta può allora andare al modello).
+function resolveFile(phrase, { platform, home, extraFolders }) {
+  let name = phrase.raw.replace(FILE_WORDS, ''), roots = fileRoots(platform, home, extraFolders);
+  const inFolder = name.match(IN_FOLDER);
+  if (inFolder) {
+    const key = fold(inFolder[1].replace(/^(?:cartella\s+)/i, ''));
+    const only = roots.filter(folder => folder.keys.includes(key) || fold(folder.display) === key);
+    if (only.length) { roots = only; name = name.slice(0, inFolder.index); }
+  }
+  name = name.replace(/^["«“']+|["»”']+$/g, '').trim();
+  if (!name) return { found: false };
+  let { exact, partial } = findFiles(name, roots);
+  // «apri foto mare»: «foto» può essere parte del nome del file. Senza risultati esatti si riprova con la frase intera.
+  const whole = phrase.raw.replace(/^(?:il|lo|la|l)\s+/i, '').replace(IN_FOLDER, '').trim();
+  if (!exact.length && whole !== name && phrase.raw.replace(FILE_WORDS, '') !== phrase.raw) {
+    const again = findFiles(whole, roots);
+    if (again.exact.length) { ({ exact, partial } = again); name = whole; }
+  }
+  const where = item => `${item.name} (in ${item.folder})`;
+  const allowed = exact.filter(item => !item.blocked);
+  if (allowed.length === 1) return { found: true, type: 'open', kind: 'file', name: allowed[0].name, target: allowed[0].path, description: `Aprire il file ${allowed[0].name} da ${allowed[0].folder}.` };
+  if (allowed.length > 1) return { found: true, type: 'reply', text: `Ho trovato più file chiamati «${name}»:\n` + allowed.slice(0, 6).map(item => `- ${where(item)}`).join('\n') + (allowed.length > 6 ? `\ne altri ${allowed.length - 6}.` : '') + `\nQuale? Scrivi per esempio «apri ${allowed[0].name} in ${allowed[0].folder}».` };
+  if (exact.length) return { found: true, type: 'reply', text: `«${exact[0].name}» è un programma, un installer o uno script: per sicurezza Mascotte non lo apre. Se ti fidi, aprilo tu dal ${platform === 'darwin' ? 'Finder' : 'Esplora file'}.` };
+  const options = partial.filter(item => !item.blocked);
+  if (options.length) return { found: true, type: 'reply', text: `Non trovo un file chiamato esattamente «${name}». Forse intendevi:\n` + options.slice(0, 5).map(item => `- ${where(item)}`).join('\n') + '\nScrivi il nome completo, per esempio con l’estensione.' };
+  return { found: false, name };
+}
 function resolveOpen(text, { platform, home, env, appDirs, appExtras, extraFolders }) {
   const phrase = parseOpenPhrase(text);
   if (!phrase) return null;
-  const apps = platform === 'darwin' ? getApps(appDirs || macAppDirs(home), appExtras || (appDirs ? [] : MAC_APP_EXTRAS)) : [];
+  const device = platform === 'darwin' ? 'Mac' : 'PC';
+  // Richiesta esplicita di un file («apri il file …», nome con estensione): solo file.
+  const asksFile = FILE_WORDS.test(fold(phrase.raw) + ' ') || /\.[a-z0-9]{1,8}(?:\s+(?:in|nel|nella|dentro|da)\s+.*)?$/i.test(phrase.raw);
+  if (asksFile) {
+    const file = resolveFile(phrase, { platform, home, extraFolders });
+    if (file.found) { delete file.found; return file; }
+    return { type: 'reply', text: `Non trovo il file «${file.name || phrase.raw}» nelle cartelle che Mascotte conosce (Download, Documenti, Scrivania, Immagini e quelle aggiunte nelle Impostazioni).` };
+  }
+  const apps = platform === 'darwin' ? getApps(appDirs || macAppDirs(home), appExtras || (appDirs ? [] : MAC_APP_EXTRAS))
+    : platform === 'win32' ? getApps(appDirs || windowsStartDirs(env), [], { platform }) : [];
   const entries = buildEntries(platform, home, env, apps, extraFolders);
   let ambiguous = null;
   for (const candidate of new Set([fold(phrase.name), fold(phrase.raw)])) {
     const found = lookup(entries, candidate);
-    if (found.status === 'found') return { type: 'open', description: found.entry.description, target: found.entry.path, ...(found.entry.extra ? { extraName: found.entry.extra } : {}) };
+    if (found.status === 'found') return { type: 'open', kind: found.entry.path.match(/\.(?:app|lnk|exe)$/i) ? 'app' : 'folder', name: found.entry.display, description: found.entry.description, target: found.entry.path, ...(found.entry.extra ? { extraName: found.entry.extra } : {}) };
     if (found.status === 'ambiguous' && !ambiguous) ambiguous = found.matches;
   }
-  if (platform !== 'darwin') return null;
   if (ambiguous) return { type: 'reply', text: `Ho trovato più app: ${ambiguous.slice(0, 5).map(entry => entry.display).join(', ')}. Quale?` };
+  // Nessuna app o cartella: un file con quel nome nelle cartelle note.
+  const file = resolveFile(phrase, { platform, home, extraFolders });
+  if (file.found) { delete file.found; return file; }
   const query = fold(phrase.name), tokens = query.split(' ');
   if (tokens.length > 3 || tokens.some(token => NOT_A_NAME.has(token))) return null;
   const similar = suggestions(entries, query);
-  return { type: 'reply', text: `Non trovo un'app chiamata «${phrase.name}» sul Mac.` + (similar.length ? ` Forse intendevi: ${similar.join(', ')}?` : '') };
+  return { type: 'reply', notFound: true, text: `Non trovo un'app, una cartella o un file chiamato «${phrase.name}» sul ${device}.` + (similar.length ? ` Forse intendevi: ${similar.join(', ')}?` : '') };
 }
 
 // Ricontrollo al momento della conferma: il percorso deve esistere ancora ed essere una cartella o app ammessa.
@@ -173,6 +272,15 @@ function validateTarget(target, { platform = process.platform, home = os.homedir
   if (fixed.some(item => real(item) === resolved)) return true;
   // Cartelle aggiunte dalle Impostazioni: solo quelle ancora nell'elenco, con lo stesso percorso reale e ancora valide.
   if (Array.isArray(extraFolders) && extraFolders.some(item => item && Extra.samePath(item.path, resolved, platform) && Extra.recheckExtraFolder(item, { platform, home, dataDir }))) return true;
+  // File: solo dentro le cartelle note o aggiunte, mai programmi o script.
+  let stat; try { stat = fs.statSync(resolved); } catch { return false; }
+  if (stat.isFile() && !/\.lnk$/i.test(resolved)) {
+    if (blockedFile(resolved)) return false;
+    const roots = [...fileRoots(platform, home, []).map(folder => folder.target), ...(Array.isArray(extraFolders) ? extraFolders.filter(item => item && Extra.recheckExtraFolder(item, { platform, home, dataDir })).map(item => item.path) : [])];
+    return roots.some(root => { const base = real(root); return base && inside(resolved, base) && resolved !== base; });
+  }
+  // Windows: collegamenti .lnk del menu Start.
+  if (platform === 'win32') return stat.isFile() && /\.lnk$/i.test(resolved) && (appDirs || windowsStartDirs(env)).some(dir => { const base = real(dir); return base && inside(resolved, base); });
   if (platform !== 'darwin' || !/\.app$/i.test(resolved)) return false;
   if ((appExtras || (appDirs ? [] : MAC_APP_EXTRAS)).some(item => real(item) === resolved)) return true;
   return (appDirs || macAppDirs(home)).some(dir => { const root = real(dir); return systemApp(resolved) || (root && path.dirname(resolved) === root); });
@@ -250,4 +358,11 @@ function describeNotes(notes) {
   if (!notes.length) return 'Non hai note salvate. Per salvarne una scrivi «ricorda: …» oppure usa «Ricorda…» sotto una risposta.';
   return 'Le tue note salvate (le uso come contesto quando la domanda contiene parole in comune):\n' + notes.map((note, index) => `${index + 1}. ${note.text}`).join('\n');
 }
-module.exports = { openTargets, folderEntries, parseFolderQuestion, parseLocalCommand, describeNotes, listApps, getApps, clearAppCache, validateTarget, macAppDirs };
+// Solo «apri …» (app, cartelle, file): usato anche con Codex e Claude prima dell'invio, perché resta tutto sul computer.
+function parseOpenRequest(text, { platform = process.platform, home = os.homedir(), env = process.env, appDirs, appExtras, extraFolders = [] } = {}) {
+  if (typeof text !== 'string' || !text.trim()) return null;
+  const normalized = normalize(text), targets = openTargets(platform, home, env);
+  if (Object.hasOwn(targets, normalized)) return { type: 'open', ...targets[normalized] };
+  return resolveOpen(text, { platform, home, env, appDirs, appExtras, extraFolders });
+}
+module.exports = { openTargets, folderEntries, parseFolderQuestion, parseLocalCommand, parseOpenRequest, describeNotes, listApps, listWindowsApps, windowsStartDirs, getApps, clearAppCache, validateTarget, macAppDirs, findFiles, blockedFile };

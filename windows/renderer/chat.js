@@ -281,7 +281,7 @@ function render(value) {
   if (!value.messages.length && !value.agent?.enabled) $('messages').append(emptyChat(value, characterName(value)));
   else if (!value.messages.length) { const intro = document.createElement('p'); intro.className = 'intro'; intro.textContent = 'Scegli la cartella e descrivi il lavoro da fare.'; $('messages').append(intro); }
   for (const [index, message] of value.messages.entries()) {
-    const appMessage = message.role === 'assistant' && message.kind === 'app';
+    const appMessage = message.role === 'assistant' && ['app', 'local'].includes(message.kind);
     const item = document.createElement('section'); item.className = 'message ' + message.role + (appMessage ? ' app' : '');
     const name = document.createElement('strong'); name.textContent = message.role === 'user' ? 'Tu' : appMessage || message.role === 'notice' ? 'Mascotte' : SERVICE_NAMES[value.engine] || localTitle(value);
     const text = document.createElement('span'); text.textContent = message.text;
@@ -452,7 +452,7 @@ function openRemote(text, engine, imageData = null, noHistory = false, preview =
   if (preview) $('remote-image').src = preview; else $('remote-image').removeAttribute('src');
   $('remote-engine').value = engine; $('remote-engine').disabled = !noHistory;
   $('remote-text').value = text;
-  const context = noHistory ? [] : current.messages.filter(message => ['user', 'assistant'].includes(message.role)).slice(-20).map(({ role, text }) => ({ role, text }));
+  const context = noHistory ? [] : current.messages.filter(message => ['user', 'assistant'].includes(message.role) && message.kind !== 'local').slice(-20).map(({ role, text }) => ({ role, text }));
   $('remote-context').textContent = context.length ? JSON.stringify(context, null, 2) : 'Nessun messaggio precedente.';
   $('remote-image-status').textContent = preview && noHistory ? 'Fotogramma da inviare insieme al testo (togli la spunta per mandare solo il testo):' : imageData ? 'È incluso anche il fotogramma che hai appena approvato.' : 'Nessuna immagine allegata.';
   const name = SERVICE_NAMES[engine] || 'Claude';
@@ -472,6 +472,11 @@ async function submit(imageData = null, noHistory = false, confirmed = false, us
   // Resta sul computer (solo il modello locale lo vede), quindi non serve conferma. Codex e Claude solo con «Allega fotogramma…».
   if (engine === 'locale' && !imageData && current.localVision && current.watching) imageData = captureFrame();
   if (current.agent?.enabled && !noHistory && !current.agent.workspace) return;
+  // Codex e Claude: «apri …» lo gestisce Mascotte sul computer, senza finestra di invio remoto e senza mandare il messaggio.
+  if (engine !== 'locale' && !confirmed && !imageData && !noHistory && !current.agent?.enabled) {
+    const opened = await invoke('open-request', text);
+    if (opened?.handled === true) { $('input').value = ''; drafts[engine] = ''; render(await invoke('snapshot')); $('input').focus(); return; }
+  }
   if (engine !== 'locale' && !confirmed && (imageData || noHistory || !remoteConfirmed.has(remoteKey(engine)))) { openRemote(text, engine, imageData, noHistory); return; }
   $('input').value = ''; drafts[engine] = ''; $('send').disabled = true;
   await invoke('send', imageData || noHistory || useLastFrame ? { text, ...(imageData ? { imageData } : {}), ...(noHistory ? { noHistory: true } : {}), ...(useLastFrame ? { useLastFrame: true } : {}) } : text);

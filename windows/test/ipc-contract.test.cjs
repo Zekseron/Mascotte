@@ -17,7 +17,7 @@ const MASCOT = ['init', 'mask', 'chat', 'menu', 'drag-start', 'drag-move', 'drag
 const CHAT = [
   'agent-mode', 'agent-workspace', 'agent-answer',
   'snapshot', 'local-scan', 'local-engine', 'local-model', 'local-download-cancel', 'local-managed-remove', 'local-download', 'local-check',
-  'memory-add', 'memory-remove', 'pc-action-cancel', 'pc-action-confirm', 'cli-guide', 'release-update', 'character-select', 'character-scale',
+  'memory-add', 'memory-remove', 'open-request', 'pc-action-cancel', 'pc-action-confirm', 'cli-guide', 'release-update', 'character-select', 'character-scale',
   'character-add', 'character-remove', 'folders-add', 'folders-remove', 'repo-select', 'update-run', 'watch-sources', 'watch-permission-settings',
   'watch-thumbnail', 'watch-enable', 'watch-disable', 'chat-hide', 'engine', 'reminder-remove', 'alarm-volume', 'alarm-sound-data', 'alarm-sound-remove', 'alarm-sound-choose',
   'alarm-stop', 'alarm-snooze', 'new', 'second-opinion-frame', 'stop', 'setup-preview', 'setup-apply', 'setup-dismiss', 'send'
@@ -40,10 +40,10 @@ test('azioni della chat: elenco fisso', () => {
   assert.deepEqual(names(source.slice(chatStart, refusal)).sort(), [...CHAT].sort());
 });
 
-test('53 azioni distinte e nessuna in comune tra le due finestre', () => {
+test('54 azioni distinte e nessuna in comune tra le due finestre', () => {
   const all = names(source.slice(handlerStart));
-  assert.equal(all.length, 53);
-  assert.equal(MASCOT.length + CHAT.length, 53);
+  assert.equal(all.length, 54);
+  assert.equal(MASCOT.length + CHAT.length, 54);
   assert.deepEqual(all.sort(), [...MASCOT, ...CHAT].sort());
   assert.equal(MASCOT.filter(name => CHAT.includes(name)).length, 0);
 });

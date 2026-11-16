@@ -128,6 +128,18 @@ test('A2b: anteprima e prompt remoto contengono gli stessi role/text senza kind'
   assert.equal(calls.some(([action]) => action === 'send'), false, 'aprire la conferma non invia');
 });
 
+test('«apri …» gestito sul computer (kind local): mai nell’anteprima né nel prompt remoto', () => {
+  const { render, element, evaluate } = loadChatDom();
+  const messages = [{ role: 'user', text: 'a' }, { role: 'user', text: 'apri fattura.pdf', kind: 'local' }, { role: 'assistant', text: 'Apro «fattura.pdf».', kind: 'local' }, { role: 'assistant', text: 'b' }];
+  render(chatFixture({ engine: 'claude', messages }));
+  evaluate("openRemote('domanda', 'claude')");
+  const shown = JSON.parse(element('remote-context').textContent);
+  assert.deepEqual(shown, [{ role: 'user', text: 'a' }, { role: 'assistant', text: 'b' }]);
+  const prompt = require('../lib/cli.cjs').promptWithHistory(messages, 'domanda');
+  assert.equal(prompt.split('\n')[1], JSON.stringify(shown));
+  assert.doesNotMatch(prompt, /fattura/);
+});
+
 test('A3: indicatore coerente su video pronto/non pronto, cambio servizio e stop', () => {
   const { render, element, evaluate, listeners } = loadChatDom();
   const value = chatFixture({ watching: true, localVision: true, watchName: '<Finestra> molto lunga' });
