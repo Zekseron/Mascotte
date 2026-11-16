@@ -342,6 +342,7 @@ function applyFixes(fixes, cell, labels, frame, fw) {
       // Carta e pagine: chiare e crema-gialle (tonalità oltre 32°), mentre la pelle è pesca (15–25°).
       if (!clear && fix.clearPale && label === 'pelle') { const [hue, s, v] = rgbToHsv(frame[i * 4], frame[i * 4 + 1], frame[i * 4 + 2]); clear = v > 0.75 && (s < 0.2 || (hue >= 32 && s < 0.5)); }
       if (clear) labels[i] = null;
+      else labels[i] = fix.replace?.[label] ?? label;
     }
   }
 }

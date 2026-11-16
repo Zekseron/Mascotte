@@ -1,5 +1,5 @@
 {
-  "nota": "Correzioni manuali della mappa delle parti (tools/parts-map.cjs), applicate dopo il calcolo automatico. Coordinate in pixel della cella 320×512. «clear»: parti che dentro il riquadro diventano «nessuna parte»; «clearPale»: anche i pixel chiari quasi senza colore (pagine) classificati pelle.",
+  "nota": "Correzioni manuali della mappa delle parti (tools/parts-map.cjs), applicate dopo il calcolo automatico. Coordinate in pixel della cella 320×512. «clear»: parti che dentro il riquadro diventano «nessuna parte»; «clearPale»: anche i pixel chiari quasi senza colore (pagine) classificati pelle. «replace»: modifica solo le parti indicate nel riquadro.",
   "fix": [
     {
       "motivo": "libro tenuto in mano nelle pose di lettura: copertina e pagine non sono parti di Luma",
@@ -115,6 +115,22 @@
         "colletto"
       ],
       "clearPale": false
+    },
+    {
+      "motivo": "riflessi e ciocche della testa nelle pose sedute, inclusa la ciocca sulla fronte mentre lavora",
+      "cells": [
+        "8:9", "9:9", "10:9", "11:9", "12:9", "13:9", "14:9", "15:9",
+        "0:10", "1:10", "2:10", "3:10", "4:10", "5:10", "6:10", "7:10",
+        "8:10", "9:10", "10:10", "11:10", "12:10", "3:11", "4:11", "5:11", "6:11", "7:11"
+      ],
+      "rect": [55, 70, 265, 169],
+      "replace": { "giacca": "capelli" }
+    },
+    {
+      "motivo": "sommità della testa nelle pose di festa da seduta, separata dalla manica del braccio alzato",
+      "cells": ["13:10", "14:10", "15:10", "0:11", "1:11", "2:11"],
+      "rect": [116, 70, 265, 145],
+      "replace": { "giacca": "capelli" }
     }
   ]
 }

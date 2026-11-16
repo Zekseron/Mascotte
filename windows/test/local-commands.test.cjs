@@ -243,7 +243,7 @@ test('Mac: app web dei browser in «Chrome Apps.localized» dentro Applicazioni 
 // --- Colori delle mascotte: ricolorazione per parti (16 novembre 2026) ---
 test('ricolorazione: solo le parti con un colore scelto, luci e ombre conservate', () => {
   const R = require('../renderer/recolor.js');
-  const base = '#c86432', target = '#3a2448';
+  const base = '#c86432', target = '#482c59';
   const transforms = R.prepare([{ base, target }, { base: '#eebca3', target: '#eebca3' }]);
   assert.equal(transforms[1], null); // colore uguale all'originale: parte non toccata
   const data = new Uint8ClampedArray([200, 100, 50, 255, 230, 130, 80, 255, 120, 50, 20, 255, 238, 188, 163, 255, 200, 100, 50, 0]);
@@ -256,6 +256,28 @@ test('ricolorazione: solo le parti con un colore scelto, luci e ombre conservate
   assert.deepEqual([...out.slice(16, 20)], [200, 100, 50, 0]); // pixel trasparente invariato
   const lighter = R.apply(Uint8ClampedArray.from(data.slice(0, 12)), map.slice(0, 12), R.prepare([{ base, target: '#f0f0f0' }]));
   assert.ok(R.rgbToHsv(lighter[4], lighter[5], lighter[6])[2] >= R.rgbToHsv(lighter[0], lighter[1], lighter[2])[2], 'verso il bianco le luci non si invertono');
+});
+
+test('ricolorazione: nero, bianco e colori saturi mantengono tre livelli di luminosità', () => {
+  const R = require('../renderer/recolor.js');
+  const map = Uint8ClampedArray.from([1, 0, 0, 255, 1, 0, 0, 255, 1, 0, 0, 255]);
+  const base = '#808080';
+  const shades = target => {
+    const pixels = Uint8ClampedArray.from([45, 45, 45, 190, 128, 128, 128, 255, 195, 195, 195, 210]);
+    R.apply(pixels, map, R.prepare([{ base, target }]));
+    assert.deepEqual([pixels[3], pixels[7], pixels[11]], [190, 255, 210]);
+    // La luminosità HSL è la media tra il canale più alto e quello più basso.
+    return [0, 4, 8].map(i => {
+      const rgb = pixels.slice(i, i + 3);
+      return (Math.max(...rgb) + Math.min(...rgb)) / 2;
+    });
+  };
+  for (const color of ['#000000', '#ffffff', '#0080ff', '#ff00ff', '#00ff00']) {
+    const [shadow, middle, highlight] = shades(color);
+    assert.ok(middle - shadow >= 8 && highlight - middle >= 8, color);
+  }
+  assert.ok(shades('#101010')[1] > shades('#000000')[1]);
+  assert.ok(shades('#f0f0f0')[1] < shades('#ffffff')[1]);
 });
 
 test('personaggi inclusi: mappa delle parti valida, grande quanto il foglio, colori originali esadecimali', () => {
