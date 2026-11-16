@@ -160,6 +160,45 @@ function markIrises(result, data, label, w, h, top, height) {
     if (cells.length < 15 || cells.length > 1600) return;
     if (borderShare(cells, w, h, inside, j => near[j]) >= 0.06) for (const i of cells) result[i] = 'occhi';
   });
+  // Bianco d'occhio: l'iride è la zona colorata nel suo riquadro, collegata al bianco (completa anche iridi trovate a metà).
+  // Serve quando l'iride ha il colore dei capelli o è scura (sguardo in basso). Contorno, ciglia e pelle restano fuori.
+  components(sclera, w, h, cells => {
+    if (cells.length < 40) return;
+    let x0 = w, x1 = 0, y0 = h, y1 = 0;
+    for (const i of cells) { const x = i % w, y = (i - x) / w; x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    x0 = Math.max(0, x0 - 2); x1 = Math.min(w - 1, x1 + 2); y0 = Math.max(0, y0 - 2); y1 = Math.min(h - 1, y1 + 2);
+    // Un occhio ha sopra le ciglia scure; i denti hanno sopra il labbro. Si guarda la fascia appena sopra il bianco.
+    let darkAbove = 0;
+    for (let x = x0; x <= x1; x++) for (let y = Math.max(0, y0 - 6); y < y0 + 3; y++) { const i = y * w + x; if (data[i * 4 + 3] > 200 && rgbToHsv(data[i * 4], data[i * 4 + 1], data[i * 4 + 2])[2] < 0.3) { darkAbove++; break; } }
+    if (darkAbove < 0.4 * (x1 - x0 + 1)) return;
+    const candidate = i => { const [hue, sat, val] = rgbToHsv(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]); return data[i * 4 + 3] > 200 && val > 0.12 && val < 0.97 && sat > 0.45 && hue <= 48; };
+    const fill = new Uint8Array(n), stack = [];
+    for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+      const i = y * w + x; if (!candidate(i)) continue;
+      let close = false;
+      for (let dy = -3; dy <= 3 && !close; dy++) for (let dx = -3; dx <= 3; dx++) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < w && ny < h && sclera[ny * w + nx]) { close = true; break; } }
+      if (close) { fill[i] = 1; stack.push(i); }
+    }
+    while (stack.length) {
+      const i = stack.pop(), x = i % w, y = (i - x) / w;
+      for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+        if (nx < x0 || nx > x1 || ny < y0 || ny > y1) continue;
+        const j = ny * w + nx; if (!fill[j] && candidate(j)) { fill[j] = 1; stack.push(j); }
+      }
+    }
+    let count = 0; for (let i = 0; i < n; i++) count += fill[i];
+    if (count >= 15 && count <= 1600) for (let i = 0; i < n; i++) if (fill[i]) result[i] = 'occhi';
+  });
+  // Un «occhio» lontano da ogni bianco dell'occhio (più di 7 pixel) è un sopracciglio o un riflesso: torna ai capelli.
+  const anyWhite = new Uint8Array(n);
+  components(white, w, h, cells => { if (cells.length >= 3) for (const i of cells) anyWhite[i] = 1; });
+  const nearWhite = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    if (!anyWhite[i]) continue;
+    const x = i % w, y = (i - x) / w;
+    for (let dy = -7; dy <= 7; dy++) for (let dx = -7; dx <= 7; dx++) { const nx = x + dx, ny = y + dy; if (nx >= 0 && ny >= 0 && nx < w && ny < h) nearWhite[ny * w + nx] = 1; }
+  }
+  for (let i = 0; i < n; i++) if (result[i] === 'occhi' && !nearWhite[i]) result[i] = 'capelli';
   // Macchioline «capelli» rimaste dentro un'iride: diventano occhi.
   const hair = new Uint8Array(n); for (let i = 0; i < n; i++) if (result[i] === 'capelli' && Math.floor(i / w) <= limitY) hair[i] = 1;
   components(hair, w, h, cells => {
