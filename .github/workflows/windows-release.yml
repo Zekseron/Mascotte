@@ -1,26 +1,59 @@
 name: Release Windows
+# Al push di un tag v* costruisce e pubblica i pacchetti Windows.
+# Se la release di quel tag esiste già (pubblicata prima solo per Mac), il push non costruisce nulla:
+# i pacchetti Windows si aggiungono dopo il collaudo avviando il workflow a mano con lo stesso tag.
 on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag della release a cui aggiungere i pacchetti Windows (per esempio v0.9.3)'
+        required: true
 permissions:
   contents: write
 jobs:
   windows:
     runs-on: windows-latest
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
     steps:
+      - name: Check existing release
+        id: check
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view $env:TAG --repo $env:GITHUB_REPOSITORY --json tagName | Out-Null
+          $exists = $LASTEXITCODE -eq 0
+          $global:LASTEXITCODE = 0
+          if ($exists -and $env:GITHUB_EVENT_NAME -eq 'push') {
+            Write-Host "La release $env:TAG esiste già (pubblicata solo per Mac): nessun pacchetto Windows costruito. Dopo il collaudo avvia il workflow a mano con questo tag."
+            "skip=true" >> $env:GITHUB_OUTPUT
+          } else {
+            "skip=false" >> $env:GITHUB_OUTPUT
+          }
+          "exists=$($exists.ToString().ToLower())" >> $env:GITHUB_OUTPUT
+          exit 0
       - uses: actions/checkout@v4
+        if: steps.check.outputs.skip != 'true'
+        with:
+          ref: ${{ env.TAG }}
       - uses: actions/setup-node@v4
+        if: steps.check.outputs.skip != 'true'
         with:
           node-version: '22'
           cache: npm
           cache-dependency-path: windows/package-lock.json
       - name: Verify release version
+        if: steps.check.outputs.skip != 'true'
         shell: pwsh
         run: |
           $version = (Get-Content windows/package.json -Raw | ConvertFrom-Json).version
-          if ($version -notmatch '^\d+\.\d+\.\d+$' -or $env:GITHUB_REF_NAME -ne "v$version") { throw 'Il tag deve essere v seguito dalla versione stabile di windows/package.json.' }
+          if ($version -notmatch '^\d+\.\d+\.\d+$' -or $env:TAG -ne "v$version") { throw 'Il tag deve essere v seguito dalla versione stabile di windows/package.json.' }
       - name: Install dependencies and run tests
+        if: steps.check.outputs.skip != 'true'
         working-directory: windows
         run: |
           npm.cmd ci
@@ -28,13 +61,21 @@ jobs:
           node --test --test-concurrency=1 "test/*.test.cjs"
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build installer and portable package
+        if: steps.check.outputs.skip != 'true'
         working-directory: windows
         run: npm.cmd run build:win
       - name: Publish release
+        if: steps.check.outputs.skip != 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $version = (Get-Content windows/package.json -Raw | ConvertFrom-Json).version
-          gh release create $env:GITHUB_REF_NAME "windows/dist/Mascotte-Windows-$version-x64.zip" "windows/dist/Mascotte-Setup-$version-x64.exe" --verify-tag --title "Mascotte $version — Windows" --notes-file RELEASE-NOTES.md
+          $files = @("windows/dist/Mascotte-Windows-$version-x64.zip", "windows/dist/Mascotte-Setup-$version-x64.exe")
+          if ('${{ steps.check.outputs.exists }}' -eq 'true') {
+            # Release già pubblicata per Mac: si aggiungono i pacchetti Windows senza toccare quelli esistenti.
+            gh release upload $env:TAG @files
+          } else {
+            gh release create $env:TAG @files --verify-tag --title "Mascotte $version — Windows" --notes-file RELEASE-NOTES.md
+          }
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

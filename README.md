@@ -4,7 +4,7 @@
 
 Una mascotte desktop per **Windows (x64)** e **Mac (Apple Silicon)** che reagisce con animazioni a Claude Code e Codex, e che all'occorrenza fa domande al volo, risponde con un'IA locale o guarda una finestra che scegli tu. Il personaggio è intercambiabile: sono inclusi il gattino in pixel art Rosso e Luma, illustrata.
 
-Versione distribuita: [0.9.2 per Windows e Mac Apple Silicon](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.2). I due pacchetti possono essere aggiornati in momenti diversi.
+Versioni distribuite: [Mac Apple Silicon 0.9.3](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.3) e [Windows 0.9.2](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.2). I due pacchetti possono essere aggiornati in momenti diversi.
 
 Progetto e decisioni: [DESIGN.md](DESIGN.md).
 
@@ -15,7 +15,7 @@ Progetto e decisioni: [DESIGN.md](DESIGN.md).
 - **Chat locale:** risponde con modelli che girano sul computer, tramite Ollama (anche modelli già installati) o altri motori locali già avviati da te (LM Studio, server di llama.cpp, Jan), oppure con **llama.cpp (Mascotte)**: Mascotte scarica (solo dopo la tua conferma, con impronte SHA-256 verificate) una build fissata di llama.cpp e il modello Gemma 4 E4B, e avvia e chiude da sé il server su `127.0.0.1`. Nessun modello cloud viene usato.
 - **Note:** si salvano a mano o con «ricorda: …» e vengono ritrovate per le domande locali. Restano sul computer.
 - **Promemoria e sveglie:** nella chat locale «ricordami alle 15:30 di chiamare Marco», «sveglia tra 20 minuti», «che promemoria ho?», «cancella promemoria 2». Mascotte calcola l'orario, chiede conferma e alla scadenza mostra una notifica di sistema. La chat locale conosce anche data e ora attuali. Le **sveglie** («sveglia…», «timer…», «svegliami…») alla scadenza aprono anche la finestra di Mascotte con «Ferma» e «Rimanda 5 minuti» e suonano a ripetizione finché non le fermi (al massimo 3 minuti); i promemoria normali sono solo una notifica. Nelle Impostazioni, sezione «Sveglie e promemoria», trovi l'elenco con «Elimina», il volume della sveglia e la scelta di un audio personalizzato (MP3, WAV, M4A, OGG o FLAC, fino a 10 MB) al posto del bip.
-- **Azioni locali con conferma:** aprire la Calcolatrice e le cartelle Download, Documenti, Scrivania e Immagini, anche con frasi naturali; su Mac anche le app installate. Ogni azione parte solo dopo la tua conferma.
+- **Aprire app, cartelle e file:** con frasi naturali («apri Safari», «apri download», «apri fattura.pdf»). Su Mac dalla 0.9.3 apre subito, anche con Codex o Claude scelti e senza inviare loro la richiesta; programmi, installer e script trovati nelle cartelle non si aprono mai. Su Windows 0.9.2 Calcolatrice e cartelle, con conferma.
 - **Cartelle visibili:** la chat locale può elencare (solo nomi, tipo, dimensione e data, mai il contenuto) quelle cartelle e le altre che aggiungi tu dalle Impostazioni.
 - **Osservazione di una finestra:** scegli una finestra, la vedi in anteprima locale e puoi allegare **un solo fotogramma**, solo dopo conferma, a Codex, Claude o a un modello locale che legge le immagini. Su Mac serve il permesso «Registrazione schermo». Con la chat locale e un modello che legge le immagini, mentre osservi ogni messaggio include da solo il fotogramma attuale (resta sul computer).
 - **Impostazioni:** l'ingranaggio in alto a destra nella micro chat apre un pannello a sezioni: mascotte (personaggio, grandezza di base, mascotte personali), IA locale, Codex e Claude, note, cartelle visibili, hook, aggiornamenti.

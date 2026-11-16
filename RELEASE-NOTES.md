@@ -1,14 +1,14 @@
-# Mascotte 0.9.2 — Windows e Mac
+# Mascotte 0.9.3 — Mac
+
+Questa release aggiorna **Mac Apple Silicon**. Per **Windows x64** resta disponibile la [0.9.2](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.2): i pacchetti Windows 0.9.3 arriveranno dopo il collaudo su Windows.
 
 ## Novità
 
-- La chat vuota saluta con il nome della mascotte. In modalità Locale propone quattro esempi cliccabili che compilano il campo del messaggio senza inviarlo.
-- La chat ricorda posizione e dimensioni. Esc torna alla chat dalle Impostazioni oppure riduce a icona la finestra.
-- Le conferme informative hanno un colore distinto da quello degli errori.
-- Da **+ → Condividi schermata** puoi vedere l'anteprima di una finestra prima di iniziare a osservarla. Durante l'osservazione, la chat mostra una miniatura dal vivo e un pulsante per interromperla.
+- **«apri …» per app, cartelle e file**, con qualsiasi IA scelta: per esempio «apri Safari», «apri download», «apri fattura.pdf» o «apri fattura.pdf in Documenti». Se c'è una sola corrispondenza Mascotte apre subito, senza un'altra conferma.
+- **File trovati per nome** in Download, Documenti, Scrivania, Immagini e nelle cartelle aggiunte nelle Impostazioni. Se ce ne sono più con lo stesso nome Mascotte li elenca e chiede quale. Programmi, installer e script non vengono mai aperti.
+- **Con Codex o Claude** la richiesta «apri …» la gestisce Mascotte sul Mac: non viene inviata al servizio e non entra nel contesto delle domande successive. Le altre frasi vanno al servizio come prima.
 
-## Installare o aggiornare
+## Installare o aggiornare il Mac
 
-- Su Windows x64 usa `Mascotte-Setup-0.9.2-x64.exe` per installare, oppure estrai `Mascotte-Windows-0.9.2-x64.zip` in una cartella stabile per la versione portatile.
-- Dall'app puoi aprire **Impostazioni → Aggiornamenti → Controlla aggiornamenti**.
-- Su Mac Apple Silicon scarica `Mascotte-Mac-0.9.2-arm64.zip`, estrailo e sposta `Mascotte.app` in Applicazioni; al primo avvio segui il [LEGGIMI](https://github.com/Zekseron/Mascotte/blob/main/LEGGIMI.md) («Apri comunque», una sola volta). Il pacchetto Mac, aggiunto il 16 novembre 2026, è costruito dallo stesso codice di quello Windows ed è firmato con lo stesso certificato della 0.9.1: dall’app 0.9.1 si aggiorna con **Controlla aggiornamenti**.
+- Dalla 0.9.1 o 0.9.2 usa **Impostazioni → Aggiornamenti → Controlla aggiornamenti**: il pacchetto è firmato con lo stesso certificato personale.
+- Per una nuova installazione scarica `Mascotte-Mac-0.9.3-arm64.zip`, estrailo e sposta `Mascotte.app` in Applicazioni; al primo avvio segui il [LEGGIMI](https://github.com/Zekseron/Mascotte/blob/main/LEGGIMI.md) («Apri comunque», una sola volta). Il pacchetto non è notarizzato da Apple.
