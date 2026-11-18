@@ -1,5 +1,5 @@
 {
-  "nota": "Correzioni manuali della mappa delle parti (tools/parts-map.cjs), applicate dopo il calcolo automatico. Coordinate in pixel della cella 320×512. «clear»: parti che dentro il riquadro diventano «nessuna parte»; «clearPale»: anche i pixel chiari quasi senza colore (pagine) classificati pelle. «replace»: modifica solo le parti indicate nel riquadro.",
+  "nota": "Correzioni manuali della mappa delle parti (tools/parts-map.cjs), applicate dopo il calcolo automatico. Coordinate in pixel della cella 320×512. «clear»: parti che dentro il riquadro diventano «nessuna parte»; «clearPale»: anche i pixel chiari quasi senza colore (pagine) classificati pelle. «replace»: modifica solo le parti indicate nel riquadro. «clearGrey»: i pixel grigi quasi senza colore (metallo) diventano «nessuna parte». «collar»: i pixel chiari crema (tonalità ≥ 28°, poco saturi) classificati pelle, capelli o giacca diventano colletto; il collo pesca resta pelle.",
   "fix": [
     {
       "motivo": "libro tenuto in mano nelle pose di lettura: copertina e pagine non sono parti di Luma",
@@ -131,6 +131,24 @@
       "cells": ["13:10", "14:10", "15:10", "0:11", "1:11", "2:11"],
       "rect": [116, 70, 265, 145],
       "replace": { "giacca": "capelli" }
+    },
+    {
+      "motivo": "matita sopra il blocco nelle pose di scrittura: arancio come la giacca, ma è un oggetto in mano",
+      "cells": ["2:4", "3:4", "4:4", "5:4", "6:4", "7:4", "8:4", "9:4"],
+      "rect": [98, 215, 165, 262],
+      "clear": ["giacca"]
+    },
+    {
+      "motivo": "manico grigio della chiave inglese sopra il meccanismo nelle pose di lavoro in piedi: metallo, non salopette o cuoio",
+      "cells": ["4:3", "5:3", "6:3", "7:3", "8:3", "9:3"],
+      "rect": [95, 230, 175, 300],
+      "clearGrey": true
+    },
+    {
+      "motivo": "colletto nella posa di ascolto: ha lo stesso crema chiaro delle luci della pelle, quindi il colore non basta",
+      "cells": ["1:2", "2:2", "3:2", "4:2", "5:2"],
+      "rect": [148, 244, 205, 276],
+      "collar": true
     }
   ]
 }

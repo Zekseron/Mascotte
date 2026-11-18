@@ -21,6 +21,7 @@ function rgbToHsv(r, g, b) {
 
 // --- Luma: illustrazione. Etichetta per colore, poi voto per zone chiuse dal contorno scuro. ---
 const LUMA_PARTS = ['capelli', 'pelle', 'giacca', 'salopette', 'cuoio', 'colletto', 'occhi'];
+const isCream = (h, s, v) => h >= 30 && h <= 65 && v > 0.72 && s < 0.45 && (h >= 39 || (s >= 0.28 && v < 0.92));
 function lumaGuess(r, g, b) {
   const [h, s, v] = rgbToHsv(r, g, b);
   if (v < 0.28) return 'contorno';
@@ -28,6 +29,9 @@ function lumaGuess(r, g, b) {
   if (h >= 160 && h <= 225 && s > 0.2 && v >= 0.72) return 'contorno';
   if (h >= 160 && h <= 225 && s > 0.2) return 'salopette';
   if (s < 0.16 && v > 0.82) return 'colletto';
+  // Colletto della camicia: crema chiaro (tonalità 39–42, saturazione 0,16–0,4) con ombre crema più sature e meno luminose
+  // da 30°. La pelle è pesca (13–28°), ma le luci di mani e pugni arrivano a 38° quasi bianche (luminosità ≥ 0,96).
+  if (isCream(h, s, v)) return 'colletto';
   if (h >= 8 && h <= 42 && s < 0.48 && v > 0.84) return 'pelle';
   // Misure sul foglio (16/11/2026): capelli tonalità 9–21 molto saturi; giacca 27–39 comprese le pieghe (27–30, saturazione 0,8–0,9);
   // stivali e cinghie spenti (saturazione 0,4–0,55); polsini e ombre scure delle maniche arancio-bruno (18–26, saturazione 0,6–0,75).
@@ -68,7 +72,7 @@ function lumaFrame(data, w, h) {
   let top = h, bottom = -1;
   for (let i = 0; i < n; i++) if (label[i]) { const y = Math.floor(i / w); if (y < top) top = y; if (y > bottom) bottom = y; }
   const height = Math.max(1, bottom - top);
-  const region = new Int32Array(n).fill(-1), result = new Array(n).fill(null);
+  const region = new Int32Array(n).fill(-1), result = new Array(n).fill(null), mixedZone = new Uint8Array(n);
   const stack = new Int32Array(n);
   let id = 0;
   for (let start = 0; start < n; start++) {
@@ -89,14 +93,26 @@ function lumaFrame(data, w, h) {
     // Zone senza un colore sicuro restano «dubbio» fino alla pulizia: un'iride ambra può sembrare giacca o niente.
     let main = ranked[0]?.[0] || 'dubbio';
     const relY = (sumY / cells.length - top) / height;
+    // Sotto metà figura il colletto non c'è: i riflessi bianchi (che votano colletto) non decidono la zona, per esempio
+    // la borsa con la luna e gli attrezzi chiari.
+    if (main === 'colletto' && relY > 0.55 && cells.length >= 500 && ranked[1]) main = ranked[1][0];
     // La borsa e le cinghie hanno toni simili ai capelli scuri: una zona «capelli» nella metà bassa della figura è cuoio.
     if (main === 'capelli' && relY > 0.52) main = 'cuoio';
     const mixed = cells.length > 400 && ranked.length > 1 && ranked[0][1] < 0.85 * total;
+    if (mixed) for (const i of cells) mixedZone[i] = 1;
     for (const i of cells) {
       const l = label[i];
       let part = mixed && l !== 'dubbio' ? l : main;
       // In una zona di giacca le pieghe arancioni e i polsini restano giacca anche se il singolo pixel somiglia a capelli o cuoio.
       if (main === 'giacca' && (part === 'capelli' || part === 'cuoio')) part = 'giacca';
+      // La salopette è petrolio, mai marrone: in una sua zona i marroni-arancio sotto metà figura sono la borsa o la
+      // cintura che la toccano (più in alto ci sono le fibbie d'ottone delle bretelle, che restano come sono).
+      if (main === 'salopette' && part !== 'cuoio' && (Math.floor(i / w) - top) / height >= 0.5) {
+        const [hh, ss, vv] = rgbToHsv(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]);
+        if (hh >= 15 && hh <= 32 && ss >= 0.35 && ss <= 0.8 && vv >= 0.3 && vv <= 0.85) part = 'cuoio';
+      }
+      // Il colletto tocca giacca e collo senza contorno: i suoi pixel crema restano colletto anche dentro quelle zone.
+      if (l === 'colletto' && (main === 'giacca' || main === 'pelle')) part = 'colletto';
       // Mani e gambe: le ombre delle dita somigliano al cuoio, e sotto la testa la pelle non ha capelli sopra senza contorno.
       // (solo fino a tre quarti della figura: più in basso ci sono gli stivali, che possono toccare le gambe senza contorno).
       const rel = (Math.floor(i / w) - top) / height;
@@ -108,10 +124,19 @@ function lumaFrame(data, w, h) {
   }
   // Nelle zone miste (capelli che toccano la pelle senza contorno) le macchie piccole prendono la parte attorno:
   // lentiggini e rossore restano pelle, i riflessi isolati restano capelli.
+  cuffShadows(result, label, mixedZone, data, w, h, top, height);
   leatherOnOveralls(result, region, id, data, w, h);
   heldObjects(result, region, id, w, h, top, height);
+  growCollar(result, data, w, h, top, height);
   cleanSmallBlobs(result, w, h, 150, top, height, data);
+  collarNeedsCream(result, label, data, w, h);
+  fingersNotLeather(result, data, w, h);
+  wrongColorPieces(result, data, w, h, top, height);
   for (let i = 0; i < n; i++) if (result[i] === 'dubbio') result[i] = null;
+  // Il colletto sta attorno al collo: più in basso il crema chiaro è luce di mani e dita (pelle) o riflesso (nessuna parte).
+  for (let i = 0; i < n; i++) if (result[i] === 'colletto' && (Math.floor(i / w) - top) / height > 0.55) result[i] = label[i] === 'pelle' ? 'pelle' : null;
+  // Nel viso il cuoio non c'è: sopracciglia e linee scure prese per cuoio (anche assorbendo piccole ciocche vicine) sono capelli.
+  for (let i = 0; i < n; i++) if (result[i] === 'cuoio' && (Math.floor(i / w) - top) / height < 0.3) result[i] = 'capelli';
   markIrises(result, data, label, w, h, top, height);
   // Il contorno scuro non si ricolora; gli occhi sono la parte ambra dentro il viso (piccole zone «capelli» circondate da pelle).
   return result;
@@ -220,6 +245,146 @@ function markIrises(result, data, label, w, h, top, height) {
   });
 }
 
+// Il colletto tocca giacca e collo senza contorno e ha molti pixel a metà fra crema e pesca (tonalità 30–38): presi uno
+// per uno finiscono nella pelle o nella giacca e il colletto si spezza in frammenti che la pulizia assorbe. Dal crema
+// sicuro si allarga ai pixel vicini chiari e gialli (tonalità ≥ 30, la pelle è sotto 28) per al più 10 pixel.
+function growCollar(result, data, w, h, top, height) {
+  const n = w * h, yellowish = i => {
+    const [hue, sat, val] = rgbToHsv(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]);
+    return hue >= 30 && hue <= 65 && sat < 0.45 && val > 0.72;
+  };
+  // Semi: i pixel crema sicuri, ma non nel terzo più alto della figura, dove ci sono solo testa, pugni e mani alzate
+  // (le loro luci hanno qualche pixel crema sparso). Il colletto sta sempre sotto il viso.
+  let frontier = [];
+  for (let i = 0; i < n; i++) if (result[i] === 'colletto' && (Math.floor(i / w) - top) / height >= 0.31 && isCream(...rgbToHsv(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]))) frontier.push(i);
+  for (let step = 0; step < 10 && frontier.length; step++) {
+    const next = [];
+    for (const i of frontier) {
+      const x = i % w;
+      for (const j of [x + 1 < w ? i + 1 : -1, x > 0 ? i - 1 : -1, i + w < n ? i + w : -1, i - w >= 0 ? i - w : -1]) {
+        if (j < 0 || !result[j] || result[j] === 'colletto' || !['pelle', 'giacca', 'dubbio'].includes(result[j]) || !yellowish(j)) continue;
+        result[j] = 'colletto'; next.push(j);
+      }
+    }
+    frontier = next;
+  }
+}
+
+// Dita e palmi in ombra hanno l'arancio della giacca o il marrone chiaro del cuoio: un pezzo piccolo e chiaro di una di
+// queste parti, circondato soprattutto dalla pelle, è una mano. Polsini, stivali, cintura e borsa confinano per lunghi
+// tratti con manica, salopette o gambe, e gli stivali sono più scuri.
+function fingersNotLeather(result, data, w, h) {
+  const n = w * h;
+  for (const part of ['cuoio', 'giacca']) {
+    const mask = new Uint8Array(n);
+    for (let i = 0; i < n; i++) if (result[i] === part) mask[i] = 1;
+    components(mask, w, h, cells => {
+      if (cells.length > 1500) return;
+      let value = 0, r = 0, g = 0, b = 0; const around = {};
+      for (const i of cells) {
+        value += Math.max(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]) / 255;
+        r += data[i * 4]; g += data[i * 4 + 1]; b += data[i * 4 + 2];
+        const x = i % w;
+        for (const j of [x + 1 < w ? i + 1 : -1, x > 0 ? i - 1 : -1, i + w < n ? i + w : -1, i - w >= 0 ? i - w : -1]) {
+          if (j >= 0 && !mask[j] && result[j]) around[result[j]] = (around[result[j]] || 0) + 1;
+        }
+      }
+      const total = Object.values(around).reduce((a, b) => a + b, 0);
+      // Per la giacca serve anche il colore della pelle (pesca, tonalità < 22°, poco satura): matita, meccanismo e
+      // oggetti in mano sono gialli o ottone e restano dove sono (le correzioni manuali li tolgono dalle parti).
+      const [hue, sat] = rgbToHsv(r / cells.length, g / cells.length, b / cells.length);
+      const skinColored = part === 'cuoio' || (hue < 22 && sat < 0.6);
+      // Pezzi grandi (una mano aperta intera) solo se chiari come la pelle: il risvolto degli stivali da seduta è più scuro.
+      const light = cells.length <= 300 ? value / cells.length > 0.55 : value / cells.length > 0.72;
+      // Il cuoio è marrone fra 18° e 30° e mai chiarissimo: una mano in ombra è rosata (tonalità sotto 15°), le luci del
+      // collo sono quasi bianche.
+      const notLeather = part === 'cuoio' && (hue < 15 || value / cells.length > 0.85);
+      if (total && skinColored && (around.pelle || 0) / total >= 0.7 && (light || notLeather)) for (const i of cells) result[i] = 'pelle';
+      else if (total && notLeather && (around.pelle || 0) / total >= 0.4) for (const i of cells) result[i] = 'pelle';
+      // Punte di ciocche che scendono sotto metà figura (Luma addormentata): circondate dai capelli, restano capelli.
+      else if (part === 'cuoio' && total && (around.capelli || 0) / total >= 0.6) for (const i of cells) result[i] = 'capelli';
+    });
+  }
+}
+
+// Pezzi piccoli col colore medio impossibile per la loro parte (posa «spavento» e simili, dove giacca, collo e bretelle
+// si toccano senza contorno): capelli arancio pieno sotto la testa → giacca, capelli pesca chiaro → pelle;
+// cuoio petrolio → salopette, cuoio arancio pieno e luminoso → giacca.
+function wrongColorPieces(result, data, w, h, top, height) {
+  const n = w * h;
+  for (const part of ['capelli', 'cuoio']) {
+    const mask = new Uint8Array(n);
+    for (let i = 0; i < n; i++) if (result[i] === part) mask[i] = 1;
+    components(mask, w, h, cells => {
+      if (cells.length > 400) return;
+      let r = 0, g = 0, b = 0, y = 0;
+      for (const i of cells) { r += data[i * 4]; g += data[i * 4 + 1]; b += data[i * 4 + 2]; y += Math.floor(i / w); }
+      const k = cells.length, [hue, sat, val] = rgbToHsv(r / k, g / k, b / k), relY = (y / k - top) / height;
+      let to = null;
+      if (part === 'capelli' && relY > 0.38) {
+        if (hue >= 26 && hue <= 40 && sat >= 0.6) to = 'giacca';
+        else if (hue >= 10 && hue <= 30 && sat < 0.45 && val > 0.8) to = 'pelle';
+      } else if (part === 'cuoio') {
+        if (hue >= 150 && hue <= 220) to = 'salopette';
+        else if (hue >= 28 && hue <= 40 && sat >= 0.68 && val >= 0.8) to = 'giacca';
+      }
+      if (to) for (const i of cells) result[i] = to;
+    });
+  }
+}
+
+// Il bianco neutro (riflessi) vota «colletto», così riflessi di dita, pugni e palmi alzati finivano nel colletto.
+// Un pezzo di colletto resta tale solo se contiene il crema della camicia.
+function collarNeedsCream(result, label, data, w, h) {
+  const n = w * h, mask = new Uint8Array(n);
+  for (let i = 0; i < n; i++) if (result[i] === 'colletto') mask[i] = 1;
+  components(mask, w, h, cells => {
+    let cream = 0;
+    for (const i of cells) if (isCream(...rgbToHsv(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]))) cream++;
+    if (cream >= 6 && cream >= 0.15 * cells.length) return;
+    const around = {};
+    for (const i of cells) {
+      const x = i % w;
+      for (const j of [x + 1 < w ? i + 1 : -1, x > 0 ? i - 1 : -1, i + w < n ? i + w : -1, i - w >= 0 ? i - w : -1]) {
+        if (j >= 0 && !mask[j] && result[j] && result[j] !== 'dubbio') around[result[j]] = (around[result[j]] || 0) + 1;
+      }
+    }
+    // Su mani e dita i pixel color pelle tornano pelle; il resto (riflessi bianchi, bianco e iride degli occhi, oggetti) resta
+    // senza parte, così le iridi si riconoscono dopo in markIrises.
+    const best = Object.entries(around).sort((a, b) => b[1] - a[1])[0]?.[0];
+    for (const i of cells) result[i] = best === 'pelle' && label[i] === 'pelle' ? 'pelle' : null;
+  });
+}
+
+// Polsini: dove manica, polsino e borsa si toccano senza contorno nasce una zona «mista» molto grande, e le ombre del polsino
+// (tonalità arancio, «dubbio» per colore) prenderebbero la parte prevalente della zona, poi il cuoio della borsa.
+// Le ombre arancio molto sature (tonalità ≥ 22°, saturazione ≥ 0,78) attaccate alla giacca restano giacca; la borsa è meno satura (0,6–0,76)
+// e le ciocche in ombra hanno tonalità più rossa. Le mani alzate sopra la testa non hanno polsini scuri attaccati a zone miste.
+function cuffShadows(result, label, mixedZone, data, w, h, top, height) {
+  const n = w * h, shadow = new Uint8Array(n);
+  for (let i = 0; i < n; i++) {
+    // Solo sotto la testa: le iridi hanno lo stesso arancio saturo.
+    if (!mixedZone[i] || label[i] !== 'dubbio' || (Math.floor(i / w) - top) / height < 0.36) continue;
+    const [hue, sat, val] = rgbToHsv(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]);
+    if (hue >= 22 && hue <= 40 && sat >= 0.78) shadow[i] = 1;
+    // Cintura e borsa: marrone-arancio meno saturo. Se la zona mista è soprattutto giacca o salopette (pose di
+    // scrittura), prenderebbero quella parte: sotto il petto sono cuoio.
+    else if ((result[i] === 'giacca' || result[i] === 'salopette') && hue >= 17 && hue <= 27 && sat >= 0.5 && val >= 0.3 && val <= 0.8 && (Math.floor(i / w) - top) / height > 0.45) result[i] = 'cuoio';
+  }
+  let frontier = [];
+  for (let i = 0; i < n; i++) if (result[i] === 'giacca' && label[i] === 'giacca') frontier.push(i);
+  for (let step = 0; step < 8 && frontier.length; step++) {
+    const next = [];
+    for (const i of frontier) {
+      const x = i % w;
+      for (const j of [x + 1 < w ? i + 1 : -1, x > 0 ? i - 1 : -1, i + w < n ? i + w : -1, i - w >= 0 ? i - w : -1]) {
+        if (j >= 0 && shadow[j] && result[j] !== 'giacca') { result[j] = 'giacca'; next.push(j); }
+      }
+    }
+    frontier = next;
+  }
+}
+
 // Cintura e borsa hanno un marrone-arancio simile ai polsini scuri della giacca. Una zona chiusa «giacca» piuttosto scura
 // che attorno (oltre il contorno, entro 4 pixel) ha soprattutto salopette o cuoio, e quasi niente pelle, è cuoio.
 function leatherOnOveralls(result, region, count, data, w, h) {
@@ -241,7 +406,10 @@ function leatherOnOveralls(result, region, count, data, w, h) {
     const share = k => (st.around[k] || 0) / total;
     if (st.v / st.px < 0.75 && share('salopette') + share('cuoio') >= 0.45 && share('pelle') < 0.1) leather[r] = 1;
   });
-  for (let i = 0; i < n; i++) if (region[i] >= 0 && leather[region[i]] && result[i] === 'giacca') result[i] = 'cuoio';
+  // L'arancio pieno e luminoso resta giacca: un lembo di giacca fra bretella e manica può finire in una di queste zone,
+  // mentre borsa e cintura sono più scure o meno sature.
+  const lit = i => { const [hh, ss, vv] = rgbToHsv(data[i * 4], data[i * 4 + 1], data[i * 4 + 2]); return hh >= 26 && hh <= 40 && ss >= 0.68 && vv >= 0.85; };
+  for (let i = 0; i < n; i++) if (region[i] >= 0 && leather[region[i]] && result[i] === 'giacca' && !lit(i)) result[i] = 'cuoio';
 }
 
 // Oggetti tenuti in mano (copertina del libro, manico rosso degli attrezzi): zona «capelli» sotto la testa che non confina
@@ -301,7 +469,8 @@ function cleanSmallBlobs(result, w, h, limit, top, height, data) {
       if (share > 0.45) { for (const i of cells) result[i] = 'pelle'; continue; }
     }
     // Bianco degli occhi: piccole zone chiare nel viso. Non si ricolora (non è il colletto).
-    if (part === 'colletto' && cells.length <= 150 && relY < 0.42) { for (const i of cells) result[i] = null; continue; }
+    // Solo bianco quasi neutro: i lembi crema del colletto (più saturi) restano colletto.
+    if (part === 'colletto' && cells.length <= 150 && relY < 0.42 && rgbToHsv(sumR / cells.length, sumG / cells.length, sumB / cells.length)[1] < 0.14) { for (const i of cells) result[i] = null; continue; }
     if (face) {
       const [hue] = rgbToHsv(sumR / cells.length, sumG / cells.length, sumB / cells.length);
       const [, sat] = rgbToHsv(sumR / cells.length, sumG / cells.length, sumB / cells.length);
@@ -326,23 +495,51 @@ function rossoFrame(data, w, h) {
 }
 
 const CHARACTERS = {
-  luma: { dir: 'characters/People/luma', parts: LUMA_PARTS, frame: lumaFrame,
+  luma: { dir: 'characters/People/luma', parts: LUMA_PARTS, frame: lumaFrame, base: 'dominant',
     names: { capelli: 'Capelli', pelle: 'Pelle', giacca: 'Giacca', salopette: 'Salopette', cuoio: 'Cuoio e stivali', colletto: 'Colletto', occhi: 'Occhi' } },
   rosso: { dir: 'characters/Cat/rosso', parts: ROSSO_PARTS, frame: rossoFrame,
     names: { pelo: 'Pelo', strisce: 'Strisce', pancia: 'Pancia e muso', rosa: 'Orecchie e naso' } }
 };
 
+// Arancio della giacca, pieno o in ombra, polsini compresi (non il giallo di matita e ottone né il marrone scuro del libro).
+function jacketColor(r, g, b) {
+  const [h, s, v] = rgbToHsv(r, g, b);
+  return h >= 20 && h <= 39 && s >= 0.6 && v >= 0.55;
+}
+
 function applyFixes(fixes, cell, labels, frame, fw) {
+  const fh = labels.length / fw;
   for (const fix of fixes) {
     if (!fix.cells?.includes(cell)) continue;
     const [x0, y0, x1, y1] = fix.rect;
+    // La manica che continua fuori dal riquadro (sotto il libro, il blocco o il meccanismo) è giacca di Luma, non
+    // dell'oggetto: resta. Prima il riquadro lasciava un rettangolo non ricolorato sulla manica. Contano solo i pixel
+    // arancio della giacca collegati fra loro: chiave, matita e copertina la toccano ma hanno altri colori.
+    const keep = new Uint8Array(labels.length);
+    if (fix.clear?.includes('giacca')) {
+      const mask = new Uint8Array(labels.length);
+      for (let i = 0; i < labels.length; i++) if (labels[i] === 'giacca' && jacketColor(frame[i * 4], frame[i * 4 + 1], frame[i * 4 + 2])) mask[i] = 1;
+      components(mask, fw, fh, cells => {
+        let outside = 0;
+        for (const i of cells) { const x = i % fw, y = (i - x) / fw; if (x < x0 || x > x1 || y < y0 || y > y1) outside++; }
+        if (outside >= 40) for (const i of cells) keep[i] = 1;
+      });
+    }
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       const i = y * fw + x, label = labels[i]; if (!label) continue;
-      let clear = fix.clear?.includes(label);
+      let clear = fix.clear?.includes(label) && !keep[i];
       // Carta e pagine: chiare e crema-gialle (tonalità oltre 32°), mentre la pelle è pesca (15–25°).
       if (!clear && fix.clearPale && label === 'pelle') { const [hue, s, v] = rgbToHsv(frame[i * 4], frame[i * 4 + 1], frame[i * 4 + 2]); clear = v > 0.75 && (s < 0.2 || (hue >= 32 && s < 0.5)); }
       if (clear) labels[i] = null;
       else labels[i] = fix.replace?.[label] ?? label;
+      if (fix.clearGrey && ['cuoio', 'salopette', 'giacca'].includes(labels[i])) {
+        const [, s, v] = rgbToHsv(frame[i * 4], frame[i * 4 + 1], frame[i * 4 + 2]);
+        if (s < 0.15 && v < 0.95) labels[i] = null;
+      }
+      if (fix.collar && ['pelle', 'capelli', 'giacca'].includes(labels[i])) {
+        const [hue, s, v] = rgbToHsv(frame[i * 4], frame[i * 4 + 1], frame[i * 4 + 2]);
+        if (hue >= 28 && hue <= 50 && s < 0.45 && v > 0.8) labels[i] = 'colletto';
+      }
     }
   }
 }
@@ -359,7 +556,29 @@ function withParts(text, parts) {
   return result;
 }
 
-// Colore medio di ogni parte, pesato per alfa: è il «colore originale» mostrato nel selettore e la base della ricolorazione.
+// Colore originale di ogni parte: quello mostrato nel selettore e la base della ricolorazione, cioè il tono che diventa
+// esattamente il colore scelto (più scuro → ombre, più chiaro → luci).
+// «dominant» (illustrazioni): media dei pixel opachi con luminosità vicina alla mediana della parte. La media semplice
+// è trascinata giù da ombre e bordi scuri: la giacca risultava più scura del suo tono pieno, che dopo la ricolorazione
+// usciva più chiaro e sbiadito del colore scelto, come se il colore andasse solo sulle ombre.
+function dominant(sheet, map, parts) {
+  const lightness = i => (Math.max(sheet[i * 4], sheet[i * 4 + 1], sheet[i * 4 + 2]) + Math.min(sheet[i * 4], sheet[i * 4 + 1], sheet[i * 4 + 2])) / 510;
+  const histograms = parts.map(() => new Uint32Array(256));
+  for (let i = 0; i < map.length; i++) if (map[i] && sheet[i * 4 + 3] >= 200) histograms[map[i] - 1][Math.round(lightness(i) * 255)]++;
+  const medians = histograms.map(hist => {
+    const total = hist.reduce((a, b) => a + b, 0); let seen = 0;
+    for (let k = 0; k < 256; k++) { seen += hist[k]; if (seen * 2 >= total) return k / 255; }
+    return null;
+  });
+  const sum = parts.map(() => [0, 0, 0, 0]);
+  for (let i = 0; i < map.length; i++) {
+    const index = map[i]; if (!index || sheet[i * 4 + 3] < 200 || Math.abs(lightness(i) - medians[index - 1]) > 0.03) continue;
+    const s = sum[index - 1]; s[0] += sheet[i * 4]; s[1] += sheet[i * 4 + 1]; s[2] += sheet[i * 4 + 2]; s[3]++;
+  }
+  return sum.map(([r, g, b, a]) => a ? '#' + [r, g, b].map(c => Math.round(c / a).toString(16).padStart(2, '0')).join('') : null);
+}
+
+// Colore medio di ogni parte, pesato per alfa (pixel art a colori pieni come Rosso).
 function averages(sheet, map, parts) {
   const sum = parts.map(() => [0, 0, 0, 0]);
   for (let i = 0; i < map.length; i++) {
@@ -406,7 +625,7 @@ async function main() {
   for (let i = 0; i < map.length; i++) if (map[i]) { od.data[i * 4] = map[i]; od.data[i * 4 + 3] = 255; }
   octx.putImageData(od, 0, 0);
   fs.writeFileSync(path.join(dir, 'parts.png'), out.toBuffer('image/png'));
-  const colors = averages(sheet, map, config.parts);
+  const colors = (config.base === 'dominant' ? dominant : averages)(sheet, map, config.parts);
   pack.parts = { sheet: 'parts.png', list: config.parts.map((part, k) => ({ id: part, name: config.names[part], color: colors[k] })).filter(item => item.color) };
   fs.writeFileSync(packFile, withParts(fs.readFileSync(packFile, 'utf8'), pack.parts));
   const counts = config.parts.map((part, k) => `${part} ${map.reduce((sum, v) => sum + (v === k + 1), 0)}`);
