@@ -1,0 +1,1670 @@
+{
+ "character": "luma",
+ "parts": [
+  "capelli",
+  "pelle",
+  "giacca",
+  "salopette",
+  "cuoio",
+  "colletto",
+  "occhi"
+ ],
+ "cells": {
+  "0:0": {
+   "capelli": 15610,
+   "pelle": 10513,
+   "giacca": 7582,
+   "salopette": 6620,
+   "cuoio": 5423,
+   "colletto": 906,
+   "occhi": 593
+  },
+  "1:0": {
+   "capelli": 15584,
+   "pelle": 10538,
+   "giacca": 7516,
+   "salopette": 6923,
+   "cuoio": 5206,
+   "colletto": 904,
+   "occhi": 570
+  },
+  "2:0": {
+   "capelli": 15566,
+   "pelle": 10575,
+   "giacca": 7517,
+   "salopette": 6867,
+   "cuoio": 5269,
+   "colletto": 908,
+   "occhi": 539
+  },
+  "3:0": {
+   "capelli": 15608,
+   "pelle": 10639,
+   "giacca": 7587,
+   "salopette": 6638,
+   "cuoio": 5280,
+   "colletto": 913,
+   "occhi": 457
+  },
+  "4:0": {
+   "capelli": 15594,
+   "pelle": 10620,
+   "giacca": 7591,
+   "salopette": 6663,
+   "cuoio": 5289,
+   "colletto": 903,
+   "occhi": 477
+  },
+  "5:0": {
+   "capelli": 15694,
+   "pelle": 10762,
+   "giacca": 7530,
+   "salopette": 6654,
+   "cuoio": 5302,
+   "colletto": 798,
+   "occhi": 449
+  },
+  "6:0": {
+   "capelli": 15593,
+   "pelle": 10719,
+   "giacca": 7650,
+   "salopette": 6618,
+   "cuoio": 5469,
+   "colletto": 803,
+   "occhi": 489
+  },
+  "7:0": {
+   "capelli": 15585,
+   "pelle": 10600,
+   "giacca": 7627,
+   "salopette": 6826,
+   "cuoio": 5313,
+   "colletto": 888,
+   "occhi": 484
+  },
+  "8:0": {
+   "capelli": 15570,
+   "pelle": 10511,
+   "giacca": 7623,
+   "salopette": 6762,
+   "cuoio": 5232,
+   "colletto": 887,
+   "occhi": 569
+  },
+  "9:0": {
+   "capelli": 15699,
+   "pelle": 11075,
+   "giacca": 7555,
+   "salopette": 6654,
+   "cuoio": 5302,
+   "colletto": 798,
+   "occhi": 219
+  },
+  "10:0": {
+   "capelli": 15694,
+   "pelle": 11543,
+   "giacca": 7530,
+   "salopette": 6654,
+   "cuoio": 5302,
+   "colletto": 798,
+   "occhi": 0
+  },
+  "11:0": {
+   "capelli": 15633,
+   "pelle": 10966,
+   "giacca": 7638,
+   "salopette": 6663,
+   "cuoio": 5289,
+   "colletto": 903,
+   "occhi": 152
+  },
+  "12:0": {
+   "capelli": 15602,
+   "pelle": 10986,
+   "giacca": 7517,
+   "salopette": 6867,
+   "cuoio": 5269,
+   "colletto": 908,
+   "occhi": 188
+  },
+  "13:0": {
+   "capelli": 15564,
+   "pelle": 11427,
+   "giacca": 7517,
+   "salopette": 6867,
+   "cuoio": 5269,
+   "colletto": 908,
+   "occhi": 0
+  },
+  "14:0": {
+   "capelli": 15578,
+   "pelle": 11005,
+   "giacca": 7511,
+   "salopette": 6923,
+   "cuoio": 5206,
+   "colletto": 904,
+   "occhi": 206
+  },
+  "15:0": {
+   "capelli": 15573,
+   "pelle": 11432,
+   "giacca": 7511,
+   "salopette": 6923,
+   "cuoio": 5206,
+   "colletto": 904,
+   "occhi": 0
+  },
+  "0:1": {
+   "capelli": 15595,
+   "pelle": 10958,
+   "giacca": 7579,
+   "salopette": 6620,
+   "cuoio": 5423,
+   "colletto": 906,
+   "occhi": 242
+  },
+  "1:1": {
+   "capelli": 15586,
+   "pelle": 11534,
+   "giacca": 7650,
+   "salopette": 6618,
+   "cuoio": 5469,
+   "colletto": 803,
+   "occhi": 0
+  },
+  "2:1": {
+   "capelli": 15617,
+   "pelle": 11072,
+   "giacca": 7660,
+   "salopette": 6618,
+   "cuoio": 5469,
+   "colletto": 803,
+   "occhi": 190
+  },
+  "3:1": {
+   "capelli": 15611,
+   "pelle": 10956,
+   "giacca": 7640,
+   "salopette": 6826,
+   "cuoio": 5313,
+   "colletto": 888,
+   "occhi": 186
+  },
+  "4:1": {
+   "capelli": 15581,
+   "pelle": 11414,
+   "giacca": 7627,
+   "salopette": 6826,
+   "cuoio": 5313,
+   "colletto": 888,
+   "occhi": 0
+  },
+  "5:1": {
+   "capelli": 15573,
+   "pelle": 11429,
+   "giacca": 7609,
+   "salopette": 6762,
+   "cuoio": 5232,
+   "colletto": 887,
+   "occhi": 0
+  },
+  "6:1": {
+   "capelli": 15635,
+   "pelle": 10979,
+   "giacca": 7634,
+   "salopette": 6762,
+   "cuoio": 5232,
+   "colletto": 887,
+   "occhi": 127
+  },
+  "7:1": {
+   "capelli": 16460,
+   "pelle": 13761,
+   "giacca": 6067,
+   "salopette": 2518,
+   "cuoio": 7287,
+   "colletto": 515,
+   "occhi": 0
+  },
+  "8:1": {
+   "capelli": 16552,
+   "pelle": 13669,
+   "giacca": 6102,
+   "salopette": 2492,
+   "cuoio": 7314,
+   "colletto": 302,
+   "occhi": 0
+  },
+  "9:1": {
+   "capelli": 16566,
+   "pelle": 13767,
+   "giacca": 6162,
+   "salopette": 2487,
+   "cuoio": 7351,
+   "colletto": 229,
+   "occhi": 0
+  },
+  "10:1": {
+   "capelli": 16598,
+   "pelle": 13745,
+   "giacca": 6249,
+   "salopette": 2529,
+   "cuoio": 7267,
+   "colletto": 305,
+   "occhi": 0
+  },
+  "11:1": {
+   "capelli": 16592,
+   "pelle": 13716,
+   "giacca": 6330,
+   "salopette": 2500,
+   "cuoio": 7333,
+   "colletto": 308,
+   "occhi": 0
+  },
+  "12:1": {
+   "capelli": 16506,
+   "pelle": 13729,
+   "giacca": 6376,
+   "salopette": 2500,
+   "cuoio": 7297,
+   "colletto": 525,
+   "occhi": 0
+  },
+  "13:1": {
+   "capelli": 16586,
+   "pelle": 13712,
+   "giacca": 6331,
+   "salopette": 2492,
+   "cuoio": 7331,
+   "colletto": 580,
+   "occhi": 17
+  },
+  "14:1": {
+   "capelli": 16571,
+   "pelle": 13714,
+   "giacca": 6222,
+   "salopette": 2489,
+   "cuoio": 7310,
+   "colletto": 306,
+   "occhi": 0
+  },
+  "15:1": {
+   "capelli": 16548,
+   "pelle": 13680,
+   "giacca": 6156,
+   "salopette": 2521,
+   "cuoio": 7291,
+   "colletto": 298,
+   "occhi": 0
+  },
+  "0:2": {
+   "capelli": 16525,
+   "pelle": 13680,
+   "giacca": 6103,
+   "salopette": 2516,
+   "cuoio": 7289,
+   "colletto": 303,
+   "occhi": 0
+  },
+  "1:2": {
+   "capelli": 15023,
+   "pelle": 11161,
+   "giacca": 6773,
+   "salopette": 6516,
+   "cuoio": 5662,
+   "colletto": 440,
+   "occhi": 306
+  },
+  "2:2": {
+   "capelli": 14775,
+   "pelle": 11157,
+   "giacca": 7061,
+   "salopette": 6516,
+   "cuoio": 5662,
+   "colletto": 440,
+   "occhi": 306
+  },
+  "3:2": {
+   "capelli": 14112,
+   "pelle": 11725,
+   "giacca": 7509,
+   "salopette": 6516,
+   "cuoio": 5662,
+   "colletto": 440,
+   "occhi": 306
+  },
+  "4:2": {
+   "capelli": 14586,
+   "pelle": 11532,
+   "giacca": 7602,
+   "salopette": 6512,
+   "cuoio": 5661,
+   "colletto": 450,
+   "occhi": 152
+  },
+  "5:2": {
+   "capelli": 15115,
+   "pelle": 11216,
+   "giacca": 6646,
+   "salopette": 6516,
+   "cuoio": 5662,
+   "colletto": 440,
+   "occhi": 306
+  },
+  "6:2": {
+   "capelli": 15798,
+   "pelle": 10693,
+   "giacca": 6805,
+   "salopette": 6480,
+   "cuoio": 5279,
+   "colletto": 998,
+   "occhi": 576
+  },
+  "7:2": {
+   "capelli": 15701,
+   "pelle": 10774,
+   "giacca": 6874,
+   "salopette": 6438,
+   "cuoio": 5288,
+   "colletto": 1000,
+   "occhi": 550
+  },
+  "8:2": {
+   "capelli": 15796,
+   "pelle": 10711,
+   "giacca": 6847,
+   "salopette": 6410,
+   "cuoio": 5298,
+   "colletto": 1001,
+   "occhi": 583
+  },
+  "9:2": {
+   "capelli": 15815,
+   "pelle": 10698,
+   "giacca": 6816,
+   "salopette": 6396,
+   "cuoio": 5334,
+   "colletto": 1014,
+   "occhi": 582
+  },
+  "10:2": {
+   "capelli": 15718,
+   "pelle": 10710,
+   "giacca": 6878,
+   "salopette": 6463,
+   "cuoio": 5321,
+   "colletto": 1006,
+   "occhi": 591
+  },
+  "11:2": {
+   "capelli": 15718,
+   "pelle": 10710,
+   "giacca": 6878,
+   "salopette": 6463,
+   "cuoio": 5321,
+   "colletto": 1006,
+   "occhi": 591
+  },
+  "12:2": {
+   "capelli": 15718,
+   "pelle": 10710,
+   "giacca": 6878,
+   "salopette": 6463,
+   "cuoio": 5321,
+   "colletto": 1006,
+   "occhi": 591
+  },
+  "13:2": {
+   "capelli": 15718,
+   "pelle": 10710,
+   "giacca": 6878,
+   "salopette": 6463,
+   "cuoio": 5321,
+   "colletto": 1006,
+   "occhi": 591
+  },
+  "14:2": {
+   "capelli": 15718,
+   "pelle": 10710,
+   "giacca": 6878,
+   "salopette": 6463,
+   "cuoio": 5321,
+   "colletto": 1006,
+   "occhi": 591
+  },
+  "15:2": {
+   "capelli": 15482,
+   "pelle": 11616,
+   "giacca": 6904,
+   "salopette": 6463,
+   "cuoio": 5321,
+   "colletto": 539,
+   "occhi": 217
+  },
+  "0:3": {
+   "capelli": 15465,
+   "pelle": 12081,
+   "giacca": 6879,
+   "salopette": 6487,
+   "cuoio": 5311,
+   "colletto": 539,
+   "occhi": 0
+  },
+  "1:3": {
+   "capelli": 15796,
+   "pelle": 10711,
+   "giacca": 6847,
+   "salopette": 6410,
+   "cuoio": 5298,
+   "colletto": 1001,
+   "occhi": 583
+  },
+  "2:3": {
+   "capelli": 15637,
+   "pelle": 10879,
+   "giacca": 6885,
+   "salopette": 6438,
+   "cuoio": 5288,
+   "colletto": 1003,
+   "occhi": 470
+  },
+  "3:3": {
+   "capelli": 15798,
+   "pelle": 10693,
+   "giacca": 6805,
+   "salopette": 6480,
+   "cuoio": 5279,
+   "colletto": 998,
+   "occhi": 576
+  },
+  "4:3": {
+   "capelli": 15652,
+   "pelle": 10600,
+   "giacca": 5441,
+   "salopette": 5061,
+   "cuoio": 4825,
+   "colletto": 911,
+   "occhi": 538
+  },
+  "5:3": {
+   "capelli": 15628,
+   "pelle": 10671,
+   "giacca": 5226,
+   "salopette": 5193,
+   "cuoio": 4808,
+   "colletto": 912,
+   "occhi": 546
+  },
+  "6:3": {
+   "capelli": 15646,
+   "pelle": 10461,
+   "giacca": 4731,
+   "salopette": 5147,
+   "cuoio": 4795,
+   "colletto": 909,
+   "occhi": 454
+  },
+  "7:3": {
+   "capelli": 15630,
+   "pelle": 10970,
+   "giacca": 4778,
+   "salopette": 4939,
+   "cuoio": 4851,
+   "colletto": 910,
+   "occhi": 453
+  },
+  "8:3": {
+   "capelli": 15660,
+   "pelle": 10655,
+   "giacca": 5411,
+   "salopette": 5129,
+   "cuoio": 4805,
+   "colletto": 909,
+   "occhi": 454
+  },
+  "9:3": {
+   "capelli": 15650,
+   "pelle": 11441,
+   "giacca": 5407,
+   "salopette": 5080,
+   "cuoio": 4831,
+   "colletto": 910,
+   "occhi": 0
+  },
+  "10:3": {
+   "capelli": 16048,
+   "pelle": 9717,
+   "giacca": 2462,
+   "salopette": 5129,
+   "cuoio": 5539,
+   "colletto": 143,
+   "occhi": 331
+  },
+  "11:3": {
+   "capelli": 15962,
+   "pelle": 9725,
+   "giacca": 2478,
+   "salopette": 5145,
+   "cuoio": 5428,
+   "colletto": 147,
+   "occhi": 384
+  },
+  "12:3": {
+   "capelli": 15503,
+   "pelle": 11163,
+   "giacca": 2466,
+   "salopette": 5155,
+   "cuoio": 5554,
+   "colletto": 147,
+   "occhi": 0
+  },
+  "13:3": {
+   "capelli": 15949,
+   "pelle": 9719,
+   "giacca": 2479,
+   "salopette": 5117,
+   "cuoio": 5561,
+   "colletto": 145,
+   "occhi": 386
+  },
+  "14:3": {
+   "capelli": 16056,
+   "pelle": 9768,
+   "giacca": 2531,
+   "salopette": 5103,
+   "cuoio": 5529,
+   "colletto": 170,
+   "occhi": 350
+  },
+  "15:3": {
+   "capelli": 16065,
+   "pelle": 9683,
+   "giacca": 2590,
+   "salopette": 5130,
+   "cuoio": 5411,
+   "colletto": 169,
+   "occhi": 334
+  },
+  "0:4": {
+   "capelli": 15679,
+   "pelle": 10110,
+   "giacca": 2502,
+   "salopette": 5148,
+   "cuoio": 5700,
+   "colletto": 52,
+   "occhi": 375
+  },
+  "1:4": {
+   "capelli": 15790,
+   "pelle": 10279,
+   "giacca": 2510,
+   "salopette": 5151,
+   "cuoio": 5574,
+   "colletto": 40,
+   "occhi": 361
+  },
+  "2:4": {
+   "capelli": 15784,
+   "pelle": 10179,
+   "giacca": 3065,
+   "salopette": 4880,
+   "cuoio": 5571,
+   "colletto": 140,
+   "occhi": 242
+  },
+  "3:4": {
+   "capelli": 15855,
+   "pelle": 9764,
+   "giacca": 3100,
+   "salopette": 4879,
+   "cuoio": 5549,
+   "colletto": 157,
+   "occhi": 242
+  },
+  "4:4": {
+   "capelli": 15857,
+   "pelle": 9926,
+   "giacca": 2777,
+   "salopette": 4951,
+   "cuoio": 5337,
+   "colletto": 146,
+   "occhi": 242
+  },
+  "5:4": {
+   "capelli": 15770,
+   "pelle": 10203,
+   "giacca": 3086,
+   "salopette": 4903,
+   "cuoio": 5587,
+   "colletto": 140,
+   "occhi": 241
+  },
+  "6:4": {
+   "capelli": 15844,
+   "pelle": 9790,
+   "giacca": 3105,
+   "salopette": 4879,
+   "cuoio": 5569,
+   "colletto": 146,
+   "occhi": 241
+  },
+  "7:4": {
+   "capelli": 15844,
+   "pelle": 9960,
+   "giacca": 2801,
+   "salopette": 4944,
+   "cuoio": 5380,
+   "colletto": 138,
+   "occhi": 241
+  },
+  "8:4": {
+   "capelli": 15793,
+   "pelle": 10008,
+   "giacca": 3076,
+   "salopette": 4885,
+   "cuoio": 5460,
+   "colletto": 157,
+   "occhi": 240
+  },
+  "9:4": {
+   "capelli": 15550,
+   "pelle": 11089,
+   "giacca": 3101,
+   "salopette": 4899,
+   "cuoio": 5561,
+   "colletto": 157,
+   "occhi": 0
+  },
+  "10:4": {
+   "capelli": 15308,
+   "pelle": 12222,
+   "giacca": 5914,
+   "salopette": 5288,
+   "cuoio": 4917,
+   "colletto": 656,
+   "occhi": 537
+  },
+  "11:4": {
+   "capelli": 15229,
+   "pelle": 12535,
+   "giacca": 5906,
+   "salopette": 6213,
+   "cuoio": 5317,
+   "colletto": 765,
+   "occhi": 521
+  },
+  "12:4": {
+   "capelli": 14980,
+   "pelle": 12699,
+   "giacca": 5560,
+   "salopette": 4868,
+   "cuoio": 5376,
+   "colletto": 499,
+   "occhi": 447
+  },
+  "13:4": {
+   "capelli": 14443,
+   "pelle": 12705,
+   "giacca": 6124,
+   "salopette": 5776,
+   "cuoio": 5028,
+   "colletto": 786,
+   "occhi": 552
+  },
+  "14:4": {
+   "capelli": 15596,
+   "pelle": 10567,
+   "giacca": 7504,
+   "salopette": 6866,
+   "cuoio": 5266,
+   "colletto": 904,
+   "occhi": 548
+  },
+  "15:4": {
+   "capelli": 15584,
+   "pelle": 10557,
+   "giacca": 7659,
+   "salopette": 6705,
+   "cuoio": 5487,
+   "colletto": 923,
+   "occhi": 482
+  },
+  "0:5": {
+   "capelli": 15593,
+   "pelle": 10612,
+   "giacca": 7563,
+   "salopette": 6675,
+   "cuoio": 5470,
+   "colletto": 910,
+   "occhi": 467
+  },
+  "1:5": {
+   "capelli": 15713,
+   "pelle": 11013,
+   "giacca": 6461,
+   "salopette": 6705,
+   "cuoio": 5539,
+   "colletto": 808,
+   "occhi": 455
+  },
+  "2:5": {
+   "capelli": 15681,
+   "pelle": 10930,
+   "giacca": 6324,
+   "salopette": 6881,
+   "cuoio": 5428,
+   "colletto": 798,
+   "occhi": 461
+  },
+  "3:5": {
+   "capelli": 14846,
+   "pelle": 11401,
+   "giacca": 6147,
+   "salopette": 6714,
+   "cuoio": 5490,
+   "colletto": 802,
+   "occhi": 462
+  },
+  "4:5": {
+   "capelli": 15438,
+   "pelle": 10889,
+   "giacca": 6162,
+   "salopette": 6953,
+   "cuoio": 5417,
+   "colletto": 802,
+   "occhi": 485
+  },
+  "5:5": {
+   "capelli": 15493,
+   "pelle": 10880,
+   "giacca": 5904,
+   "salopette": 6729,
+   "cuoio": 5492,
+   "colletto": 802,
+   "occhi": 560
+  },
+  "6:5": {
+   "capelli": 15483,
+   "pelle": 10887,
+   "giacca": 6217,
+   "salopette": 6652,
+   "cuoio": 5426,
+   "colletto": 798,
+   "occhi": 488
+  },
+  "7:5": {
+   "capelli": 15628,
+   "pelle": 10885,
+   "giacca": 6018,
+   "salopette": 6787,
+   "cuoio": 5566,
+   "colletto": 897,
+   "occhi": 462
+  },
+  "8:5": {
+   "capelli": 15479,
+   "pelle": 11712,
+   "giacca": 6197,
+   "salopette": 6649,
+   "cuoio": 5548,
+   "colletto": 798,
+   "occhi": 0
+  },
+  "9:5": {
+   "capelli": 15623,
+   "pelle": 11679,
+   "giacca": 6017,
+   "salopette": 6776,
+   "cuoio": 5413,
+   "colletto": 897,
+   "occhi": 0
+  },
+  "10:5": {
+   "capelli": 15661,
+   "pelle": 10998,
+   "giacca": 6264,
+   "salopette": 6726,
+   "cuoio": 5542,
+   "colletto": 797,
+   "occhi": 490
+  },
+  "11:5": {
+   "capelli": 15724,
+   "pelle": 10854,
+   "giacca": 6452,
+   "salopette": 6706,
+   "cuoio": 5591,
+   "colletto": 811,
+   "occhi": 555
+  },
+  "12:5": {
+   "capelli": 15600,
+   "pelle": 10506,
+   "giacca": 7542,
+   "salopette": 6770,
+   "cuoio": 5435,
+   "colletto": 903,
+   "occhi": 555
+  },
+  "13:5": {
+   "capelli": 15584,
+   "pelle": 10559,
+   "giacca": 7659,
+   "salopette": 6705,
+   "cuoio": 5487,
+   "colletto": 923,
+   "occhi": 482
+  },
+  "14:5": {
+   "capelli": 15534,
+   "pelle": 11503,
+   "giacca": 7582,
+   "salopette": 6633,
+   "cuoio": 5429,
+   "colletto": 914,
+   "occhi": 0
+  },
+  "15:5": {
+   "capelli": 15594,
+   "pelle": 11374,
+   "giacca": 7593,
+   "salopette": 6643,
+   "cuoio": 5281,
+   "colletto": 908,
+   "occhi": 0
+  },
+  "0:6": {
+   "capelli": 15546,
+   "pelle": 11335,
+   "giacca": 7610,
+   "salopette": 6883,
+   "cuoio": 5222,
+   "colletto": 919,
+   "occhi": 0
+  },
+  "1:6": {
+   "capelli": 15590,
+   "pelle": 11628,
+   "giacca": 7593,
+   "salopette": 6643,
+   "cuoio": 5281,
+   "colletto": 908,
+   "occhi": 0
+  },
+  "2:6": {
+   "capelli": 16344,
+   "pelle": 11860,
+   "giacca": 8008,
+   "salopette": 1577,
+   "cuoio": 4821,
+   "colletto": 638,
+   "occhi": 191
+  },
+  "3:6": {
+   "capelli": 16034,
+   "pelle": 11562,
+   "giacca": 7729,
+   "salopette": 1465,
+   "cuoio": 4744,
+   "colletto": 369,
+   "occhi": 222
+  },
+  "4:6": {
+   "capelli": 15186,
+   "pelle": 11493,
+   "giacca": 7534,
+   "salopette": 1481,
+   "cuoio": 4526,
+   "colletto": 613,
+   "occhi": 114
+  },
+  "5:6": {
+   "capelli": 16869,
+   "pelle": 12585,
+   "giacca": 8437,
+   "salopette": 1536,
+   "cuoio": 5234,
+   "colletto": 556,
+   "occhi": 203
+  },
+  "6:6": {
+   "capelli": 16766,
+   "pelle": 13199,
+   "giacca": 7723,
+   "salopette": 4921,
+   "cuoio": 6629,
+   "colletto": 661,
+   "occhi": 331
+  },
+  "7:6": {
+   "capelli": 16457,
+   "pelle": 12894,
+   "giacca": 7733,
+   "salopette": 4728,
+   "cuoio": 6351,
+   "colletto": 634,
+   "occhi": 398
+  },
+  "8:6": {
+   "capelli": 16572,
+   "pelle": 12280,
+   "giacca": 7587,
+   "salopette": 4652,
+   "cuoio": 6256,
+   "colletto": 642,
+   "occhi": 338
+  },
+  "9:6": {
+   "capelli": 15986,
+   "pelle": 12373,
+   "giacca": 7440,
+   "salopette": 4632,
+   "cuoio": 6163,
+   "colletto": 620,
+   "occhi": 401
+  },
+  "10:6": {
+   "capelli": 16345,
+   "pelle": 12100,
+   "giacca": 7574,
+   "salopette": 4607,
+   "cuoio": 6226,
+   "colletto": 644,
+   "occhi": 391
+  },
+  "11:6": {
+   "capelli": 16663,
+   "pelle": 12380,
+   "giacca": 7605,
+   "salopette": 4702,
+   "cuoio": 6576,
+   "colletto": 634,
+   "occhi": 403
+  },
+  "12:6": {
+   "capelli": 17512,
+   "pelle": 12256,
+   "giacca": 7780,
+   "salopette": 4875,
+   "cuoio": 6458,
+   "colletto": 662,
+   "occhi": 347
+  },
+  "13:6": {
+   "capelli": 15317,
+   "pelle": 11631,
+   "giacca": 7097,
+   "salopette": 2903,
+   "cuoio": 4649,
+   "colletto": 763,
+   "occhi": 155
+  },
+  "14:6": {
+   "capelli": 16192,
+   "pelle": 11871,
+   "giacca": 7548,
+   "salopette": 3041,
+   "cuoio": 4791,
+   "colletto": 809,
+   "occhi": 253
+  },
+  "15:6": {
+   "capelli": 16471,
+   "pelle": 12352,
+   "giacca": 7775,
+   "salopette": 3157,
+   "cuoio": 5030,
+   "colletto": 847,
+   "occhi": 257
+  },
+  "0:7": {
+   "capelli": 17399,
+   "pelle": 12059,
+   "giacca": 7369,
+   "salopette": 5745,
+   "cuoio": 6075,
+   "colletto": 687,
+   "occhi": 174
+  },
+  "1:7": {
+   "capelli": 16998,
+   "pelle": 11598,
+   "giacca": 7178,
+   "salopette": 5709,
+   "cuoio": 5642,
+   "colletto": 661,
+   "occhi": 162
+  },
+  "2:7": {
+   "capelli": 17181,
+   "pelle": 11840,
+   "giacca": 7182,
+   "salopette": 5597,
+   "cuoio": 5915,
+   "colletto": 653,
+   "occhi": 68
+  },
+  "3:7": {
+   "capelli": 15514,
+   "pelle": 10385,
+   "giacca": 4480,
+   "salopette": 6593,
+   "cuoio": 5326,
+   "colletto": 407,
+   "occhi": 654
+  },
+  "4:7": {
+   "capelli": 14988,
+   "pelle": 10076,
+   "giacca": 4695,
+   "salopette": 6294,
+   "cuoio": 5583,
+   "colletto": 419,
+   "occhi": 661
+  },
+  "5:7": {
+   "capelli": 14901,
+   "pelle": 10048,
+   "giacca": 4752,
+   "salopette": 6296,
+   "cuoio": 5614,
+   "colletto": 429,
+   "occhi": 666
+  },
+  "6:7": {
+   "capelli": 14899,
+   "pelle": 10001,
+   "giacca": 4739,
+   "salopette": 6382,
+   "cuoio": 5514,
+   "colletto": 429,
+   "occhi": 652
+  },
+  "7:7": {
+   "capelli": 14873,
+   "pelle": 10097,
+   "giacca": 4677,
+   "salopette": 6319,
+   "cuoio": 5613,
+   "colletto": 423,
+   "occhi": 670
+  },
+  "8:7": {
+   "capelli": 14876,
+   "pelle": 10103,
+   "giacca": 4689,
+   "salopette": 6314,
+   "cuoio": 5593,
+   "colletto": 425,
+   "occhi": 654
+  },
+  "9:7": {
+   "capelli": 14758,
+   "pelle": 11631,
+   "giacca": 4474,
+   "salopette": 6699,
+   "cuoio": 5223,
+   "colletto": 410,
+   "occhi": 0
+  },
+  "10:7": {
+   "capelli": 15602,
+   "pelle": 10641,
+   "giacca": 7593,
+   "salopette": 6643,
+   "cuoio": 5281,
+   "colletto": 908,
+   "occhi": 454
+  },
+  "11:7": {
+   "capelli": 15573,
+   "pelle": 10459,
+   "giacca": 7711,
+   "salopette": 6669,
+   "cuoio": 5460,
+   "colletto": 928,
+   "occhi": 576
+  },
+  "12:7": {
+   "capelli": 15595,
+   "pelle": 10469,
+   "giacca": 7675,
+   "salopette": 6740,
+   "cuoio": 5587,
+   "colletto": 916,
+   "occhi": 566
+  },
+  "13:7": {
+   "capelli": 15594,
+   "pelle": 10426,
+   "giacca": 7629,
+   "salopette": 6653,
+   "cuoio": 5449,
+   "colletto": 996,
+   "occhi": 548
+  },
+  "14:7": {
+   "capelli": 15638,
+   "pelle": 10447,
+   "giacca": 7649,
+   "salopette": 6719,
+   "cuoio": 5449,
+   "colletto": 930,
+   "occhi": 555
+  },
+  "15:7": {
+   "capelli": 15581,
+   "pelle": 10481,
+   "giacca": 7640,
+   "salopette": 6739,
+   "cuoio": 5587,
+   "colletto": 909,
+   "occhi": 590
+  },
+  "0:8": {
+   "capelli": 15608,
+   "pelle": 10962,
+   "giacca": 7612,
+   "salopette": 6721,
+   "cuoio": 5468,
+   "colletto": 911,
+   "occhi": 234
+  },
+  "1:8": {
+   "capelli": 15592,
+   "pelle": 11364,
+   "giacca": 7656,
+   "salopette": 6853,
+   "cuoio": 5209,
+   "colletto": 918,
+   "occhi": 0
+  },
+  "2:8": {
+   "capelli": 15599,
+   "pelle": 10933,
+   "giacca": 7617,
+   "salopette": 6690,
+   "cuoio": 5328,
+   "colletto": 896,
+   "occhi": 221
+  },
+  "3:8": {
+   "capelli": 15602,
+   "pelle": 10496,
+   "giacca": 7613,
+   "salopette": 6576,
+   "cuoio": 5281,
+   "colletto": 984,
+   "occhi": 514
+  },
+  "4:8": {
+   "capelli": 15587,
+   "pelle": 10550,
+   "giacca": 7591,
+   "salopette": 6645,
+   "cuoio": 5281,
+   "colletto": 925,
+   "occhi": 537
+  },
+  "5:8": {
+   "capelli": 15586,
+   "pelle": 10450,
+   "giacca": 7591,
+   "salopette": 6645,
+   "cuoio": 5281,
+   "colletto": 925,
+   "occhi": 537
+  },
+  "6:8": {
+   "capelli": 15602,
+   "pelle": 10641,
+   "giacca": 7593,
+   "salopette": 6643,
+   "cuoio": 5281,
+   "colletto": 908,
+   "occhi": 454
+  },
+  "7:8": {
+   "capelli": 15306,
+   "pelle": 10532,
+   "giacca": 8159,
+   "salopette": 6432,
+   "cuoio": 5292,
+   "colletto": 908,
+   "occhi": 666
+  },
+  "8:8": {
+   "capelli": 14967,
+   "pelle": 11541,
+   "giacca": 7780,
+   "salopette": 6376,
+   "cuoio": 5289,
+   "colletto": 797,
+   "occhi": 635
+  },
+  "9:8": {
+   "capelli": 15324,
+   "pelle": 10511,
+   "giacca": 8226,
+   "salopette": 6396,
+   "cuoio": 5324,
+   "colletto": 900,
+   "occhi": 668
+  },
+  "10:8": {
+   "capelli": 15060,
+   "pelle": 11569,
+   "giacca": 7706,
+   "salopette": 6393,
+   "cuoio": 5302,
+   "colletto": 784,
+   "occhi": 572
+  },
+  "11:8": {
+   "capelli": 14968,
+   "pelle": 11540,
+   "giacca": 7780,
+   "salopette": 6376,
+   "cuoio": 5289,
+   "colletto": 797,
+   "occhi": 635
+  },
+  "12:8": {
+   "capelli": 15417,
+   "pelle": 11167,
+   "giacca": 8586,
+   "salopette": 6475,
+   "cuoio": 5784,
+   "colletto": 722,
+   "occhi": 513
+  },
+  "13:8": {
+   "capelli": 15830,
+   "pelle": 11188,
+   "giacca": 8559,
+   "salopette": 6453,
+   "cuoio": 5723,
+   "colletto": 698,
+   "occhi": 518
+  },
+  "14:8": {
+   "capelli": 15556,
+   "pelle": 10904,
+   "giacca": 8469,
+   "salopette": 6710,
+   "cuoio": 5493,
+   "colletto": 714,
+   "occhi": 448
+  },
+  "15:8": {
+   "capelli": 15790,
+   "pelle": 10662,
+   "giacca": 8488,
+   "salopette": 6717,
+   "cuoio": 5479,
+   "colletto": 717,
+   "occhi": 515
+  },
+  "0:9": {
+   "capelli": 15875,
+   "pelle": 11374,
+   "giacca": 8591,
+   "salopette": 6609,
+   "cuoio": 5782,
+   "colletto": 776,
+   "occhi": 494
+  },
+  "1:9": {
+   "capelli": 15604,
+   "pelle": 11308,
+   "giacca": 8712,
+   "salopette": 6498,
+   "cuoio": 5912,
+   "colletto": 743,
+   "occhi": 424
+  },
+  "2:9": {
+   "capelli": 15852,
+   "pelle": 11344,
+   "giacca": 8640,
+   "salopette": 6594,
+   "cuoio": 5770,
+   "colletto": 757,
+   "occhi": 489
+  },
+  "3:9": {
+   "capelli": 16040,
+   "pelle": 11308,
+   "giacca": 8712,
+   "salopette": 6475,
+   "cuoio": 5912,
+   "colletto": 743,
+   "occhi": 424
+  },
+  "4:9": {
+   "capelli": 15877,
+   "pelle": 11191,
+   "giacca": 8669,
+   "salopette": 6593,
+   "cuoio": 5961,
+   "colletto": 748,
+   "occhi": 504
+  },
+  "5:9": {
+   "capelli": 15996,
+   "pelle": 10964,
+   "giacca": 8542,
+   "salopette": 6460,
+   "cuoio": 5651,
+   "colletto": 701,
+   "occhi": 590
+  },
+  "6:9": {
+   "capelli": 15852,
+   "pelle": 11167,
+   "giacca": 8586,
+   "salopette": 6452,
+   "cuoio": 5784,
+   "colletto": 722,
+   "occhi": 513
+  },
+  "7:9": {
+   "capelli": 15809,
+   "pelle": 11217,
+   "giacca": 8578,
+   "salopette": 6464,
+   "cuoio": 5794,
+   "colletto": 701,
+   "occhi": 507
+  },
+  "8:9": {
+   "capelli": 16472,
+   "pelle": 15005,
+   "giacca": 6195,
+   "salopette": 3662,
+   "cuoio": 5367,
+   "colletto": 796,
+   "occhi": 501
+  },
+  "9:9": {
+   "capelli": 16472,
+   "pelle": 14836,
+   "giacca": 6186,
+   "salopette": 3662,
+   "cuoio": 5170,
+   "colletto": 796,
+   "occhi": 501
+  },
+  "10:9": {
+   "capelli": 16485,
+   "pelle": 14628,
+   "giacca": 6228,
+   "salopette": 3662,
+   "cuoio": 4849,
+   "colletto": 796,
+   "occhi": 501
+  },
+  "11:9": {
+   "capelli": 16484,
+   "pelle": 12541,
+   "giacca": 6163,
+   "salopette": 3660,
+   "cuoio": 7492,
+   "colletto": 796,
+   "occhi": 501
+  },
+  "12:9": {
+   "capelli": 16482,
+   "pelle": 13628,
+   "giacca": 6166,
+   "salopette": 3661,
+   "cuoio": 6086,
+   "colletto": 796,
+   "occhi": 501
+  },
+  "13:9": {
+   "capelli": 16405,
+   "pelle": 15857,
+   "giacca": 6195,
+   "salopette": 3662,
+   "cuoio": 5367,
+   "colletto": 796,
+   "occhi": 0
+  },
+  "14:9": {
+   "capelli": 15684,
+   "pelle": 15661,
+   "giacca": 6090,
+   "salopette": 3606,
+   "cuoio": 5366,
+   "colletto": 680,
+   "occhi": 0
+  },
+  "15:9": {
+   "capelli": 14767,
+   "pelle": 15991,
+   "giacca": 6272,
+   "salopette": 3520,
+   "cuoio": 5360,
+   "colletto": 677,
+   "occhi": 0
+  },
+  "0:10": {
+   "capelli": 15323,
+   "pelle": 16042,
+   "giacca": 6220,
+   "salopette": 3435,
+   "cuoio": 5377,
+   "colletto": 688,
+   "occhi": 0
+  },
+  "1:10": {
+   "capelli": 16595,
+   "pelle": 15892,
+   "giacca": 6939,
+   "salopette": 4214,
+   "cuoio": 5385,
+   "colletto": 775,
+   "occhi": 525
+  },
+  "2:10": {
+   "capelli": 15912,
+   "pelle": 14729,
+   "giacca": 7032,
+   "salopette": 4106,
+   "cuoio": 6679,
+   "colletto": 779,
+   "occhi": 499
+  },
+  "3:10": {
+   "capelli": 16581,
+   "pelle": 15798,
+   "giacca": 7197,
+   "salopette": 4269,
+   "cuoio": 5507,
+   "colletto": 816,
+   "occhi": 443
+  },
+  "4:10": {
+   "capelli": 16409,
+   "pelle": 14688,
+   "giacca": 5167,
+   "salopette": 3547,
+   "cuoio": 5217,
+   "colletto": 716,
+   "occhi": 497
+  },
+  "5:10": {
+   "capelli": 15616,
+   "pelle": 15166,
+   "giacca": 4874,
+   "salopette": 3692,
+   "cuoio": 5376,
+   "colletto": 745,
+   "occhi": 263
+  },
+  "6:10": {
+   "capelli": 16353,
+   "pelle": 13706,
+   "giacca": 4916,
+   "salopette": 2619,
+   "cuoio": 4638,
+   "colletto": 720,
+   "occhi": 384
+  },
+  "7:10": {
+   "capelli": 17121,
+   "pelle": 13962,
+   "giacca": 4712,
+   "salopette": 2345,
+   "cuoio": 4559,
+   "colletto": 778,
+   "occhi": 396
+  },
+  "8:10": {
+   "capelli": 16395,
+   "pelle": 13168,
+   "giacca": 4719,
+   "salopette": 2111,
+   "cuoio": 4632,
+   "colletto": 714,
+   "occhi": 373
+  },
+  "9:10": {
+   "capelli": 16472,
+   "pelle": 15005,
+   "giacca": 6195,
+   "salopette": 3662,
+   "cuoio": 5367,
+   "colletto": 796,
+   "occhi": 501
+  },
+  "10:10": {
+   "capelli": 16049,
+   "pelle": 14817,
+   "giacca": 6035,
+   "salopette": 3610,
+   "cuoio": 5317,
+   "colletto": 758,
+   "occhi": 534
+  },
+  "11:10": {
+   "capelli": 16697,
+   "pelle": 15890,
+   "giacca": 6915,
+   "salopette": 3462,
+   "cuoio": 5302,
+   "colletto": 760,
+   "occhi": 437
+  },
+  "12:10": {
+   "capelli": 16526,
+   "pelle": 15727,
+   "giacca": 6996,
+   "salopette": 3332,
+   "cuoio": 5242,
+   "colletto": 772,
+   "occhi": 416
+  },
+  "13:10": {
+   "capelli": 14716,
+   "pelle": 15590,
+   "giacca": 5815,
+   "salopette": 3289,
+   "cuoio": 5090,
+   "colletto": 415,
+   "occhi": 733
+  },
+  "14:10": {
+   "capelli": 14827,
+   "pelle": 14944,
+   "giacca": 5728,
+   "salopette": 3120,
+   "cuoio": 5310,
+   "colletto": 407,
+   "occhi": 692
+  },
+  "15:10": {
+   "capelli": 14284,
+   "pelle": 15329,
+   "giacca": 5444,
+   "salopette": 3103,
+   "cuoio": 5138,
+   "colletto": 394,
+   "occhi": 706
+  },
+  "0:11": {
+   "capelli": 15832,
+   "pelle": 15011,
+   "giacca": 4021,
+   "salopette": 2988,
+   "cuoio": 5175,
+   "colletto": 651,
+   "occhi": 230
+  },
+  "1:11": {
+   "capelli": 14543,
+   "pelle": 14785,
+   "giacca": 5241,
+   "salopette": 3010,
+   "cuoio": 5167,
+   "colletto": 395,
+   "occhi": 102
+  },
+  "2:11": {
+   "capelli": 15805,
+   "pelle": 14572,
+   "giacca": 3885,
+   "salopette": 2917,
+   "cuoio": 5255,
+   "colletto": 241,
+   "occhi": 290
+  },
+  "3:11": {
+   "capelli": 15708,
+   "pelle": 14258,
+   "giacca": 4490,
+   "salopette": 4020,
+   "cuoio": 5491,
+   "colletto": 519,
+   "occhi": 528
+  },
+  "4:11": {
+   "capelli": 16115,
+   "pelle": 13791,
+   "giacca": 4698,
+   "salopette": 4225,
+   "cuoio": 5587,
+   "colletto": 586,
+   "occhi": 495
+  },
+  "5:11": {
+   "capelli": 16041,
+   "pelle": 14260,
+   "giacca": 6168,
+   "salopette": 3688,
+   "cuoio": 6734,
+   "colletto": 781,
+   "occhi": 0
+  },
+  "6:11": {
+   "capelli": 16597,
+   "pelle": 13570,
+   "giacca": 6351,
+   "salopette": 3624,
+   "cuoio": 6715,
+   "colletto": 752,
+   "occhi": 62
+  },
+  "7:11": {
+   "capelli": 18414,
+   "pelle": 12802,
+   "giacca": 6232,
+   "salopette": 3748,
+   "cuoio": 6880,
+   "colletto": 630,
+   "occhi": 0
+  }
+ }
+}

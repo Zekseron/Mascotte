@@ -1,0 +1,383 @@
+{
+ "character": "rosso",
+ "parts": [
+  "pelo",
+  "strisce",
+  "pancia",
+  "rosa"
+ ],
+ "cells": {
+  "0:0": {
+   "pelo": 160,
+   "strisce": 43,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "1:0": {
+   "pelo": 176,
+   "strisce": 43,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "2:0": {
+   "pelo": 167,
+   "strisce": 41,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "3:0": {
+   "pelo": 156,
+   "strisce": 43,
+   "pancia": 56,
+   "rosa": 20
+  },
+  "4:0": {
+   "pelo": 158,
+   "strisce": 43,
+   "pancia": 62,
+   "rosa": 17
+  },
+  "0:1": {
+   "pelo": 170,
+   "strisce": 34,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "1:1": {
+   "pelo": 166,
+   "strisce": 34,
+   "pancia": 56,
+   "rosa": 20
+  },
+  "2:1": {
+   "pelo": 170,
+   "strisce": 34,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "3:1": {
+   "pelo": 166,
+   "strisce": 34,
+   "pancia": 56,
+   "rosa": 20
+  },
+  "0:2": {
+   "pelo": 159,
+   "strisce": 41,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "1:2": {
+   "pelo": 174,
+   "strisce": 68,
+   "pancia": 62,
+   "rosa": 17
+  },
+  "2:2": {
+   "pelo": 157,
+   "strisce": 41,
+   "pancia": 62,
+   "rosa": 17
+  },
+  "0:3": {
+   "pelo": 161,
+   "strisce": 42,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "1:3": {
+   "pelo": 161,
+   "strisce": 42,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "2:3": {
+   "pelo": 161,
+   "strisce": 42,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "3:3": {
+   "pelo": 160,
+   "strisce": 43,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "0:4": {
+   "pelo": 126,
+   "strisce": 28,
+   "pancia": 42,
+   "rosa": 20
+  },
+  "1:4": {
+   "pelo": 126,
+   "strisce": 28,
+   "pancia": 42,
+   "rosa": 20
+  },
+  "2:4": {
+   "pelo": 126,
+   "strisce": 28,
+   "pancia": 42,
+   "rosa": 20
+  },
+  "3:4": {
+   "pelo": 126,
+   "strisce": 28,
+   "pancia": 42,
+   "rosa": 20
+  },
+  "0:5": {
+   "pelo": 118,
+   "strisce": 27,
+   "pancia": 38,
+   "rosa": 20
+  },
+  "1:5": {
+   "pelo": 118,
+   "strisce": 27,
+   "pancia": 38,
+   "rosa": 20
+  },
+  "2:5": {
+   "pelo": 118,
+   "strisce": 27,
+   "pancia": 38,
+   "rosa": 20
+  },
+  "3:5": {
+   "pelo": 118,
+   "strisce": 23,
+   "pancia": 37,
+   "rosa": 20
+  },
+  "4:5": {
+   "pelo": 118,
+   "strisce": 23,
+   "pancia": 37,
+   "rosa": 20
+  },
+  "0:6": {
+   "pelo": 129,
+   "strisce": 35,
+   "pancia": 30,
+   "rosa": 23
+  },
+  "1:6": {
+   "pelo": 128,
+   "strisce": 32,
+   "pancia": 30,
+   "rosa": 23
+  },
+  "2:6": {
+   "pelo": 126,
+   "strisce": 34,
+   "pancia": 31,
+   "rosa": 23
+  },
+  "3:6": {
+   "pelo": 127,
+   "strisce": 33,
+   "pancia": 32,
+   "rosa": 23
+  },
+  "0:7": {
+   "pelo": 159,
+   "strisce": 41,
+   "pancia": 56,
+   "rosa": 22
+  },
+  "1:7": {
+   "pelo": 149,
+   "strisce": 41,
+   "pancia": 56,
+   "rosa": 20
+  },
+  "2:7": {
+   "pelo": 153,
+   "strisce": 41,
+   "pancia": 56,
+   "rosa": 22
+  },
+  "3:7": {
+   "pelo": 155,
+   "strisce": 41,
+   "pancia": 56,
+   "rosa": 20
+  },
+  "0:8": {
+   "pelo": 172,
+   "strisce": 31,
+   "pancia": 66,
+   "rosa": 20
+  },
+  "1:8": {
+   "pelo": 168,
+   "strisce": 30,
+   "pancia": 60,
+   "rosa": 20
+  },
+  "2:8": {
+   "pelo": 176,
+   "strisce": 31,
+   "pancia": 66,
+   "rosa": 20
+  },
+  "3:8": {
+   "pelo": 168,
+   "strisce": 30,
+   "pancia": 60,
+   "rosa": 20
+  },
+  "0:9": {
+   "pelo": 173,
+   "strisce": 41,
+   "pancia": 58,
+   "rosa": 30
+  },
+  "1:9": {
+   "pelo": 167,
+   "strisce": 41,
+   "pancia": 58,
+   "rosa": 30
+  },
+  "2:9": {
+   "pelo": 173,
+   "strisce": 41,
+   "pancia": 58,
+   "rosa": 30
+  },
+  "3:9": {
+   "pelo": 167,
+   "strisce": 41,
+   "pancia": 58,
+   "rosa": 30
+  },
+  "0:10": {
+   "pelo": 163,
+   "strisce": 41,
+   "pancia": 50,
+   "rosa": 32
+  },
+  "1:10": {
+   "pelo": 226,
+   "strisce": 30,
+   "pancia": 80,
+   "rosa": 32
+  },
+  "2:10": {
+   "pelo": 226,
+   "strisce": 30,
+   "pancia": 80,
+   "rosa": 32
+  },
+  "3:10": {
+   "pelo": 226,
+   "strisce": 30,
+   "pancia": 80,
+   "rosa": 32
+  },
+  "4:10": {
+   "pelo": 169,
+   "strisce": 41,
+   "pancia": 52,
+   "rosa": 30
+  },
+  "5:10": {
+   "pelo": 167,
+   "strisce": 41,
+   "pancia": 58,
+   "rosa": 30
+  },
+  "0:11": {
+   "pelo": 190,
+   "strisce": 72,
+   "pancia": 58,
+   "rosa": 8
+  },
+  "1:11": {
+   "pelo": 190,
+   "strisce": 72,
+   "pancia": 58,
+   "rosa": 8
+  },
+  "2:11": {
+   "pelo": 190,
+   "strisce": 72,
+   "pancia": 58,
+   "rosa": 8
+  },
+  "3:11": {
+   "pelo": 190,
+   "strisce": 72,
+   "pancia": 58,
+   "rosa": 8
+  },
+  "0:12": {
+   "pelo": 160,
+   "strisce": 43,
+   "pancia": 56,
+   "rosa": 22
+  },
+  "1:12": {
+   "pelo": 160,
+   "strisce": 43,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "2:12": {
+   "pelo": 160,
+   "strisce": 43,
+   "pancia": 58,
+   "rosa": 20
+  },
+  "3:12": {
+   "pelo": 176,
+   "strisce": 43,
+   "pancia": 62,
+   "rosa": 20
+  },
+  "0:13": {
+   "pelo": 116,
+   "strisce": 32,
+   "pancia": 71,
+   "rosa": 16
+  },
+  "1:13": {
+   "pelo": 111,
+   "strisce": 31,
+   "pancia": 69,
+   "rosa": 15
+  },
+  "2:13": {
+   "pelo": 109,
+   "strisce": 32,
+   "pancia": 71,
+   "rosa": 12
+  },
+  "3:13": {
+   "pelo": 114,
+   "strisce": 28,
+   "pancia": 67,
+   "rosa": 20
+  },
+  "0:14": {
+   "pelo": 146,
+   "strisce": 34,
+   "pancia": 58,
+   "rosa": 20
+  },
+  "1:14": {
+   "pelo": 146,
+   "strisce": 34,
+   "pancia": 58,
+   "rosa": 20
+  },
+  "2:14": {
+   "pelo": 146,
+   "strisce": 34,
+   "pancia": 58,
+   "rosa": 20
+  }
+ }
+}

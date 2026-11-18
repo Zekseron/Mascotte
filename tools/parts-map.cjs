@@ -589,10 +589,11 @@ function averages(sheet, map, parts) {
   return sum.map(([r, g, b, a]) => a ? '#' + [r, g, b].map(c => Math.round(c / a).toString(16).padStart(2, '0')).join('') : null);
 }
 
-async function main() {
-  const id = process.argv[2], preview = process.argv.includes('--preview');
+// Calcola la mappa delle parti in memoria, senza scrivere file: la usano main() e i test di regressione
+// (windows/test/parts-map.test.cjs). Restituisce la mappa (indice parte per pixel, 0 = nessuna) e i colori di base.
+async function computeMap(id) {
   const config = CHARACTERS[id];
-  if (!config) { console.error('Personaggio: ' + Object.keys(CHARACTERS).join(' | ')); process.exit(2); }
+  if (!config) throw new Error('Personaggio: ' + Object.keys(CHARACTERS).join(' | '));
   const dir = path.join(ROOT, config.dir), packFile = path.join(dir, 'character.json');
   const pack = JSON.parse(fs.readFileSync(packFile, 'utf8'));
   const image = await loadImage(fs.readFileSync(path.join(dir, 'sprites.png')));
@@ -621,11 +622,40 @@ async function main() {
       if (index > 0) map[(row * fh + y) * W + col * fw + x] = index;
     }
   }
+  const colors = (config.base === 'dominant' ? dominant : averages)(sheet, map, config.parts);
+  return { config, dir, packFile, pack, sheet, map, W, H, fw, fh, cols, rows, colors };
+}
+
+// Pixel di ogni parte per cella "col:riga" (solo le celle con almeno una parte): base dei test di regressione.
+function cellCounts({ config, map, W, fw, fh, cols, rows }) {
+  const result = {};
+  for (let row = 0; row < rows; row++) for (let col = 0; col < cols; col++) {
+    const counts = new Array(config.parts.length).fill(0);
+    for (let y = 0; y < fh; y++) for (let x = 0; x < fw; x++) {
+      const v = map[(row * fh + y) * W + col * fw + x];
+      if (v) counts[v - 1]++;
+    }
+    if (counts.some(Boolean)) result[`${col}:${row}`] = Object.fromEntries(config.parts.map((part, k) => [part, counts[k]]));
+  }
+  return result;
+}
+
+async function main() {
+  const id = process.argv[2], preview = process.argv.includes('--preview');
+  if (!CHARACTERS[id]) { console.error('Personaggio: ' + Object.keys(CHARACTERS).join(' | ')); process.exit(2); }
+  const result = await computeMap(id);
+  const { config, dir, packFile, pack, sheet, map, W, H, fw, fh, cols, rows, colors } = result;
+  // --snapshot <file>: aggiorna la fotografia dei conteggi usata dai test, solo dopo aver controllato a vista la mappa.
+  const snapshotAt = process.argv.indexOf('--snapshot');
+  if (snapshotAt > 0) {
+    const file = path.resolve(process.argv[snapshotAt + 1]);
+    fs.writeFileSync(file, JSON.stringify({ character: id, parts: config.parts, cells: cellCounts(result) }, null, 1) + '\n');
+    console.log('Fotografia dei conteggi scritta in ' + path.relative(ROOT, file));
+  }
   const out = createCanvas(W, H), octx = out.getContext('2d'), od = octx.createImageData(W, H);
   for (let i = 0; i < map.length; i++) if (map[i]) { od.data[i * 4] = map[i]; od.data[i * 4 + 3] = 255; }
   octx.putImageData(od, 0, 0);
   fs.writeFileSync(path.join(dir, 'parts.png'), out.toBuffer('image/png'));
-  const colors = (config.base === 'dominant' ? dominant : averages)(sheet, map, config.parts);
   pack.parts = { sheet: 'parts.png', list: config.parts.map((part, k) => ({ id: part, name: config.names[part], color: colors[k] })).filter(item => item.color) };
   fs.writeFileSync(packFile, withParts(fs.readFileSync(packFile, 'utf8'), pack.parts));
   const counts = config.parts.map((part, k) => `${part} ${map.reduce((sum, v) => sum + (v === k + 1), 0)}`);
@@ -689,4 +719,4 @@ async function writePreview(id, config, sheet, map, W, H, fw, fh, cols, rows) {
 }
 
 if (require.main === module) main().catch(error => { console.error(error); process.exit(1); });
-module.exports = { rgbToHsv, lumaGuess, lumaFrame, CHARACTERS };
+module.exports = { rgbToHsv, lumaGuess, lumaFrame, CHARACTERS, computeMap, cellCounts, loadImage, createCanvas };
