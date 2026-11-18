@@ -144,14 +144,15 @@ Questa è la procedura per chi ha scaricato il sorgente da GitHub o come archivi
    npm.cmd run build:win
    ```
 
-   La build crea `dist\Mascotte-Windows-0.9.8-x64.zip` e `dist\Mascotte-Setup-0.9.8-x64.exe`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
+   La build crea `dist\Mascotte-Windows-<versione>-x64.zip` e `dist\Mascotte-Setup-<versione>-x64.exe`, con la versione di `package.json`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
 
 2. Estrai **tutto** lo ZIP in una cartella che non sposterai, ad esempio `%LOCALAPPDATA%\Programs\Mascotte`. In PowerShell, dalla cartella `windows`:
 
    ```powershell
+   $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
    $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Mascotte'
    New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-   Expand-Archive -LiteralPath '.\dist\Mascotte-Windows-0.9.8-x64.zip' -DestinationPath $installDir -Force
+   Expand-Archive -LiteralPath ".\dist\Mascotte-Windows-$version-x64.zip" -DestinationPath $installDir -Force
    ```
 
    Avvia `Mascotte.exe` da quella cartella, non dallo ZIP. Mantieni lì anche DLL e `resources`. Scegli un percorso stabile; non deve contenere `%`, virgolette o ritorni a capo. Spostare o cancellare la cartella dopo aver collegato gli hook ne interrompe l'avvio: in quel caso estrai di nuovo in un percorso stabile e ripeti il collegamento.
@@ -179,7 +180,8 @@ Per sostituire una copia estratta con lo ZIP appena creato, prima esci da Mascot
 
 ```powershell
 Set-Location .\windows
-npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.8-x64.zip" --install-dir "$env:LOCALAPPDATA\Programs\Mascotte"
+$version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-$version-x64.zip" --install-dir "$env:LOCALAPPDATA\Programs\Mascotte"
 ```
 
 `--install-dir` deve indicare la cartella che contiene la vecchia `Mascotte.exe`; usa il percorso effettivo se l'hai estratta altrove. Il comando rifiuta di procedere se Mascotte è ancora aperta, prepara l'aggiornamento in una cartella temporanea e conserva la cartella precedente come `Mascotte.backup-<data>`. Non cancella i dati in `%LOCALAPPDATA%\Mascotte`.
@@ -192,7 +194,7 @@ Comandi rapidi PowerShell, sempre dalla cartella `windows`:
 | Avviare il sorgente | `npm.cmd start` |
 | Eseguire i test automatici | `npm.cmd test` |
 | Creare lo ZIP Windows x64 | `npm.cmd run build:win` |
-| Aggiornare una cartella estratta | `npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.8-x64.zip" --install-dir "<cartella-installazione>"` |
+| Aggiornare una cartella estratta | `npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-<versione>-x64.zip" --install-dir "<cartella-installazione>"` |
 
 `resources` copia gli asset dalla radice della repo; non modificarli qui. Su Mac l'anteprima usa una cartella separata e `MASCOTTE_PREVIEW=1` sceglie una porta libera, preservando la mascotte nativa attiva. I test principali sono offline; `npm.cmd test` li esegue. `npm.cmd run test:codex-policy` usa opzionalmente la CLI Codex reale contro un mock locale con CODEX_HOME vuoto, senza login.
 

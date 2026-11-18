@@ -39,7 +39,7 @@ jobs:
         run: node --test --test-concurrency=1 "test/*.test.cjs"
   tools:
     name: Strumenti e visore (macOS)
-    # Il test del configuratore di distribuzione gira solo su macOS.
+    # Strumenti Python (ponte mascotte-notify e integrazione hook) e test del visore.
     runs-on: macos-latest
     timeout-minutes: 15
     steps:

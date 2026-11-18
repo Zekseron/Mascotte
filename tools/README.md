@@ -12,11 +12,14 @@ restano fuori dal server e dal log. Non stampa nulla e termina sempre con codice
 anche con app chiusa, input invalido o connessione fallita. Il tentativo di invio
 ha un limite complessivo di circa 0,2 secondi. Non avvia l'app e non chiama IA.
 
+`mascotte-notify` è il ponte della vecchia app Swift (archiviata nel tag `legacy-swift`): resta qui perché `windows/lib/setup.cjs` riconosce e sostituisce i vecchi hook che lo chiamano, e chi li ha ancora configurati non deve ricevere errori. L'app attuale usa `windows/lib/notify-entry.cjs`.
+
 ## Prova manuale
 
-Avvia `app/build.noindex/Mascotte.app`, poi dalla radice:
+Avvia Mascotte, poi dalla radice indica il file di endpoint dell'app attuale (su Mac `~/Library/Application Support/Mascotte Electron/events.json`):
 
 ```sh
+export MASCOTTE_EVENT_FILE="$HOME/Library/Application Support/Mascotte Electron/events.json"
 python3 tools/mascotte-notify --state working
 python3 tools/mascotte-notify --state done
 ```
@@ -77,11 +80,9 @@ La CLI verificata è `0.162.0-alpha.17.2`, con `hooks` stabile e abilitato.
 ```sh
 node --test viewer/test/
 python3 -m unittest discover -s tools/test -v
-MASCOTTE_TEST_BINARY="$PWD/app/build.noindex/Mascotte.app/Contents/MacOS/Mascotte" \
-  python3 -m unittest discover -s tools/test -v
 ```
 
-La terza variante avvia il server Swift su una porta casuale e un file temporaneo,
+Con `MASCOTTE_TEST_BINARY` che punta all'eseguibile della vecchia app Swift (da compilare dal tag `legacy-swift`), la stessa suite avvia anche il server Swift su una porta casuale e un file temporaneo,
 verifica autenticazione, permessi, messaggi ridotti, richieste spezzate e timeout,
 poi chiude il server e controlla che il file sia rimosso. Il comando diagnostico
 `Mascotte --event-server-test /percorso/temporaneo/events.json` serve a questi test,

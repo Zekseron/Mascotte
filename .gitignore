@@ -2,8 +2,6 @@ node_modules/
 windows/resources/
 windows/dist/
 distribuzione/Windows-portatile/
-app/.build/
-app/build.noindex/
 work/
 esportabile/
 private/

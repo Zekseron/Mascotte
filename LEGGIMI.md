@@ -9,7 +9,7 @@ Una mascotte animata con micro chat Claude/Codex, chat con IA locale, osservazio
 | Sistema | Disponibile |
 | --- | --- |
 | **Mac Apple Silicon** (M1 o successivi) | App [Mascotte-Mac-0.9.8-arm64.zip](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.8). Provata su macOS 27.0.1 e 27.2; non sono state provate versioni precedenti |
-| **Mac Intel** | **Non supportato** dall'app attuale (scelta fatta: solo Apple Silicon). La vecchia app Swift in `app/` può essere compilata a mano, ma non è più sviluppata |
+| **Mac Intel** | **Non supportato** dall'app attuale (scelta fatta: solo Apple Silicon). La vecchia app Swift non è più sviluppata ed è archiviata nel tag `legacy-swift` del repository |
 | **Windows x64** | App `Mascotte-Windows-<versione>-x64.zip` (portatile) e, quando presente nella release, l'installer `Mascotte-Setup-<versione>-x64.exe`. Guida in [WINDOWS.md](WINDOWS.md) |
 | Windows ARM64, Linux | Non supportati |
 
