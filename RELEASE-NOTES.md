@@ -1,6 +1,13 @@
-# Mascotte 0.9.8 — Mac
+# Mascotte 0.9.8 — Windows e Mac
 
-Questa release aggiorna **Mac Apple Silicon**. Su Windows la versione disponibile resta la **0.9.2**. [Release Windows 0.9.2](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.2)
+Disponibile per **Windows x64 e Mac Apple Silicon**. Windows recupera le funzioni e le correzioni già distribuite su Mac dalla 0.9.3 alla 0.9.8; il pacchetto Mac 0.9.8 resta invariato.
+
+## Novità per Windows
+
+- «Apri …» apre app del menu Start, cartelle e file nelle cartelle note, anche con Codex o Claude scelti e senza invio remoto. Con più corrispondenze chiede quale; programmi, installer e script trovati tra i file restano esclusi.
+- **Impostazioni → Mascotte → Colori** personalizza le parti di Luma e Rosso, con ripristino e scelte conservate per personaggio.
+- Incluse tutte le correzioni dei colori e della trasparenza di Luma fino alla 0.9.8.
+- Collaudo Windows: 234 test superati, 44 saltati; visore 57/57. Provati il pacchetto, i colori, il ripristino, la persistenza, le mascotte personali con e senza mappa e una risposta locale con Gemma.
 
 ## Colori di Luma
 
@@ -12,5 +19,6 @@ Questa release aggiorna **Mac Apple Silicon**. Su Windows la versione disponibil
 
 ## Aggiornamento
 
-- In Mascotte per Mac, apri **Impostazioni → Controlla aggiornamenti**.
-- Per una nuova installazione, scarica `Mascotte-Mac-0.9.8-arm64.zip`, estrailo e sposta `Mascotte.app` in Applicazioni. Il pacchetto usa la firma locale di Mascotte. [Guida all’installazione](https://github.com/Zekseron/Mascotte/blob/main/LEGGIMI.md)
+- In Mascotte per Windows o Mac, apri **Impostazioni → Controlla aggiornamenti**.
+- Su Windows puoi installare `Mascotte-Setup-0.9.8-x64.exe` oppure estrarre tutto `Mascotte-Windows-0.9.8-x64.zip`. Impostazioni e dati vengono conservati.
+- Per una nuova installazione Mac, scarica `Mascotte-Mac-0.9.8-arm64.zip`, estrailo e sposta `Mascotte.app` in Applicazioni. Il pacchetto usa la firma locale di Mascotte. [Guida all’installazione](https://github.com/Zekseron/Mascotte/blob/main/LEGGIMI.md)

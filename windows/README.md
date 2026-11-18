@@ -1,4 +1,4 @@
-# Mascotte — Windows 0.9.2 e Mac 0.9.8
+# Mascotte — Windows 0.9.8 e Mac 0.9.8
 
 La nuova [modalità Agente](../AGENTI.md) è verificata su Windows con Codex; Claude reale e le nuove funzioni comuni sul Mac restano da collaudare. La chat normale e quella locale restano disponibili separatamente.
 
@@ -8,9 +8,9 @@ Prima app Windows: gattino Rosso trasparente e trascinabile, menu nell'area di n
 
 ## Installare su Windows
 
-Apri `Mascotte-Setup-0.9.2-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
+Apri `Mascotte-Setup-0.9.8-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
 
-In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Entrambi i pacchetti Windows sono disponibili nella release 0.9.2. Il pacchetto Mac Apple Silicon più recente è nella release 0.9.8.
+In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Installer, ZIP Windows e pacchetto Mac Apple Silicon sono disponibili nella release 0.9.8.
 
 ### Feedback e identificazione della build
 
@@ -34,7 +34,7 @@ Se manca spazio sopra una finestra massimizzata, la mascotte resta dentro l'area
 
 Il seguito della finestra usa un processo PowerShell locale con API User32/DWM e legge solo coordinate, PID e visibilità: l'aggancio non acquisisce immagini o testo. La chat offre separatamente l'osservazione locale di una finestra, che resta spenta finché non la attivi. Cattura, arresto e conferma del fotogramma sono stati verificati su Windows con una finestra sintetica e CLI simulate locali; le risposte visive dei servizi IA con account reali restano da provare.
 
-1. Per la versione portatile, estrai **tutto** `Mascotte-Windows-0.9.2-x64.zip` in una cartella stabile del tuo utente, per esempio `Mascotte` dentro la tua cartella utente. Non eseguire l'exe dentro lo ZIP. Mantieni accanto all'exe DLL, `resources/` e gli altri file.
+1. Per la versione portatile, estrai **tutto** `Mascotte-Windows-0.9.8-x64.zip` in una cartella stabile del tuo utente, per esempio `Mascotte` dentro la tua cartella utente. Non eseguire l'exe dentro lo ZIP. Mantieni accanto all'exe DLL, `resources/` e gli altri file.
 2. Apri `Mascotte.exe`. Non serve avviarlo come amministratore. Il pacchetto non è ancora firmato: SmartScreen chiede conferma (**Ulteriori informazioni** → **Esegui comunque**) e il Controllo intelligente delle app di Windows 11, se attivo, blocca Mascotte finché non lo disattivi (vedi [WINDOWS.md](../WINDOWS.md)). Verifica provenienza e pacchetto prima di autorizzarlo.
 3. Il gattino compare in basso a destra. Trascinalo per spostarlo. Clic sinistro apre la micro chat; clic destro e icona nell'area di notifica aprono il menu con grandezza, stati, mostra/nascondi ed Esci.
 4. Per la chat scegli Ollama locale oppure installa **Codex CLI e/o Claude Code nativi Windows** e accedi con il tuo account. Per i servizi remoti non basta il solo accesso nel browser; questa anteprima non collega automaticamente le CLI dentro WSL.
@@ -57,7 +57,7 @@ Il primo invio a Codex o a Claude dopo l'avvio chiede conferma e mostra il messa
 
 Le risposte possono essere salvate con **Ricorda…**, dopo averle controllate o modificate; in **Impostazioni → Note** si possono aggiungere e cancellare note. Sono salvate in `%LOCALAPPDATA%\Mascotte\chat\memory.json`, con le stesse protezioni della cartella chat, senza cifratura. Prima di ogni domanda locale vengono cercate fino a cinque note con parole in comune: la ricerca non riconosce sempre sinonimi o concetti equivalenti. Le note sono contesto recuperabile, non addestramento del modello, e non sono condivise automaticamente con Codex o Claude.
 
-Le azioni sul PC nella chat locale sono volutamente limitate: aprire la Calcolatrice e le cartelle Download, Documenti, Scrivania e Immagini, anche con frasi naturali («puoi aprirmi la calcolatrice?», «mi apri i download per favore»). Su Mac si possono aprire anche le app installate («lancia Terminale»); su Windows l'apertura di app qualsiasi non è ancora disponibile. La mascotte mostra ogni azione e la esegue soltanto dopo conferma; non esegue comandi arbitrari generati dal modello.
+Le richieste «apri …» aprono subito app installate, cartelle e file trovati per nome, con qualsiasi IA scelta e senza invio remoto. Su Windows le app sono cercate nei collegamenti del menu Start. I file si cercano nelle cartelle note e aggiunte: programmi, installer e script non si aprono. Con più corrispondenze Mascotte chiede quale. Non esegue comandi arbitrari generati dal modello.
 
 La chat locale può anche «vedere» le cartelle Download, Documenti, Scrivania e Immagini, ma solo con il motore **Locale** e senza chiedere conferma: legge un solo livello (nessuna sottocartella), solo nome, tipo, dimensione e data, mai il contenuto dei file, ignora i file nascosti e non segue i link simbolici. In chat compare sempre l'avviso «Ho letto l'elenco di Download: N elementi.». Domande semplici come «quanti pdf ho in download?», «che file ho nella scrivania?» o «ci sono file doppi nei documenti?» sono risolte da Mascotte stessa, senza il modello, con conteggi esatti; i doppi sono solo probabili (stesso nome a meno di « (1)» o « copia», oppure stessa dimensione ed estensione). Le altre domande («qual è il pdf più recente?», «quali file posso cancellare?») arrivano al modello locale con l'elenco compatto e i conteggi già calcolati. L'elenco resta sul computer, va solo a Ollama su `127.0.0.1`, non entra nella cronologia (restano domanda e risposta) e non è scritto nel log. Con Codex e Claude la funzione è disattivata e nessun elenco viene inviato. Le altre cartelle non sono leggibili, a meno che tu non le aggiunga: in **Impostazioni → Cartelle visibili alla mascotte** i pulsanti **Aggiungi cartella…** e **Rimuovi** gestiscono un elenco personale (al massimo 20 cartelle, salvato in `extraFolders` di `settings.json`). La cartella si sceglie solo con il selettore di sistema, mai scrivendo un percorso in chat; poi si usa il suo nome: «che file ho in siti?», «quanti pdf ci sono in siti?», «apri siti» (con conferma). Valgono le stesse regole di sola lettura (un livello, nessun contenuto). Il nome deve essere diverso da quello delle cartelle predefinite e delle altre aggiunte (altrimenti compare «Esiste già una cartella chiamata X»; rinomina la cartella o scegline un'altra). Sono rifiutate la radice del disco, le cartelle di sistema (su Windows `C:\Windows` e `C:\Program Files*`), `AppData`, la cartella dati di Mascotte, le cartelle nascoste e di configurazione (`.claude`, `.codex`, `.ssh`, `.gnupg`); la tua cartella utente è ammessa. A ogni lettura o apertura Mascotte ricontrolla che la cartella esista ancora e sia la stessa; altrimenti risponde che non è più disponibile e va rimossa o aggiunta di nuovo. Se citi una cartella che non è nell'elenco con parole chiave chiare («che file ho in progetti?»), Mascotte risponde che non la vede e come aggiungerla. Codice in `lib/folder-view.cjs` e `lib/extra-folders.cjs`.
 
@@ -144,14 +144,14 @@ Questa è la procedura per chi ha scaricato il sorgente da GitHub o come archivi
    npm.cmd run build:win
    ```
 
-   La build crea `dist\Mascotte-Windows-0.9.2-x64.zip` e `dist\Mascotte-Setup-0.9.2-x64.exe`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
+   La build crea `dist\Mascotte-Windows-0.9.8-x64.zip` e `dist\Mascotte-Setup-0.9.8-x64.exe`. Se `npm.cmd ci` fallisce, controlla `node --version` (almeno `v22`) e riprova senza cambiare l'ExecutionPolicy.
 
 2. Estrai **tutto** lo ZIP in una cartella che non sposterai, ad esempio `%LOCALAPPDATA%\Programs\Mascotte`. In PowerShell, dalla cartella `windows`:
 
    ```powershell
    $installDir = Join-Path $env:LOCALAPPDATA 'Programs\Mascotte'
    New-Item -ItemType Directory -Force -Path $installDir | Out-Null
-   Expand-Archive -LiteralPath '.\dist\Mascotte-Windows-0.9.2-x64.zip' -DestinationPath $installDir -Force
+   Expand-Archive -LiteralPath '.\dist\Mascotte-Windows-0.9.8-x64.zip' -DestinationPath $installDir -Force
    ```
 
    Avvia `Mascotte.exe` da quella cartella, non dallo ZIP. Mantieni lì anche DLL e `resources`. Scegli un percorso stabile; non deve contenere `%`, virgolette o ritorni a capo. Spostare o cancellare la cartella dopo aver collegato gli hook ne interrompe l'avvio: in quel caso estrai di nuovo in un percorso stabile e ripeti il collegamento.
@@ -179,7 +179,7 @@ Per sostituire una copia estratta con lo ZIP appena creato, prima esci da Mascot
 
 ```powershell
 Set-Location .\windows
-npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.2-x64.zip" --install-dir "$env:LOCALAPPDATA\Programs\Mascotte"
+npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.8-x64.zip" --install-dir "$env:LOCALAPPDATA\Programs\Mascotte"
 ```
 
 `--install-dir` deve indicare la cartella che contiene la vecchia `Mascotte.exe`; usa il percorso effettivo se l'hai estratta altrove. Il comando rifiuta di procedere se Mascotte è ancora aperta, prepara l'aggiornamento in una cartella temporanea e conserva la cartella precedente come `Mascotte.backup-<data>`. Non cancella i dati in `%LOCALAPPDATA%\Mascotte`.
@@ -192,7 +192,7 @@ Comandi rapidi PowerShell, sempre dalla cartella `windows`:
 | Avviare il sorgente | `npm.cmd start` |
 | Eseguire i test automatici | `npm.cmd test` |
 | Creare lo ZIP Windows x64 | `npm.cmd run build:win` |
-| Aggiornare una cartella estratta | `npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.2-x64.zip" --install-dir "<cartella-installazione>"` |
+| Aggiornare una cartella estratta | `npm.cmd run update:win -- --archive ".\dist\Mascotte-Windows-0.9.8-x64.zip" --install-dir "<cartella-installazione>"` |
 
 `resources` copia gli asset dalla radice della repo; non modificarli qui. Su Mac l'anteprima usa una cartella separata e `MASCOTTE_PREVIEW=1` sceglie una porta libera, preservando la mascotte nativa attiva. I test principali sono offline; `npm.cmd test` li esegue. `npm.cmd run test:codex-policy` usa opzionalmente la CLI Codex reale contro un mock locale con CODEX_HOME vuoto, senza login.
 
@@ -238,3 +238,5 @@ La sezione **Finestra da condividere** nella micro chat parte chiusa e si apre d
 ### Modelli visivi locali
 
 Disponibili `qwen3-vl:2b-instruct` (circa 1,9 GB) e `qwen3-vl:4b-instruct` (circa 3,3 GB). Consigliati 16 GB RAM; per il 4B una GPU supportata con almeno 8 GB VRAM. Spazio e RAM effettivi dipendono anche da immagini e contesto. Il modello puo sbagliare testo e dettagli: verificare le configurazioni tecniche. Non esegue azioni tramite mouse/tastiera. La cattura non equivale a un video inviato continuamente all'IA.
+
+Windows 0.9.8 recupera le funzioni condivise delle release Mac 0.9.3–0.9.8, inclusi i colori per parti e le correzioni di Luma. In Impostazioni → Mascotte → Colori puoi cambiare e ripristinare ogni parte; le scelte restano distinte per personaggio dopo il riavvio.
