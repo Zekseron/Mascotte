@@ -2,6 +2,7 @@
 // Motore «llama.cpp (Mascotte)»: a differenza del preset `llamacpp` (server avviato dall'utente), qui Mascotte scarica runtime e modello
 // (catalogo fisso in lib/llama-runtime.cjs), avvia llama-server solo su 127.0.0.1 quando serve e lo chiude dopo inattività e all'uscita.
 // Un solo server alla volta. La chat passa dal motore compatibile OpenAI già esistente, puntato sulla porta scelta per questa esecuzione.
+const ErrorLog = require('../error-log.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
 const net = require('node:net');
@@ -98,7 +99,7 @@ function create({ dataDir, platform = process.platform, arch = process.arch, var
     try {
       const old = JSON.parse(fs.readFileSync(p.pid, 'utf8'));
       if (Number.isInteger(old.pid) && old.pid > 1 && alive(old.pid) && await isOurProcess(old.pid)) { killTree(old.pid, { force: true }); await new Promise(resolve => setTimeout(resolve, 300)); }
-    } catch {}
+    } catch (e) { ErrorLog.error('server llama.cpp rimasto da una sessione precedente', e, { ignore: ['ENOENT'] }); }
     try { fs.unlinkSync(p.pid); } catch {}
   }
   function args(files, listen) {
@@ -127,7 +128,7 @@ function create({ dataDir, platform = process.platform, arch = process.arch, var
       exited = true;
       if (child === spawned) { child = null; state = 'stopped'; port = 0; clearTimeout(idleTimer); try { fs.unlinkSync(p.pid); } catch {} closeLog(); }
     });
-    if (spawned.pid) { try { fs.writeFileSync(p.pid, JSON.stringify({ pid: spawned.pid, port: listen })); } catch {} }
+    if (spawned.pid) { try { fs.writeFileSync(p.pid, JSON.stringify({ pid: spawned.pid, port: listen })); } catch (e) { ErrorLog.error('file pid di llama.cpp non scritto', e); } }
     const deadline = Date.now() + startTimeout;
     for (;;) {
       if (spawnError) { state = 'stopped'; child = null; throw fail(`${LABEL}: impossibile avviare il programma (${spawnError.message.slice(0, 200)}).`, 'START_FAILED'); }

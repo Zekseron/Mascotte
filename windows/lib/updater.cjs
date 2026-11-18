@@ -1,4 +1,5 @@
 'use strict';
+const ErrorLog = require('./error-log.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
@@ -130,7 +131,7 @@ function removeOldOutputs(windowsDirectory, executable = process.execPath) {
     if (!entry.isDirectory() || !/^mascotte-update-[0-9a-f-]{36}$/.test(entry.name)) continue;
     const folder = path.join(dist, entry.name);
     if (isWithin(folder, executable)) continue;
-    try { fs.rmSync(folder, { recursive: true, force: true }); } catch {}
+    try { fs.rmSync(folder, { recursive: true, force: true }); } catch (e) { ErrorLog.error('vecchia cartella di aggiornamento non rimossa', e); }
   }
 }
 async function updateFromRepository(directory, onProgress = () => {}, signal) {

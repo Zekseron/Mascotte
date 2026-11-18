@@ -11,6 +11,8 @@ const Capture = require('./lib/capture.cjs');
 const can = Platform.capabilities();
 if (process.platform === 'win32') app.setAppUserModelId('local.mascotte.windows');
 const dataDirectory = Platform.dataDirectory({ appData: app.getPath('appData') });
+const ErrorLog = require('./lib/error-log.cjs');
+ErrorLog.configure(dataDirectory);
 const endpoint = path.join(dataDirectory, 'events.json');
 if (process.argv.includes('--mascotte-notify')) {
   require('./lib/notify.cjs').notifyMain(process.argv.slice(process.argv.indexOf('--mascotte-notify') + 1), endpoint).finally(() => app.exit(0));
@@ -58,7 +60,7 @@ function startApplication() {
     const body = item.text + (late ? ` (era per ${Reminders.formatWhen(item.when)})` : '');
     // Una notifica che non si può mostrare non blocca il resto: un promemoria ricade sull'avviso in chat, una sveglia suona comunque.
     let shown = false;
-    try { if (Notification.isSupported()) { new Notification({ title: item.alarm ? 'Mascotte · sveglia' : 'Mascotte · promemoria', body, silent: false }).show(); shown = true; } } catch {}
+    try { if (Notification.isSupported()) { new Notification({ title: item.alarm ? 'Mascotte · sveglia' : 'Mascotte · promemoria', body, silent: false }).show(); shown = true; } } catch (e) { ErrorLog.error('notifica del promemoria non mostrata', e); }
     if (!shown && !item.alarm) { notice = infoNotice = `⏰ ${body}`; showChat(); broadcast(); }
     // Sveglia (non troppo in ritardo): finestra con «Ferma» e «Rimanda», suono a ripetizione nella chat per al massimo 3 minuti, gattino in attesa.
     if (item.alarm && Date.now() - item.when < 10 * 60000) {
@@ -73,8 +75,8 @@ function startApplication() {
   function reminderFailed(item, error) {
     console.error('Promemoria non mostrato:', error?.message || error);
     notice = item ? `Non sono riuscito a mostrare ${item.alarm ? 'la sveglia' : 'il promemoria'} «${item.text}» (era per ${Reminders.formatWhen(item.when)}): ${error?.message || 'errore sconosciuto'}.` : `Non riesco a controllare i promemoria: ${error?.message || 'errore sconosciuto'}.`;
-    try { showChat(); } catch {}
-    try { broadcast(); } catch {}
+    try { showChat(); } catch (e) { ErrorLog.error('chat non aperta per un promemoria fallito', e); }
+    try { broadcast(); } catch (e) { ErrorLog.error('stato non inviato per un promemoria fallito', e); }
   }
   function clearLastFrame() { clearTimeout(lastFrameTimer); lastFrameTimer = null; if (lastFrame) { lastFrame.bytes.fill(0); lastFrame = null; } }
   function keepLastFrame(bytes, name, message, reply) {
@@ -315,7 +317,7 @@ function startApplication() {
   async function watchSources() {
     let status = screenPermission();
     // Prima richiesta: getSources fa comparire la domanda di macOS. Il permesso vale di solito solo dopo il riavvio dell'app.
-    if (status === 'not-determined') { try { await windowSources(); } catch {} status = screenPermission(); }
+    if (status === 'not-determined') { try { await windowSources(); } catch (e) { ErrorLog.error('richiesta permesso registrazione schermo', e); } status = screenPermission(); }
     if (status !== 'granted') return { permission: status, message: permissionMessage(status) };
     return windowSources();
   }
@@ -353,7 +355,7 @@ function startApplication() {
     for (const entry of fs.readdirSync(dataDirectory, { withFileTypes: true })) {
       if (!entry.isDirectory() || !/^release-update-[a-z0-9]+$/i.test(entry.name)) continue;
       const target = path.join(dataDirectory, entry.name);
-      try { if (!fs.lstatSync(target).isSymbolicLink()) fs.rmSync(target, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 }); } catch {}
+      try { if (!fs.lstatSync(target).isSymbolicLink()) fs.rmSync(target, { recursive: true, force: true, maxRetries: 2, retryDelay: 200 }); } catch (e) { ErrorLog.error('download di aggiornamento non cancellato', e, { ignore: ['ENOENT'] }); }
     }
   }
   function safeWindow(name, options) {
@@ -435,7 +437,7 @@ function startApplication() {
     updateAbort?.abort();
     quitting = true; reminderScheduler?.stop(); stopAlarm(); localDownload?.abort(); LocalEngines.shutdown(); currentRun?.stop('Risposta interrotta.', true); controller?.close(); clearInterval(mouseTimer);
     stopWatching();
-    if (activeShareDirectory && fs.existsSync(activeShareDirectory)) { try { fs.rmSync(activeShareDirectory, { recursive: true, force: true }); } catch {} }
+    if (activeShareDirectory && fs.existsSync(activeShareDirectory)) { try { fs.rmSync(activeShareDirectory, { recursive: true, force: true }); } catch (e) { ErrorLog.error('cartella immagini condivise non cancellata alla chiusura', e); } }
     activeShareDirectory = null;
     clearTimeout(captureTimer); captureFollower?.close(); captureFollower = null; detach();
     server?.close().catch(() => {});
@@ -449,7 +451,7 @@ function startApplication() {
     LocalEngines.configureManaged({ dataDir: dataDirectory });
     // Mac: al primo avvio importa una sola volta impostazioni e cronologia della vecchia app Swift (in sola lettura).
     let legacyImport = null;
-    try { legacyImport = require('./lib/legacy-mac.cjs').importLegacy(dataDirectory, { characters: JSON.parse(fs.readFileSync(path.join(__dirname, 'resources/characters/index.json'), 'utf8')).characters.map(c => c.id) }); } catch {}
+    try { legacyImport = require('./lib/legacy-mac.cjs').importLegacy(dataDirectory, { characters: JSON.parse(fs.readFileSync(path.join(__dirname, 'resources/characters/index.json'), 'utf8')).characters.map(c => c.id) }); } catch (e) { ErrorLog.error('importazione dati della vecchia app Mac', e); }
     // The updater may still be exiting from its temporary runtime after the restart.
     setTimeout(clearReleaseDownloads, 15000).unref();
     const chatDirectory = path.join(dataDirectory, 'chat'); prepareDirectory(chatDirectory);
@@ -469,7 +471,7 @@ function startApplication() {
     if (updateResult) {
       updateStatus = updateResult.message.slice(0, 2000); updateFailed = !updateResult.ok;
       // Mac: se gli hook installati puntano a un'altra posizione dell'app, solo un avviso (mai applicare senza conferma).
-      try { if (updateResult.ok && process.platform === 'darwin' && Setup.hooksPointElsewhere(path.join(dataDirectory, 'hook-installation.json'), process.execPath) && !/hook/i.test(updateStatus)) updateStatus += ' Premi Crea / aggiorna hook in Impostazioni: l’app è stata spostata.'; } catch {}
+      try { if (updateResult.ok && process.platform === 'darwin' && Setup.hooksPointElsewhere(path.join(dataDirectory, 'hook-installation.json'), process.execPath) && !/hook/i.test(updateStatus)) updateStatus += ' Premi Crea / aggiorna hook in Impostazioni: l’app è stata spostata.'; } catch (e) { ErrorLog.error('controllo hook dopo aggiornamento', e); }
     }
     characters=readCharacters();selectCharacter(characters.some(c=>c.id===raw.character)?raw.character:'rosso',true);
     Capture.configureDisplayCapture(session.defaultSession, {
@@ -953,7 +955,7 @@ function startApplication() {
           notice = (e.name === 'AbortError' ? 'Risposta interrotta.' : selected === 'locale' && settings.localEngine !== 'ollama' && !(settings.localEngine === LocalEngines.MANAGED && e.code === 'NOT_READY') && ['MODEL_INVALID', 'ECONNREFUSED', 'AUTH', 'UNRECOGNIZED', 'NOT_READY'].includes(e.code) ? fallbackToDefault(e.message) : e.code === 'MODEL_INVALID' && selected === 'locale' && !LocalAI.isModel(settings.localModel) ? fallbackToDefault(e.message) : e.message).slice(0, 1500); controller.set('error');
         } finally {
           currentRun = null;
-          if (imageDirectory && fs.existsSync(imageDirectory)) { try { fs.rmSync(imageDirectory, { recursive: true, force: true }); } catch {} }
+          if (imageDirectory && fs.existsSync(imageDirectory)) { try { fs.rmSync(imageDirectory, { recursive: true, force: true }); } catch (e) { ErrorLog.error('cartella immagini della risposta non cancellata', e); } }
           if (activeShareDirectory === imageDirectory) activeShareDirectory = null;
           broadcast();
         }

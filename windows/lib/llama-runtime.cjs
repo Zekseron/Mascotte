@@ -2,6 +2,7 @@
 // Runtime llama.cpp e modelli GGUF per il motore «llama.cpp (Mascotte)»: catalogo FISSO, download verificato, estrazione sicura.
 // Gli indirizzi, le dimensioni e le impronte SHA-256 sono scritti qui (verificati il 29 ottobre 2026): aggiornare la build o il modello
 // è una scelta esplicita nel codice, mai automatica. Niente viene eseguito prima della verifica di dimensione e impronta.
+const ErrorLog = require('./error-log.cjs');
 const fs = require('node:fs');
 const path = require('node:path');
 const https = require('node:https');
@@ -208,7 +209,7 @@ async function downloadAll({ dataDir, runtime, model, signal, onProgress = () =>
     onProgress({ done, total, file: job.file }); last = 0;
     if (job.kind === 'runtime') {
       // Vecchie build: si tengono solo quella del catalogo.
-      try { for (const entry of fs.readdirSync(path.dirname(p.runtimeBuild))) if (entry !== BUILD) fs.rmSync(path.join(path.dirname(p.runtimeBuild), entry), { recursive: true, force: true }); } catch {}
+      try { for (const entry of fs.readdirSync(path.dirname(p.runtimeBuild))) if (entry !== BUILD) fs.rmSync(path.join(path.dirname(p.runtimeBuild), entry), { recursive: true, force: true }); } catch (e) { ErrorLog.error('vecchie build di llama.cpp non rimosse', e, { ignore: ['ENOENT'] }); }
       const archive = path.join(p.runtimeBuild, job.file.name);
       await downloadFile(job.file, archive, { signal, get, onBytes: bytes => { done += bytes; tick(job.file); } });
       const temp = p.runtimeDir + '.tmp';
