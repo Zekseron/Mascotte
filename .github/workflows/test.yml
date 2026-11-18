@@ -32,6 +32,10 @@ jobs:
       - name: Install dependencies
         working-directory: windows
         run: npm ci
+      # Personaggi, spec e helper Mac in windows/resources: servono al test di avvio reale (startup.test.cjs).
+      - name: Prepare resources
+        working-directory: windows
+        run: npm run resources
       # Stesso comando del workflow di release: un test alla volta, perché alcuni
       # aprono finestre Electron o usano porte e cartelle temporanee condivise.
       - name: Run tests

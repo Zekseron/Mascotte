@@ -13,6 +13,13 @@ if (process.platform === 'win32') app.setAppUserModelId('local.mascotte.windows'
 const dataDirectory = Platform.dataDirectory({ appData: app.getPath('appData') });
 const ErrorLog = require('./lib/error-log.cjs');
 ErrorLog.configure(dataDirectory);
+// Eccezioni sfuggite a ogni try/catch: senza questi gestori Electron mostrava solo una finestra di errore, senza
+// traccia nel registro né sul terminale. La finestra resta (come prima), ma l'errore viene anche registrato.
+process.on('uncaughtException', error => {
+  ErrorLog.error('eccezione non gestita nel processo principale', error);
+  try { dialog.showErrorBox('Mascotte: errore interno', String(error?.stack || error?.message || error).slice(0, 2000)); } catch { /* app non pronta */ }
+});
+process.on('unhandledRejection', reason => ErrorLog.error('promessa rifiutata non gestita nel processo principale', reason));
 const endpoint = path.join(dataDirectory, 'events.json');
 if (process.argv.includes('--mascotte-notify')) {
   require('./lib/notify.cjs').notifyMain(process.argv.slice(process.argv.indexOf('--mascotte-notify') + 1), endpoint).finally(() => app.exit(0));
