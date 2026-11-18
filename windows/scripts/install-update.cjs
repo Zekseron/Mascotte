@@ -266,7 +266,10 @@ async function main(args, options) {
     const expanded = spawnSync(powershell, ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 120000 });
     if (expanded.error || expanded.status !== 0) throw new Error((expanded.stderr || expanded.error?.message || 'Estrazione ZIP non riuscita.').trim());
     if (!fs.existsSync(path.join(staging, 'Mascotte.exe')) || !fs.existsSync(path.join(staging, 'resources', 'app.asar'))) {
-      throw new Error('Lo ZIP non contiene Mascotte.exe e resources/app.asar al livello atteso.');
+      // Cosa c'è davvero nella cartella estratta: serve a capire uno ZIP con la struttura sbagliata.
+      let found = '';
+      try { found = fs.readdirSync(staging).slice(0, 12).map(name => name + (fs.statSync(path.join(staging, name)).isDirectory() ? '/' : '')).join(', '); } catch (error) { found = `illeggibile (${error.code || error.message})`; }
+      throw new Error(`Lo ZIP non contiene Mascotte.exe e resources/app.asar al livello atteso. Estratto: ${found || 'niente'}.`);
     }
     // Keep the NSIS uninstaller registered at this installation path across ZIP updates.
     const uninstaller = path.join(installDir, 'Uninstall Mascotte.exe');
