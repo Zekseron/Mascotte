@@ -3,10 +3,11 @@
 // si mostra o una cartella temporanea di immagini che non si riesce a cancellare). Serve a capire cosa è
 // successo quando un utente segnala un problema.
 // Privacy: ogni riga contiene solo data e ora, un'etichetta fissa scelta dal codice, il codice dell'errore e il
-// messaggio tagliato su una riga. Mai testi di chat, note, prompt o contenuti di file. Il file resta nella
+// messaggio tagliato su una riga, con la cartella personale scritta «~». Mai testi di chat, note, prompt o contenuti di file. Il file resta nella
 // cartella dati (errori.log, al massimo MAX_BYTES più la copia precedente errori.log.1) e non viene inviato.
 // Il registro non deve mai far fallire chi lo chiama: ogni suo errore è ignorato.
 const fs = require('node:fs');
+const os = require('node:os');
 const path = require('node:path');
 
 const NAME = 'errori.log';
@@ -19,7 +20,11 @@ function configure(dataDirectory) { file = dataDirectory ? path.join(dataDirecto
 function line(context, error) {
   const code = error && typeof error === 'object' && error.code ? String(error.code) : '';
   const raw = error && typeof error === 'object' && 'message' in error ? error.message : error;
-  const message = String(raw ?? 'errore sconosciuto').replace(/\s+/g, ' ').trim().slice(0, MAX_MESSAGE);
+  // La cartella personale diventa «~»: i percorsi nei messaggi non portano con sé il nome dell'utente.
+  let message = String(raw ?? 'errore sconosciuto');
+  const home = os.homedir();
+  if (home && home.length > 1) message = message.split(home).join('~');
+  message = message.replace(/\s+/g, ' ').trim().slice(0, MAX_MESSAGE);
   const label = String(context).replace(/\s+/g, ' ').slice(0, 80);
   return `${new Date().toISOString()} ${label}${code ? ` [${code}]` : ''}: ${message}\n`;
 }

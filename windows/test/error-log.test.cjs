@@ -40,6 +40,18 @@ test('registro errori: messaggi lunghi tagliati e codici attesi ignorati', () =>
   } finally { ErrorLog.configure(null); fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
+test('registro errori: la cartella personale nei percorsi diventa ~', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte-log-'));
+  try {
+    ErrorLog.configure(dir);
+    const inside = path.join(os.homedir(), 'Library', 'Mascotte', 'release-update-x');
+    quiet(() => ErrorLog.error('percorso', Object.assign(new Error(`ENOTEMPTY, Directory not empty: '${inside}'`), { code: 'ENOTEMPTY' })));
+    const text = fs.readFileSync(path.join(dir, ErrorLog.NAME), 'utf8');
+    assert.ok(!text.includes(os.homedir()), 'il percorso della cartella personale non deve comparire');
+    assert.ok(text.includes(`'~${path.sep}Library${path.sep}Mascotte${path.sep}release-update-x'`));
+  } finally { ErrorLog.configure(null); fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
 test('registro errori: oltre il limite ruota in errori.log.1 e non cresce senza fine', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte-log-'));
   try {
