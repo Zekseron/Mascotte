@@ -1,9 +1,11 @@
 'use strict';
 // Contratto STATICO dell'IPC: legge main.cjs come testo (senza avviare Electron) e confronta le azioni `action === '…'`
 // del gestore ipcMain.handle('mascotte', …) con un elenco fisso, distinguendo quelle ammesse alla finestra mascotte
-// (`if (kitty) {…}`) da quelle della chat (`if (chatting) {…}`). Non prova il comportamento delle azioni né il controllo
-// reale del mittente: fallisce solo se un'azione viene aggiunta, tolta, rinominata o spostata di finestra senza aggiornare
-// l'elenco qui sotto, o se il controllo del mittente e il rifiuto finale cambiano numero.
+// (gruppo `mascotActions`) da quelle della chat (gruppi in `CHAT_ACTIONS`). Non prova il comportamento delle azioni né il
+// controllo reale del mittente: fallisce se un'azione viene aggiunta, tolta, rinominata o spostata di finestra senza
+// aggiornare l'elenco qui sotto, se i gruppi non vengono provati nell'ordine in cui sono scritti (l'ordine decide quale
+// `if` scatta per primo), se un gruppo non termina con `return NEXT;`, o se il controllo del mittente e il rifiuto finale
+// cambiano numero o posizione.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -24,12 +26,25 @@ const CHAT = [
 ];
 
 const names = text => [...new Set([...text.matchAll(/action === '([^']+)'/g)].map(match => match[1]))];
+const kittyStart = source.indexOf('  async function mascotActions(action, data) {');
+const chatStart = source.indexOf('  async function chatAgentActions(action, data) {');
+const groupsEnd = source.indexOf('  const MASCOT_ACTIONS = [mascotActions];');
 const handlerStart = source.indexOf("ipcMain.handle('mascotte'");
-const kittyStart = source.indexOf('if (kitty) {', handlerStart), chatStart = source.indexOf('if (chatting) {', handlerStart);
+const dispatch = source.indexOf('for (const group of kitty ? MASCOT_ACTIONS : CHAT_ACTIONS)', handlerStart);
 const refusal = source.indexOf("throw new Error('Azione non valida.')", handlerStart);
+const groupNames = [...source.slice(chatStart, groupsEnd).matchAll(/^  async function (\w+)\(action, data\) \{$/gm)].map(match => match[1]);
 
 test('i marcatori del gestore IPC esistono nell\'ordine atteso', () => {
-  assert.ok(handlerStart > 0 && kittyStart > handlerStart && chatStart > kittyStart && refusal > chatStart);
+  assert.ok(kittyStart > 0 && chatStart > kittyStart && groupsEnd > chatStart && handlerStart > groupsEnd && dispatch > handlerStart && refusal > dispatch);
+});
+
+test('gruppi della chat provati nell\'ordine in cui sono scritti, ognuno chiuso da return NEXT', () => {
+  const listed = source.slice(groupsEnd).match(/const CHAT_ACTIONS = \[([^\]]+)\];/)[1].split(',').map(name => name.trim());
+  assert.deepEqual(listed, groupNames);
+  assert.ok(groupNames.length >= 10);
+  const bodies = source.slice(kittyStart, groupsEnd).split(/^  async function \w+\(action, data\) \{$/m).slice(1);
+  assert.equal(bodies.length, groupNames.length + 1);
+  for (const body of bodies) assert.match(body, /\n      return NEXT;\n  \}\n/);
 });
 
 test('azioni della finestra mascotte: elenco fisso', () => {
@@ -37,11 +52,11 @@ test('azioni della finestra mascotte: elenco fisso', () => {
 });
 
 test('azioni della chat: elenco fisso', () => {
-  assert.deepEqual(names(source.slice(chatStart, refusal)).sort(), [...CHAT].sort());
+  assert.deepEqual(names(source.slice(chatStart, groupsEnd)).sort(), [...CHAT].sort());
 });
 
 test('55 azioni distinte e nessuna in comune tra le due finestre', () => {
-  const all = names(source.slice(handlerStart));
+  const all = names(source.slice(kittyStart, groupsEnd));
   assert.equal(all.length, 55);
   assert.equal(MASCOT.length + CHAT.length, 55);
   assert.deepEqual(all.sort(), [...MASCOT, ...CHAT].sort());
@@ -53,7 +68,7 @@ test('controllo del mittente e rifiuto finale: una sola volta ciascuno', () => {
   assert.equal(count("throw new Error('Interfaccia non autorizzata.')"), 1);
   assert.equal(count("throw new Error('Azione non valida.')"), 1);
   // Il controllo riguarda identità webContents, frame principale e URL esatto, e precede ogni azione.
-  const check = source.slice(handlerStart, kittyStart);
+  const check = source.slice(handlerStart, dispatch);
   assert.match(check, /event\.senderFrame !== event\.sender\.mainFrame/);
   assert.match(check, /event\.senderFrame\.url !== expected/);
   assert.match(check, /\(!kitty && !chatting\)/);

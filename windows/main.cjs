@@ -472,12 +472,12 @@ function startApplication() {
     console.log('Mascotte pronta. Nessuna richiesta IA automatica.');
   }).catch(error => { dialog.showErrorBox('Mascotte non riesce ad avviarsi', error.message); app.quit(); });
 
-  ipcMain.handle('mascotte', async (event, action, data) => {
-    const kitty = event.sender === mascot?.webContents;
-    const chatting = event.sender === chat?.webContents;
-    const expected = pathToFileURL(views(kitty ? 'mascot' : 'chat')).href;
-    if ((!kitty && !chatting) || event.senderFrame !== event.sender.mainFrame || event.senderFrame.url !== expected) throw new Error('Interfaccia non autorizzata.');
-    if (kitty) {
+  // Azioni dalle finestre, divise in gruppi nell'ordine originale. Ogni gruppo contiene gli `if` di prima, invariati:
+  // se nessuno corrisponde restituisce NEXT e il gestore prova il gruppo successivo, come prima scorreva la catena.
+  // Dentro un gruppo restano anche i passaggi voluti da un'azione alla successiva (local-engine → local-check).
+  const NEXT = Symbol('gruppo successivo');
+  // Mascotte: avvio, maschera dei clic, menu, trascinamento.
+  async function mascotActions(action, data) {
       if (action === 'init') return { pack, imageData, partsData, colors: characterColors(), scale: settings.scale, animation: stateAnimation() };
       if (action === 'mask' && (Array.isArray(data)||data instanceof Uint8Array) && data.length === pack.frame.width * pack.frame.height && data.every(x => x === 0 || x === 1)) { hitMask = data; updateHit(); return; }
       // Maschera di un personaggio appena sostituito (dimensioni diverse): superata, si ignora senza errore.
@@ -501,8 +501,10 @@ function startApplication() {
         if (barDisplay) attachBar(barDisplay); else attachWindow({ automatic: true, dropPoint });
         return;
       }
-    }
-    if (chatting) {
+      return NEXT;
+  }
+  // Istantanea della chat e modalità agente.
+  async function chatAgentActions(action, data) {
       if (action === 'snapshot') return chatSnapshot();
       if (action === 'agent-mode' && !currentRun && !localDownload && !updateRunning && engine !== 'locale' && typeof data === 'boolean') {
         agents.mode = data; engineTouched = true; notice = ''; return chatSnapshot();
@@ -517,6 +519,10 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'agent-answer' && currentRun) { agents.answer(data); return chatSnapshot(); }
+      return NEXT;
+  }
+  // IA locale: ricerca dei motori, scelta di motore e modello, download e controllo (local-engine e local-model proseguono di proposito fino a local-check).
+  async function localEngineActions(action, data) {
       if (action === 'local-scan') {
         if (localDownload || currentRun || updateRunning || localScanning) return chatSnapshot();
         // Solo su richiesta dell'utente (apertura delle Impostazioni o pulsante): legge /api/tags e /api/show su 127.0.0.1 e ricorda il risultato.
@@ -602,6 +608,10 @@ function startApplication() {
         return chatSnapshot();
       }
       if ((action === 'local-check' || action === 'local-model' || action === 'local-engine') && !localDownload) { localDownloadStatus = ''; try { const note = await prepareLocal(); notice = note || (infoNotice = 'Modello locale pronto.'); localAvailable = true; } catch (error) { localAvailable = false; notice = error.message; } return chatSnapshot(); }
+      return NEXT;
+  }
+  // Note e azioni sul computer («apri …», promemoria) con conferma.
+  async function memoryAndPcActions(action, data) {
       if (action === 'memory-add' && !currentRun && !updateRunning) { try { memory.add(data?.text, data?.source); notice = infoNotice = `Nota salvata sul ${can.deviceName}.`; } catch (error) { notice = error.message; } return chatSnapshot(); }
       if (action === 'memory-remove' && !currentRun && !updateRunning && typeof data === 'string') { try { memory.remove(data); notice = infoNotice = 'Nota rimossa.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
       if (action === 'pc-action-cancel') { pendingAction = null; notice = infoNotice = 'Azione annullata.'; return chatSnapshot(); }
@@ -636,12 +646,20 @@ function startApplication() {
         } catch (error) { notice = `Azione non riuscita: ${error.message}`; }
         return chatSnapshot();
       }
+      return NEXT;
+  }
+  // Guide di installazione delle CLI.
+  async function guideActions(action, data) {
       if (action === 'cli-guide') {
         const guides = { characters: 'https://github.com/Zekseron/Mascotte/blob/main/PERSONAGGI.md', codex: 'https://developers.openai.com/codex/cli/', claude: 'https://code.claude.com/docs/en/setup', ollama: can.ollamaGuide,
           git: can.gitGuide, node: can.nodeGuide, feedback: 'https://docs.google.com/forms/d/e/1FAIpQLSe7d7oWbhqXN5HIFCbV0d99qnp-_qLjan7b4ERwIRNNyE7IDw/viewform' };
         if (Object.hasOwn(guides, data)) await shell.openExternal(guides[data]);
         return chatSnapshot();
       }
+      return NEXT;
+  }
+  // Aggiornamento dalla release pubblicata.
+  async function releaseUpdateActions(action, data) {
       if (action === 'release-update') {
         if (!can.management || !app.isPackaged || updateRunning || currentRun || localDownload || setupPreview) return chatSnapshot();
         updateRunning = true; updateFailed = false; updateStatus = 'Controllo le versioni disponibili…'; updateAbort = new AbortController(); broadcast();
@@ -663,6 +681,10 @@ function startApplication() {
         } catch (error) { updateRunning = false; updateAbort = null; updateFailed = true; updateStatus = error.message; broadcast(); }
         return chatSnapshot();
       }
+      return NEXT;
+  }
+  // Mascotte: scelta, colori, grandezza, mascotte personali.
+  async function characterActions(action, data) {
       if (action === 'character-select' && typeof data === 'string' && characters.some(c => c.id === data)) { selectCharacter(data); characterStatus = ''; characterStatusFailed = false; return chatSnapshot(); }
       // Stessi valori e limiti del menu «Grandezza» della mascotte.
       // Colore di una parte ({ part, color }), ripristino di una parte ({ part, color: null }) o di tutte ({ reset: true }).
@@ -710,6 +732,10 @@ function startApplication() {
         }
         return chatSnapshot();
       }
+      return NEXT;
+  }
+  // Cartelle visibili alla mascotte.
+  async function folderActions(action, data) {
       if (action === 'folders-add' && !currentRun && !localDownload && !updateRunning && !setupPreview) {
         // Cartelle visibili alla chat locale: scelte solo dal selettore di sistema, risolte con realpath e validate. Il percorso non finisce nei log.
         try {
@@ -732,6 +758,10 @@ function startApplication() {
         }
         return chatSnapshot();
       }
+      return NEXT;
+  }
+  // Aggiornamento dai sorgenti (repo scelta).
+  async function repoUpdateActions(action, data) {
       if (action === 'repo-select' && !updateRunning) {
         if (!can.management || !app.isPackaged) return chatSnapshot();
         try {
@@ -760,6 +790,10 @@ function startApplication() {
         } catch (error) { updateRunning = false; updateFailed = true; updateStatus = error.message; broadcast(); }
         return chatSnapshot();
       }
+      return NEXT;
+  }
+  // Osservazione di una finestra.
+  async function watchActions(action, data) {
       if (action === 'watch-sources' && can.watch) return watch.windowsWithPermission();
       if (action === 'watch-permission-settings' && can.watch && process.platform === 'darwin') { await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'); return; }
       // Miniatura della finestra scelta, solo per l'anteprima nella chat: presa qui, mai salvata né inviata.
@@ -776,8 +810,16 @@ function startApplication() {
         watch.select(source); notice = ''; broadcast(); return { id: source.id, name: source.name };
       }
       if (action === 'watch-disable') { watch.stop(); return chatSnapshot(); }
+      return NEXT;
+  }
+  // Finestra della chat e servizio scelto.
+  async function chatWindowActions(action, data) {
       if (action === 'chat-hide') { if (chat && !chat.isDestroyed() && !currentRun) { if (process.platform === 'win32') chat.minimize(); else chat.hide(); } return null; }
       if (action === 'engine' && !currentRun && [...CLI.ENGINES, 'locale'].includes(data)) { engine = data; engineTouched = true; notice = ''; return chatSnapshot(); }
+      return NEXT;
+  }
+  // Promemoria e sveglie nelle Impostazioni.
+  async function reminderActions(action, data) {
       // Sveglie e promemoria nelle Impostazioni: elenco con eliminazione, suono (bip o file scelto dal selettore di sistema) e volume.
       if (action === 'reminder-remove' && typeof data === 'string') { reminders.remove(data); scheduleReminders(); return chatSnapshot(); }
       if (action === 'alarm-volume' && typeof data === 'number') { settings.alarmVolume = AlarmSound.normalizeVolume(data); saveSettings(); return chatSnapshot(); }
@@ -800,10 +842,18 @@ function startApplication() {
         scheduleReminders();
         if (!currentRun) controller.set('idle'); notice = infoNotice = `Sveglia rimandata a ${Reminders.formatWhen(snoozed.item.when)}.`; return chatSnapshot();
       }
+      return NEXT;
+  }
+  // Nuova conversazione, fotogramma del secondo parere, interruzione.
+  async function conversationActions(action, data) {
       if (action === 'new' && !currentRun) { if (agents.snapshot(engine).enabled) agents.reset(engine); else store.set(engine, []); if (engine === 'locale') clearLastFrame(); notice = ''; return chatSnapshot(); }
       // Anteprima del fotogramma conservato, solo per la finestra di conferma del secondo parere.
       if (action === 'second-opinion-frame') return lastFrame ? 'data:image/jpeg;base64,' + lastFrame.bytes.toString('base64') : null;
       if (action === 'stop') { currentRun?.stop(); return; }
+      return NEXT;
+  }
+  // Collegamento degli hook di Claude e Codex.
+  async function setupActions(action, data) {
       if (action === 'setup-preview') {
         if (updateRunning || currentRun) return chatSnapshot();
         if (!can.hooks || !app.isPackaged) { notice = 'Configurazione hook disponibile solo nell’app installata dal pacchetto.'; return chatSnapshot(); }
@@ -820,6 +870,10 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'setup-dismiss') { setupPreview = null; return chatSnapshot(); }
+      return NEXT;
+  }
+  // Invio di un messaggio.
+  async function sendAction(action, data) {
       if (action === 'send') {
         const text = typeof data === 'string' ? data : data?.text;
         const imageData = typeof data === 'object' && data ? data.imageData ?? null : null;
@@ -930,6 +984,18 @@ function startApplication() {
         }
         return;
       }
+      return NEXT;
+  }
+  const MASCOT_ACTIONS = [mascotActions];
+  const CHAT_ACTIONS = [chatAgentActions, localEngineActions, memoryAndPcActions, guideActions, releaseUpdateActions, characterActions, folderActions, repoUpdateActions, watchActions, chatWindowActions, reminderActions, conversationActions, setupActions, sendAction];
+  ipcMain.handle('mascotte', async (event, action, data) => {
+    const kitty = event.sender === mascot?.webContents;
+    const chatting = event.sender === chat?.webContents;
+    const expected = pathToFileURL(views(kitty ? 'mascot' : 'chat')).href;
+    if ((!kitty && !chatting) || event.senderFrame !== event.sender.mainFrame || event.senderFrame.url !== expected) throw new Error('Interfaccia non autorizzata.');
+    for (const group of kitty ? MASCOT_ACTIONS : CHAT_ACTIONS) {
+      const result = await group(action, data);
+      if (result !== NEXT) return result;
     }
     throw new Error('Azione non valida.');
   });

@@ -4,7 +4,8 @@ const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path'), vm = require('node:vm');
 const source = fs.readFileSync(path.join(__dirname, '../main.cjs'), 'utf8').replace(/\r\n/g, '\n');
 const start = source.indexOf('        const selected = engine, prompt = text.trim()');
-const end = source.indexOf('\n      }\n    }\n    throw new Error(\'Azione non valida.\');', start);
+// Fine del corpo di «send»: chiusura del gruppo sendAction, subito prima degli elenchi dei gruppi.
+const end = source.indexOf('\n      }\n      return NEXT;\n  }\n  const MASCOT_ACTIONS', start);
 assert.ok(start > 0 && end > start);
 const memoryStore = initial => { let value = initial; return { get: () => value, set: (_engine, items) => { value = items; } }; };
 async function send(data) {
