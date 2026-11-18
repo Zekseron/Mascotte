@@ -11,7 +11,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-const source = fs.readFileSync(path.join(__dirname, '..', 'main.cjs'), 'utf8');
+// Su Windows git può scrivere main.cjs con fine riga CRLF: si normalizza per i controlli riga per riga.
+const source = fs.readFileSync(path.join(__dirname, '..', 'main.cjs'), 'utf8').replace(/\r\n/g, '\n');
 
 // Solo la finestra mascotte (gestore `if (kitty)`): nessuna azione è comune alle due finestre.
 const MASCOT = ['init', 'mask', 'chat', 'menu', 'drag-start', 'drag-move', 'drag-end'];
