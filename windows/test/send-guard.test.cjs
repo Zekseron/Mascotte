@@ -37,7 +37,7 @@ test('rifiuti per testo: troppo lungo e non valido con avviso, vuoto senza avvis
 test('regressione B7 in main.cjs: l\'invio rifiutato imposta il notice prima di tornare', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'main.cjs'), 'utf8');
   const handler = source.slice(source.indexOf("if (action === 'send') {"), source.indexOf('if (pendingAction) { notice'));
-  assert.match(handler, /sendRefusal\(text, \{ localDownload, currentRun, updateRunning \}\)/);
+  assert.match(handler, /sendRefusal\(text, \{ localDownload, currentRun, updateRunning: updates\.running \}\)/);
   assert.match(handler, /notice = refusal; broadcast\(\)/);
   assert.doesNotMatch(handler, /\|\| text\.length > 8000/, 'il controllo di lunghezza è ora in sendRefusal');
 });

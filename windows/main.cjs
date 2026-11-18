@@ -41,6 +41,7 @@ function startApplication() {
   const Setup = require('./lib/setup.cjs');
   const Updater = require('./lib/updater.cjs');
   const Releases = require('./lib/releases.cjs');
+  const { createUpdates } = require('./lib/updates.cjs');
   const Attachment = require('./lib/attachment.cjs'), { sendRefusal } = require('./lib/send-guard.cjs');
   const LocalCommands = require('./lib/local-commands.cjs'), FolderView = require('./lib/folder-view.cjs'), ExtraFolders = require('./lib/extra-folders.cjs');
   const { mascotSize, maskHit, dragPosition, barEdge, barHit, dragLean } = require('./lib/geometry.cjs');
@@ -69,7 +70,6 @@ function startApplication() {
     lastFrameTimer = setTimeout(() => { clearLastFrame(); broadcast(); }, FRAME_TTL); lastFrameTimer.unref?.();
   }
   let localDownload = null, localDownloadStatus = '', folderStatus = '', folderStatusFailed = false;
-  let updateRunning = false, updateStatus = '', updateFailed = false, updateAbort = null;
   const stateFile = path.join(dataDirectory, 'settings.json');
   const views = name => path.join(__dirname, 'renderer', name + '.html');
   const broadcast = () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-chat', chatSnapshot()); };
@@ -80,7 +80,7 @@ function startApplication() {
     localEngineLabel: LocalEngines.label(settings?.localEngine), localManaged: LocalEngines.get(LocalEngines.MANAGED).status(), engineStatus, localCatalog: LocalAI.uiCatalog(), installedCache, localScanning,
     deviceName: can.deviceName, memories: memory.list(), pendingAction, setupPreview, reminders: reminders ? reminders.list() : null, activeAlarm: alarms?.active ?? null, lastFrame, watchAvailable: can.watch,
     hooksAvailable: can.hooks && app.isPackaged, watchSource: watch.source, pack, characters, characterWarnings, characterStatus, characterStatusFailed,
-    managementAvailable: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), hooks: hooksState(), updateRunning, updateStatus, updateFailed,
+    managementAvailable: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), hooks: hooksState(), updateRunning: updates.running, updateStatus: updates.status, updateFailed: updates.failed,
     viewableFolders: FolderView.viewableFolders(), folderStatus, folderStatusFailed
   });
   const chatSnapshot = () => {
@@ -96,6 +96,13 @@ function startApplication() {
   // Finestre di sistema ripetute: selettore di sole cartelle e conferma a due pulsanti ['Annulla', label] (Annulla annulla sempre; defaultId è il pulsante preselezionato).
   const pickFolder = (title, defaultPath) => dialog.showOpenDialog(chat, { title, properties: ['openDirectory'], defaultPath });
   const confirmDialog = async (options, label, defaultId = 0) => (await dialog.showMessageBox(chat, { type: 'question', ...options, buttons: ['Annulla', label], defaultId, cancelId: 0 })).response === 1;
+  // Aggiornamenti dall'app (lib/updates.cjs): stato, release pubblicata, aggiornamento dai sorgenti.
+  const updates = createUpdates({
+    Releases, Updater, confirmDialog, pickFolder, broadcast, quit: () => app.quit(),
+    isBusy: () => Boolean(currentRun || localDownload || setupPreview),
+    getRepoPath: () => settings.updateRepoPath, setRepoPath: repoPath => { settings.updateRepoPath = repoPath; saveSettings(); },
+    can, isPackaged: app.isPackaged, appVersion: app.getVersion(), execPath: process.execPath, resourcesPath: process.resourcesPath, dataDirectory,
+  });
   // Opzioni del modello scelto: un modello fuori catalogo vale solo se approvato come «già presente» (localModelSource).
   const modelOptions = () => ({ model: settings.localModel, installed: !LocalAI.isModel(settings.localModel) });
   // Il modello già presente scelto (o il motore) non è più disponibile: si torna a Ollama e al predefinito e si spiega perché.
@@ -140,38 +147,6 @@ function startApplication() {
         catch (next) { if (next.code !== 'ECONNREFUSED') throw next; }
       }
       throw new Error('Il servizio locale non si è avviato in tempo.');
-    }
-  }
-  // Nota sul percorso: se l'app in esecuzione sta altrove rispetto alla destinazione, gli hook vanno ricollegati.
-  const movedNote = (installDir, text) => Updater.currentLocation(process.execPath).toLowerCase() !== installDir.toLowerCase() ? text : '';
-  // Mac: la vecchia app Swift in Applicazioni (altro identificativo) viene salvata in un ZIP prima di essere sostituita.
-  const backupNote = installDir => process.platform === 'darwin' && fs.existsSync(installDir) && installDir !== Updater.currentLocation(process.execPath) ? `\n\nSe in ${installDir} c’è un’altra app Mascotte (per esempio la vecchia app Swift), ne viene fatto prima un backup ZIP in ${path.join(dataDirectory, 'backup')}.` : '';
-  async function installRepositoryUpdate(repo) {
-    const installDir = Updater.installationDirectory(process.execPath, repo.root, dataDirectory);
-    const resultFile = path.join(dataDirectory, 'update-result.json');
-    const logFile = path.join(dataDirectory, 'update.log');
-    const result = await Updater.updateFromRepository(repo.root, message => { updateStatus = message; broadcast(); }, updateAbort.signal);
-    updateStatus = 'Pacchetto pronto. Chiudo Mascotte per installare e riavviare…'; broadcast();
-    // Run the helper from the NEW unpacked build, so no process locks the installed runtime.
-    await Updater.launchInstaller({ ...result, installDir, resultFile, logFile, previousExe: process.execPath, parentPid: process.pid, dataDir: dataDirectory, helperScript: path.join(process.resourcesPath, 'mascotte-updater.cjs') });
-    app.quit();
-  }
-  async function installPublishedRelease(release) {
-    const work = fs.mkdtempSync(path.join(dataDirectory, 'release-update-'));
-    let handedOff = false;
-    try {
-      const repo = Releases.repositoryContaining(process.execPath);
-      const installDir = Updater.installationDirectory(process.execPath, repo || work, dataDirectory);
-      updateStatus = `Scarico Mascotte ${release.version}…`; broadcast();
-      const archive = await Releases.downloadRelease(release, work, updateAbort.signal);
-      updateStatus = 'Verifica completata. Preparo l’installazione…'; broadcast();
-      const runtime = await Releases.extractRuntime(archive, work, updateAbort.signal);
-      await Updater.launchInstaller({ root: work, archive, runtime, installDir,
-        resultFile: path.join(dataDirectory, 'update-result.json'), logFile: path.join(dataDirectory, 'update.log'),
-        previousExe: process.execPath, parentPid: process.pid, dataDir: dataDirectory, helperScript: path.join(process.resourcesPath, 'mascotte-updater.cjs') });
-      handedOff = true; app.quit();
-    } finally {
-      if (!handedOff) { try { await fs.promises.rm(work, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch {} }
     }
   }
   const displayAreas = () => screen.getAllDisplays().map(d => d.workArea);
@@ -398,7 +373,7 @@ function startApplication() {
   // Mac/Linux: un SIGTERM/SIGHUP/SIGINT all'app passi da before-quit, così il gruppo di processi della CLI viene chiuso.
   if (process.platform !== 'win32') for (const signal of ['SIGTERM', 'SIGHUP', 'SIGINT']) process.on(signal, () => app.quit());
   app.on('before-quit', () => {
-    updateAbort?.abort();
+    updates.stop();
     quitting = true; reminderScheduler?.stop(); alarms?.stop(); localDownload?.abort(); LocalEngines.shutdown(); currentRun?.stop('Risposta interrotta.', true); controller?.close(); clearInterval(mouseTimer);
     watch.stop();
     if (activeShareDirectory && fs.existsSync(activeShareDirectory)) { try { fs.rmSync(activeShareDirectory, { recursive: true, force: true }); } catch (e) { ErrorLog.error('cartella immagini condivise non cancellata alla chiusura', e); } }
@@ -438,9 +413,9 @@ function startApplication() {
     prepareLocal().then(note => { localAvailable = true; if (note) notice = note; if (!currentRun && !engineTouched) engine = 'locale'; broadcast(); }).catch(() => { localAvailable = false; broadcast(); });
     const resultFile = path.join(dataDirectory, 'update-result.json'), updateResult = Updater.takeUpdateResult(resultFile);
     if (updateResult) {
-      updateStatus = updateResult.message.slice(0, 2000); updateFailed = !updateResult.ok;
+      updates.restoreResult(updateResult);
       // Mac: se gli hook installati puntano a un'altra posizione dell'app, solo un avviso (mai applicare senza conferma).
-      try { if (updateResult.ok && process.platform === 'darwin' && Setup.hooksPointElsewhere(path.join(dataDirectory, 'hook-installation.json'), process.execPath) && !/hook/i.test(updateStatus)) updateStatus += ' Premi Crea / aggiorna hook in Impostazioni: l’app è stata spostata.'; } catch (e) { ErrorLog.error('controllo hook dopo aggiornamento', e); }
+      try { if (updateResult.ok && process.platform === 'darwin' && Setup.hooksPointElsewhere(path.join(dataDirectory, 'hook-installation.json'), process.execPath) && !/hook/i.test(updates.status)) updates.appendStatus(' Premi Crea / aggiorna hook in Impostazioni: l’app è stata spostata.'); } catch (e) { ErrorLog.error('controllo hook dopo aggiornamento', e); }
     }
     characters=readCharacters();selectCharacter(characters.some(c=>c.id===raw.character)?raw.character:'rosso',true);
     Capture.configureDisplayCapture(session.defaultSession, {
@@ -506,10 +481,10 @@ function startApplication() {
   // Istantanea della chat e modalità agente.
   async function chatAgentActions(action, data) {
       if (action === 'snapshot') return chatSnapshot();
-      if (action === 'agent-mode' && !currentRun && !localDownload && !updateRunning && engine !== 'locale' && typeof data === 'boolean') {
+      if (action === 'agent-mode' && !currentRun && !localDownload && !updates.running && engine !== 'locale' && typeof data === 'boolean') {
         agents.mode = data; engineTouched = true; notice = ''; return chatSnapshot();
       }
-      if (action === 'agent-workspace' && !currentRun && !localDownload && !updateRunning && engine !== 'locale') {
+      if (action === 'agent-workspace' && !currentRun && !localDownload && !updates.running && engine !== 'locale') {
         const selectedEngine = engine;
         const selected = await pickFolder('Cartella di lavoro per ' + engine, agents.entry(engine).cwd);
         if (!selected.canceled && selected.filePaths[0] && !currentRun) {
@@ -524,7 +499,7 @@ function startApplication() {
   // IA locale: ricerca dei motori, scelta di motore e modello, download e controllo (local-engine e local-model proseguono di proposito fino a local-check).
   async function localEngineActions(action, data) {
       if (action === 'local-scan') {
-        if (localDownload || currentRun || updateRunning || localScanning) return chatSnapshot();
+        if (localDownload || currentRun || updates.running || localScanning) return chatSnapshot();
         // Solo su richiesta dell'utente (apertura delle Impostazioni o pulsante): legge /api/tags e /api/show su 127.0.0.1 e ricorda il risultato.
         localScanning = true; broadcast();
         // Rileva Ollama e gli altri motori già avviati (solo 127.0.0.1, GET /v1/models); nessun avvio, chiusura o download.
@@ -550,8 +525,8 @@ function startApplication() {
       const chosenOther = otherEngine && typeof data === 'string' && Boolean(engineStatus?.find(item => item.id === settings.localEngine)?.models?.some(model => model.name === data));
       // Scelta del motore: solo uno rilevato alla ricerca con almeno un modello idoneo (il primo), oppure Ollama con il predefinito.
       // Cambio di motore o modello durante una risposta, un download o un aggiornamento: rifiutato subito, senza cadere nel ricontrollo del modello qui sotto (B5).
-      if ((action === 'local-engine' || action === 'local-model') && (localDownload || currentRun || updateRunning)) return chatSnapshot();
-      if (action === 'local-engine' && !localDownload && !currentRun && !updateRunning && LocalEngines.isEngine(data)) {
+      if ((action === 'local-engine' || action === 'local-model') && (localDownload || currentRun || updates.running)) return chatSnapshot();
+      if (action === 'local-engine' && !localDownload && !currentRun && !updates.running && LocalEngines.isEngine(data)) {
         const found = data === 'ollama' ? null : engineStatus?.find(item => item.id === data);
         if (data === 'ollama') { settings.localEngine = 'ollama'; settings.localModel = LocalAI.defaultModel(); settings.localModelSource = 'catalog'; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
         else if (data === LocalEngines.MANAGED) {
@@ -562,9 +537,9 @@ function startApplication() {
         else if (found?.available && found.models?.length) { settings.localEngine = data; settings.localModel = found.models[0].name; settings.localModelSource = 'installed'; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
         else { notice = `${LocalEngines.label(data)} non è disponibile: avvialo e premi «Cerca motori locali».`; return chatSnapshot(); }
       }
-      if (action === 'local-model' && !localDownload && !currentRun && !updateRunning && (otherEngine ? chosenOther : (LocalAI.isModel(data) || chosenInstalled))) { settings.localModel = data; settings.localModelSource = chosenInstalled || chosenOther ? 'installed' : 'catalog'; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
+      if (action === 'local-model' && !localDownload && !currentRun && !updates.running && (otherEngine ? chosenOther : (LocalAI.isModel(data) || chosenInstalled))) { settings.localModel = data; settings.localModelSource = chosenInstalled || chosenOther ? 'installed' : 'catalog'; saveSettings(); localAvailable = false; localDownloadStatus = ''; notice = ''; }
       if (action === 'local-download-cancel') { localDownload?.abort(); return chatSnapshot(); }
-      if (action === 'local-managed-remove' && settings.localEngine === LocalEngines.MANAGED && !localDownload && !currentRun && !updateRunning && !setupPreview) {
+      if (action === 'local-managed-remove' && settings.localEngine === LocalEngines.MANAGED && !localDownload && !currentRun && !updates.running && !setupPreview) {
         const confirmed = await confirmDialog({ title: 'Elimina file di llama.cpp', message: 'Eliminare runtime e modello scaricati?', detail: 'Vengono cancellati solo i file che Mascotte ha scaricato per llama.cpp (cartella «llama» nella cartella dati) e il server, se acceso, viene chiuso. Per usarlo di nuovo dovrai riscaricarli.' }, 'Elimina');
         if (confirmed) {
           try { await LocalEngines.get(LocalEngines.MANAGED).remove(); localAvailable = false; notice = ''; localDownloadStatus = 'File di llama.cpp eliminati.'; } catch (error) { localDownloadStatus = error.message; }
@@ -572,7 +547,7 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'local-download') {
-        if (localDownload || currentRun || updateRunning || setupPreview) return chatSnapshot();
+        if (localDownload || currentRun || updates.running || setupPreview) return chatSnapshot();
         if (settings.localEngine === LocalEngines.MANAGED) {
           const managed = LocalEngines.get(settings.localEngine);
           // Il controllo si riserva prima della finestra di conferma, come per gli aggiornamenti.
@@ -612,8 +587,8 @@ function startApplication() {
   }
   // Note e azioni sul computer («apri …», promemoria) con conferma.
   async function memoryAndPcActions(action, data) {
-      if (action === 'memory-add' && !currentRun && !updateRunning) { try { memory.add(data?.text, data?.source); notice = infoNotice = `Nota salvata sul ${can.deviceName}.`; } catch (error) { notice = error.message; } return chatSnapshot(); }
-      if (action === 'memory-remove' && !currentRun && !updateRunning && typeof data === 'string') { try { memory.remove(data); notice = infoNotice = 'Nota rimossa.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
+      if (action === 'memory-add' && !currentRun && !updates.running) { try { memory.add(data?.text, data?.source); notice = infoNotice = `Nota salvata sul ${can.deviceName}.`; } catch (error) { notice = error.message; } return chatSnapshot(); }
+      if (action === 'memory-remove' && !currentRun && !updates.running && typeof data === 'string') { try { memory.remove(data); notice = infoNotice = 'Nota rimossa.'; } catch (error) { notice = error.message; } return chatSnapshot(); }
       if (action === 'pc-action-cancel') { pendingAction = null; notice = infoNotice = 'Azione annullata.'; return chatSnapshot(); }
       // Codex e Claude: «apri …» lo gestisce Mascotte prima dell'invio, sul computer. Il messaggio non parte e non entra nel contesto remoto.
       // Non intercetta nulla in modalità Agente o con un'azione in attesa.
@@ -660,27 +635,7 @@ function startApplication() {
   }
   // Aggiornamento dalla release pubblicata.
   async function releaseUpdateActions(action, data) {
-      if (action === 'release-update') {
-        if (!can.management || !app.isPackaged || updateRunning || currentRun || localDownload || setupPreview) return chatSnapshot();
-        updateRunning = true; updateFailed = false; updateStatus = 'Controllo le versioni disponibili…'; updateAbort = new AbortController(); broadcast();
-        try {
-          const release = await Releases.latestRelease(updateAbort.signal);
-          if (Releases.compareVersions(release.version, app.getVersion()) <= 0) {
-            updateStatus = `Mascotte è aggiornata (versione ${app.getVersion()}).`;
-            updateRunning = false; updateAbort = null; broadcast(); return chatSnapshot();
-          }
-          const repo = Releases.repositoryContaining(process.execPath);
-          const installDir = Updater.installationDirectory(process.execPath, repo || dataDirectory, dataDirectory);
-          const confirmed = await confirmDialog({ title: 'Aggiorna Mascotte',
-            message: `Installare Mascotte ${release.version}?`,
-            detail: `Il pacchetto ${can.packageName} verrà scaricato dalla release ufficiale e verificato prima dell’installazione.\nDestinazione: ${installDir}\n\nMascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${movedNote(installDir, '\n\nDopo il riavvio aggiorna gli hook per collegarli al nuovo percorso.')}${backupNote(installDir)}` }, 'Aggiorna e riavvia', 1);
-          if (!confirmed) { updateRunning = false; updateAbort = null; updateStatus = 'Aggiornamento annullato.'; broadcast(); return chatSnapshot(); }
-          void installPublishedRelease(release).catch(error => {
-            updateRunning = false; updateFailed = true; updateStatus = `Aggiornamento non riuscito: ${error.message}`; broadcast();
-          }).finally(() => { updateAbort = null; });
-        } catch (error) { updateRunning = false; updateAbort = null; updateFailed = true; updateStatus = error.message; broadcast(); }
-        return chatSnapshot();
-      }
+      if (action === 'release-update') { await updates.checkRelease(); return chatSnapshot(); }
       return NEXT;
   }
   // Mascotte: scelta, colori, grandezza, mascotte personali.
@@ -705,7 +660,7 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'character-scale' && Characters.allowedScales(pack).includes(data)) { setScale(data); return chatSnapshot(); }
-      if (action === 'character-add' && !currentRun && !localDownload && !updateRunning && !setupPreview) {
+      if (action === 'character-add' && !currentRun && !localDownload && !updates.running && !setupPreview) {
         // Mascotte personali: cartella scelta solo dal selettore di sistema, convalidata per intero prima di copiare solo character.json e sprites.png.
         try {
           const selected = await pickFolder('Scegli la cartella della mascotte (con character.json e sprites.png)', os.homedir());
@@ -717,7 +672,7 @@ function startApplication() {
         } catch { characterStatus = 'Non riesco ad aggiungere la mascotte.'; characterStatusFailed = true; }
         return chatSnapshot();
       }
-      if (action === 'character-remove' && !currentRun && !localDownload && !updateRunning && !setupPreview && typeof data === 'string') {
+      if (action === 'character-remove' && !currentRun && !localDownload && !updates.running && !setupPreview && typeof data === 'string') {
         const target = characters.find(c => c.personal && c.id === data);
         if (target) {
           const confirmed = await confirmDialog({ title: 'Rimuovi mascotte', message: `Rimuovere la mascotte «${target.name}»?`, detail: 'I suoi file vengono eliminati dalla cartella dati di Mascotte. I file originali che hai scelto non vengono toccati.' }, 'Rimuovi');
@@ -736,7 +691,7 @@ function startApplication() {
   }
   // Cartelle visibili alla mascotte.
   async function folderActions(action, data) {
-      if (action === 'folders-add' && !currentRun && !localDownload && !updateRunning && !setupPreview) {
+      if (action === 'folders-add' && !currentRun && !localDownload && !updates.running && !setupPreview) {
         // Cartelle visibili alla chat locale: scelte solo dal selettore di sistema, risolte con realpath e validate. Il percorso non finisce nei log.
         try {
           const selected = await pickFolder('Scegli una cartella che la mascotte può vedere', os.homedir());
@@ -748,7 +703,7 @@ function startApplication() {
         } catch { folderStatus = 'Non riesco ad aggiungere la cartella.'; folderStatusFailed = true; }
         return chatSnapshot();
       }
-      if (action === 'folders-remove' && !currentRun && !localDownload && !updateRunning && !setupPreview) {
+      if (action === 'folders-remove' && !currentRun && !localDownload && !updates.running && !setupPreview) {
         // Accetta solo un indice o un percorso già presenti nell'elenco.
         const index = Number.isInteger(data) ? data : typeof data === 'string' ? settings.extraFolders.findIndex(folder => folder.path === data) : -1;
         if (index >= 0 && index < settings.extraFolders.length) {
@@ -762,34 +717,8 @@ function startApplication() {
   }
   // Aggiornamento dai sorgenti (repo scelta).
   async function repoUpdateActions(action, data) {
-      if (action === 'repo-select' && !updateRunning) {
-        if (!can.management || !app.isPackaged) return chatSnapshot();
-        try {
-          const selected = await pickFolder('Scegli la repo Mascotte clonata da GitHub', settings.updateRepoPath || undefined);
-          if (!selected.canceled && selected.filePaths[0]) {
-            const repo = Updater.validateRepository(selected.filePaths[0]);
-            settings.updateRepoPath = repo.root; saveSettings(); updateFailed = false;
-            updateStatus = repo.dirty ? 'Repo selezionata. Salva o committa le modifiche locali prima di aggiornare.' : 'Repo selezionata. Puoi aggiornare Mascotte.';
-          }
-        } catch (error) { updateFailed = true; updateStatus = error.message; }
-        return chatSnapshot();
-      }
-      if (action === 'update-run') {
-        if (!can.management || !app.isPackaged || updateRunning || currentRun || localDownload || setupPreview) return chatSnapshot();
-        // Reserve the operation before opening the native dialog to prevent duplicate updates.
-        updateRunning = true; updateFailed = false; broadcast();
-        try {
-          const repo = Updater.validateRepository(settings.updateRepoPath, { requireClean: true });
-          const installDir = Updater.installationDirectory(process.execPath, repo.root, dataDirectory);
-          const confirmed = await confirmDialog({ title: 'Aggiorna Mascotte', message: 'Scaricare, compilare e installare l’aggiornamento?', detail: `Repo: ${repo.root}\nDestinazione: ${installDir}\n\nServono Git e Node.js 22+ con npm. La repo viene aggiornata con git pull --ff-only. A fine build Mascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${movedNote(installDir, '\n\nL’app verrà installata in una cartella stabile: dopo il riavvio premi Crea / aggiorna hook per collegarli al nuovo percorso.')}${backupNote(installDir)}` }, 'Aggiorna e riavvia', 1);
-          if (!confirmed) { updateRunning = false; broadcast(); return chatSnapshot(); }
-          updateAbort = new AbortController();
-          void installRepositoryUpdate(repo).catch(error => {
-            updateRunning = false; updateFailed = true; updateStatus = `Aggiornamento non riuscito: ${error.message}`; broadcast();
-          }).finally(() => { updateAbort = null; });
-        } catch (error) { updateRunning = false; updateFailed = true; updateStatus = error.message; broadcast(); }
-        return chatSnapshot();
-      }
+      if (action === 'repo-select' && !updates.running) { await updates.selectRepository(); return chatSnapshot(); }
+      if (action === 'update-run') { await updates.runRepositoryUpdate(); return chatSnapshot(); }
       return NEXT;
   }
   // Osservazione di una finestra.
@@ -855,7 +784,7 @@ function startApplication() {
   // Collegamento degli hook di Claude e Codex.
   async function setupActions(action, data) {
       if (action === 'setup-preview') {
-        if (updateRunning || currentRun) return chatSnapshot();
+        if (updates.running || currentRun) return chatSnapshot();
         if (!can.hooks || !app.isPackaged) { notice = 'Configurazione hook disponibile solo nell’app installata dal pacchetto.'; return chatSnapshot(); }
         try {
           const paths = Setup.configPaths(), before = Setup.snapshot(paths);
@@ -878,7 +807,7 @@ function startApplication() {
         const text = typeof data === 'string' ? data : data?.text;
         const imageData = typeof data === 'object' && data ? data.imageData ?? null : null;
         // Un rifiuto lascia un avviso (se c'è qualcosa da dire): la chat, vedendo il notice, rimette il testo nel campo.
-        const refusal = sendRefusal(text, { localDownload, currentRun, updateRunning });
+        const refusal = sendRefusal(text, { localDownload, currentRun, updateRunning: updates.running });
         if (refusal !== null) { if (refusal) { notice = refusal; broadcast(); } return; }
         if (pendingAction) { notice = 'Conferma o annulla prima l’azione proposta.'; broadcast(); return; }
         let folderRead = null;
