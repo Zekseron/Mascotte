@@ -49,14 +49,16 @@ function run(command, payload, env) {
     child.stdout.on('data', data => { stdout += data; });
     child.stderr.on('data', data => { stderr += data; });
     child.stdin.on('error', () => {});
-    const timer = setTimeout(() => { child.kill(); reject(new Error('Hook timeout')); }, 7000);
+    // Margine ampio: un picco di avvio a freddo deve essere misurato (e ripetuto dal test), non interrotto qui.
+    // Il limite vero (3 s di Codex) è controllato sul tempo misurato.
+    const timer = setTimeout(() => { child.kill(); reject(new Error('Hook timeout')); }, 20000);
     child.once('error', error => { clearTimeout(timer); reject(error); });
     child.once('close', (code, signal) => { clearTimeout(timer); resolve({ code, signal, stdout, stderr, elapsed: Date.now() - started }); });
     child.stdin.end(payload);
   });
 }
 
-test('Windows launcher delivers stdin through bundled Electron Node, independent of inherited environment', { skip: process.platform !== 'win32', timeout: 60000 }, async t => {
+test('Windows launcher delivers stdin through bundled Electron Node, independent of inherited environment', { skip: process.platform !== 'win32', timeout: 180000 }, async t => {
   const directory = fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()), "mascotte hook ' è "));
   // The resolved directory is created by this test under tmp; never remove a
   // caller-provided path. Copies cover apostrophes, spaces and Unicode paths.
@@ -150,7 +152,9 @@ test('Mac launcher consegna stdin al ponte con il Node di Electron, anche con ap
   const sh = (command, payload) => new Promise((resolve, reject) => {
     const child = spawn('/bin/sh', ['-c', command], { env: { ...process.env, MASCOTTE_DATA_DIR: directory }, stdio: ['pipe', 'pipe', 'pipe'] });
     let out = ''; child.stdout.on('data', d => out += d); child.stderr.on('data', d => out += d);
-    const timer = setTimeout(() => { child.kill(); reject(new Error('Hook timeout')); }, 7000);
+    // Margine ampio: un picco di avvio a freddo deve essere misurato (e ripetuto dal test), non interrotto qui.
+    // Il limite vero (3 s di Codex) è controllato sul tempo misurato.
+    const timer = setTimeout(() => { child.kill(); reject(new Error('Hook timeout')); }, 20000);
     child.once('close', code => { clearTimeout(timer); resolve({ code, out }); }); child.stdin.end(payload);
   });
   for (const [command, payload, expected] of [
