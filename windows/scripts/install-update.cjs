@@ -261,15 +261,21 @@ async function main(args, options) {
   fs.mkdirSync(staging);
 
   try {
-    const command = `Expand-Archive -LiteralPath '${archive.replace(/'/g, "''")}' -DestinationPath '${staging.replace(/'/g, "''")}' -Force`;
+    // Stessa logica di lib/windows-powershell.cjs (questo script è pubblicato da solo e non può importarlo):
+    // PowerShell 5.1 senza PSModulePath ereditato (niente moduli di PowerShell 7) ed errori di Expand-Archive bloccanti.
+    const quotePS = value => "'" + String(value).replace(/'/g, "''") + "'";
+    const command = `$ErrorActionPreference = 'Stop'; Expand-Archive -LiteralPath ${quotePS(archive)} -DestinationPath ${quotePS(staging)} -Force`;
     const powershell = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-    const expanded = spawnSync(powershell, ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 120000 });
+    const psEnv = { ...process.env };
+    for (const key of Object.keys(psEnv)) if (key.toLowerCase() === 'psmodulepath') delete psEnv[key];
+    const expanded = spawnSync(powershell, ['-NoProfile', '-NonInteractive', '-Command', command], { encoding: 'utf8', windowsHide: true, timeout: 120000, env: psEnv });
     if (expanded.error || expanded.status !== 0) throw new Error((expanded.stderr || expanded.error?.message || 'Estrazione ZIP non riuscita.').trim());
     if (!fs.existsSync(path.join(staging, 'Mascotte.exe')) || !fs.existsSync(path.join(staging, 'resources', 'app.asar'))) {
       // Cosa c'è davvero nella cartella estratta: serve a capire uno ZIP con la struttura sbagliata.
       let found = '';
       try { found = fs.readdirSync(staging).slice(0, 12).map(name => name + (fs.statSync(path.join(staging, name)).isDirectory() ? '/' : '')).join(', '); } catch (error) { found = `illeggibile (${error.code || error.message})`; }
-      throw new Error(`Lo ZIP non contiene Mascotte.exe e resources/app.asar al livello atteso. Estratto: ${found || 'niente'}.`);
+      const detail = (expanded.stderr || '').replace(/\s+/g, ' ').trim().slice(0, 400);
+      throw new Error(`Lo ZIP non contiene Mascotte.exe e resources/app.asar al livello atteso. Estratto: ${found || 'niente'}.${detail ? ` PowerShell: ${detail}` : ''}`);
     }
     // Keep the NSIS uninstaller registered at this installation path across ZIP updates.
     const uninstaller = path.join(installDir, 'Uninstall Mascotte.exe');

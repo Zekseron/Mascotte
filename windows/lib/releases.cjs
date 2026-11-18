@@ -176,11 +176,11 @@ async function extractRuntime(archive, directory, signal, { platform = process.p
     await verifyMacBundle(app, { currentApp: currentApp === undefined ? runningMacApp() : currentApp, run, signal });
     return runtime;
   }
-  const command = `Expand-Archive -LiteralPath '${archive.replace(/'/g, "''")}' -DestinationPath '${unpacked.replace(/'/g, "''")}' -Force`;
+  const WindowsPowerShell = require('./windows-powershell.cjs');
+  const command = WindowsPowerShell.expandArchiveCommand(archive, unpacked);
   await new Promise((resolve, reject) => {
     if (signal?.aborted) { reject(new Error('Operazione interrotta.')); return; }
-    const powershell = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-    const child = spawn(powershell, ['-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'] });
+    const child = spawn(WindowsPowerShell.executable(), ['-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'], env: WindowsPowerShell.environment() });
     let stderr = ''; child.stderr.on('data', data => { stderr = (stderr + data.toString()).slice(-2000); });
     const abort = () => child.kill();
     signal?.addEventListener('abort', abort, { once: true });

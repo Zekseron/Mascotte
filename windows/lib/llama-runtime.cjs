@@ -120,10 +120,10 @@ function zipEntryNames(file) {
   }
   return names;
 }
-function runTool(file, args, { signal, timeout = 180000 } = {}) {
+function runTool(file, args, { signal, timeout = 180000, env } = {}) {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) { reject(Object.assign(new Error('Operazione interrotta.'), { name: 'AbortError' })); return; }
-    execFile(file, args, { windowsHide: true, maxBuffer: 8 * 1024 * 1024, timeout, signal }, (error, stdout, stderr) => error ? reject(Object.assign(new Error(String(stderr || error.message).trim().slice(-400)), { name: signal?.aborted ? 'AbortError' : error.name })) : resolve({ stdout: String(stdout), stderr: String(stderr) }));
+    execFile(file, args, { windowsHide: true, maxBuffer: 8 * 1024 * 1024, timeout, signal, ...(env ? { env } : {}) }, (error, stdout, stderr) => error ? reject(Object.assign(new Error(String(stderr || error.message).trim().slice(-400)), { name: signal?.aborted ? 'AbortError' : error.name })) : resolve({ stdout: String(stdout), stderr: String(stderr) }));
   });
 }
 // Dopo l'estrazione nulla deve stare fuori dalla cartella: collegamenti simbolici compresi (si controlla il percorso reale).
@@ -162,9 +162,8 @@ async function extractArchive(archive, destination, kind, { signal, platform = p
     await run(tar, ['-xzf', archive, '-C', destination], { signal });
   } else if (kind === 'zip') {
     checkEntryNames(zipEntryNames(archive));
-    const quote = value => value.replace(/'/g, "''");
-    const powershell = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe');
-    await run(powershell, ['-NoProfile', '-NonInteractive', '-Command', `Expand-Archive -LiteralPath '${quote(archive)}' -DestinationPath '${quote(destination)}' -Force`], { signal });
+    const WindowsPowerShell = require('./windows-powershell.cjs');
+    await run(WindowsPowerShell.executable(), ['-NoProfile', '-NonInteractive', '-Command', WindowsPowerShell.expandArchiveCommand(archive, destination)], { signal, env: WindowsPowerShell.environment() });
   } else throw new Error('Formato di archivio non supportato.');
   verifyTree(destination);
   const server = findServer(destination, platform);
