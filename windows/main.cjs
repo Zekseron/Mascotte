@@ -58,33 +58,10 @@ function startApplication() {
   const FRAME_TTL = 10 * 60 * 1000;
   let lastFrame = null, lastFrameTimer = null;
   // Promemoria e sveglie impostati dalla chat locale: notifica di sistema alla scadenza, anche per quelli scaduti ad app chiusa.
-  const Reminders = require('./lib/reminders.cjs'), AlarmSound = require('./lib/alarm-sound.cjs'), { createScheduler } = require('./lib/reminder-scheduler.cjs');
-  let reminders = null, reminderScheduler = null, activeAlarm = null, alarmTimer = null;
-  const ALARM_RING = 3 * 60 * 1000, SNOOZE = 5 * 60 * 1000;
-  function stopAlarm() { clearTimeout(alarmTimer); alarmTimer = null; activeAlarm = null; }
-  function fireReminder(item) {
-    const late = Date.now() - item.when > 60000;
-    const body = item.text + (late ? ` (era per ${Reminders.formatWhen(item.when)})` : '');
-    // Una notifica che non si può mostrare non blocca il resto: un promemoria ricade sull'avviso in chat, una sveglia suona comunque.
-    let shown = false;
-    try { if (Notification.isSupported()) { new Notification({ title: item.alarm ? 'Mascotte · sveglia' : 'Mascotte · promemoria', body, silent: false }).show(); shown = true; } } catch (e) { ErrorLog.error('notifica del promemoria non mostrata', e); }
-    if (!shown && !item.alarm) { notice = infoNotice = `⏰ ${body}`; showChat(); broadcast(); }
-    // Sveglia (non troppo in ritardo): finestra con «Ferma» e «Rimanda», suono a ripetizione nella chat per al massimo 3 minuti, gattino in attesa.
-    if (item.alarm && Date.now() - item.when < 10 * 60000) {
-      stopAlarm(); activeAlarm = { id: item.id, text: item.text, when: item.when };
-      alarmTimer = setTimeout(() => { if (activeAlarm) notice = `La sveglia «${activeAlarm.text}» si è spenta da sola dopo 3 minuti.`; stopAlarm(); broadcast(); }, ALARM_RING);
-      if (!currentRun) controller.set('waiting'); showChat(); broadcast();
-    }
-  }
+  const Reminders = require('./lib/reminders.cjs'), AlarmSound = require('./lib/alarm-sound.cjs'), { createScheduler } = require('./lib/reminder-scheduler.cjs'), { createAlarms } = require('./lib/alarms.cjs');
+  let reminders = null, reminderScheduler = null, alarms = null; // alarms: scatto di promemoria e sveglie (lib/alarms.cjs)
   // Il pianificatore parte solo a fine avvio: prima dello start, reschedule non fa nulla.
   function scheduleReminders() { reminderScheduler?.reschedule(); }
-  // Un promemoria che non si è potuto mostrare è già stato tolto dall'elenco: resta almeno un avviso in chat col suo testo.
-  function reminderFailed(item, error) {
-    console.error('Promemoria non mostrato:', error?.message || error);
-    notice = item ? `Non sono riuscito a mostrare ${item.alarm ? 'la sveglia' : 'il promemoria'} «${item.text}» (era per ${Reminders.formatWhen(item.when)}): ${error?.message || 'errore sconosciuto'}.` : `Non riesco a controllare i promemoria: ${error?.message || 'errore sconosciuto'}.`;
-    try { showChat(); } catch (e) { ErrorLog.error('chat non aperta per un promemoria fallito', e); }
-    try { broadcast(); } catch (e) { ErrorLog.error('stato non inviato per un promemoria fallito', e); }
-  }
   function clearLastFrame() { clearTimeout(lastFrameTimer); lastFrameTimer = null; if (lastFrame) { lastFrame.bytes.fill(0); lastFrame = null; } }
   function keepLastFrame(bytes, name, message, reply) {
     clearLastFrame(); lastFrame = { bytes: Buffer.from(bytes), name, message, reply: String(reply).slice(0, 80), expiresAt: Date.now() + FRAME_TTL };
@@ -100,7 +77,7 @@ function startApplication() {
     engine, messages: store.get(engine), currentRun, localDownload, localDownloadStatus, notice, noticeInfo: Boolean(notice) && notice === infoNotice, localAvailable, settings,
     cliEngines: CLI.ENGINES.filter(e => CLI.findCLI(e)), defaultModel: LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(),
     localEngineLabel: LocalEngines.label(settings?.localEngine), localManaged: LocalEngines.get(LocalEngines.MANAGED).status(), engineStatus, localCatalog: LocalAI.uiCatalog(), installedCache, localScanning,
-    deviceName: can.deviceName, memories: memory.list(), pendingAction, setupPreview, reminders: reminders ? reminders.list() : null, activeAlarm, lastFrame, watchAvailable: can.watch,
+    deviceName: can.deviceName, memories: memory.list(), pendingAction, setupPreview, reminders: reminders ? reminders.list() : null, activeAlarm: alarms?.active ?? null, lastFrame, watchAvailable: can.watch,
     hooksAvailable: can.hooks && app.isPackaged, watchSource, pack, characters, characterWarnings, characterStatus, characterStatusFailed,
     managementAvailable: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), hooks: hooksState(), updateRunning, updateStatus, updateFailed,
     viewableFolders: FolderView.viewableFolders(), folderStatus, folderStatusFailed
@@ -442,7 +419,7 @@ function startApplication() {
   if (process.platform !== 'win32') for (const signal of ['SIGTERM', 'SIGHUP', 'SIGINT']) process.on(signal, () => app.quit());
   app.on('before-quit', () => {
     updateAbort?.abort();
-    quitting = true; reminderScheduler?.stop(); stopAlarm(); localDownload?.abort(); LocalEngines.shutdown(); currentRun?.stop('Risposta interrotta.', true); controller?.close(); clearInterval(mouseTimer);
+    quitting = true; reminderScheduler?.stop(); alarms?.stop(); localDownload?.abort(); LocalEngines.shutdown(); currentRun?.stop('Risposta interrotta.', true); controller?.close(); clearInterval(mouseTimer);
     stopWatching();
     if (activeShareDirectory && fs.existsSync(activeShareDirectory)) { try { fs.rmSync(activeShareDirectory, { recursive: true, force: true }); } catch (e) { ErrorLog.error('cartella immagini condivise non cancellata alla chiusura', e); } }
     activeShareDirectory = null;
@@ -466,7 +443,12 @@ function startApplication() {
     agents = new AgentManager(path.join(dataDirectory, 'agents'), broadcast);
     memory = new LocalAI.LocalMemory(chatDirectory);
     reminders = new Reminders.ReminderStore(path.join(dataDirectory, 'reminders.json'));
-    reminderScheduler = createScheduler({ store: reminders, fire: fireReminder, onError: reminderFailed });
+    alarms = createAlarms({
+      store: reminders, Notification, ErrorLog, showChat, broadcast,
+      notify: (text, { info }) => { notice = text; if (info) infoNotice = text; },
+      setWaiting: () => { if (!currentRun) controller.set('waiting'); },
+    });
+    reminderScheduler = createScheduler({ store: reminders, fire: item => alarms.fire(item), onError: (item, error) => alarms.failed(item, error) });
     const raw = readJSON(stateFile, {});
     settings = require('./lib/settings.cjs').normalizeSettings(raw, { LocalEngines, LocalAI, ExtraFolders, Characters, AlarmSound, managedModel: require('./lib/llama-runtime.cjs').MODELS[0].id, platform: process.platform, home: os.homedir(), dataDir: dataDirectory });
     if (legacyImport) {
@@ -830,12 +812,12 @@ function startApplication() {
         }
         return chatSnapshot();
       }
-      if (action === 'alarm-stop') { stopAlarm(); if (!currentRun) controller.set('idle'); return chatSnapshot(); }
-      if (action === 'alarm-snooze' && activeAlarm) {
-        // Con l'elenco pieno l'aggiunta fallisce: avviso, e la sveglia resta attiva (Ferma continua a funzionare).
-        const snoozed = Reminders.snoozeAlarm(reminders, activeAlarm, { delay: SNOOZE });
+      if (action === 'alarm-stop') { alarms.stop(); if (!currentRun) controller.set('idle'); return chatSnapshot(); }
+      if (action === 'alarm-snooze' && alarms.active) {
+        // Con l'elenco pieno il rimando fallisce: avviso, e la sveglia resta attiva (Ferma continua a funzionare).
+        const snoozed = alarms.snooze();
         if (snoozed.error) { notice = snoozed.error; return chatSnapshot(); }
-        stopAlarm(); scheduleReminders();
+        scheduleReminders();
         if (!currentRun) controller.set('idle'); notice = infoNotice = `Sveglia rimandata a ${Reminders.formatWhen(snoozed.item.when)}.`; return chatSnapshot();
       }
       if (action === 'new' && !currentRun) { if (agents.snapshot(engine).enabled) agents.reset(engine); else store.set(engine, []); if (engine === 'locale') clearLastFrame(); notice = ''; return chatSnapshot(); }
