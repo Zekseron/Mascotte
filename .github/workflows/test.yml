@@ -19,7 +19,8 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    # Il test dura pochi minuti: il margine serve all'attesa in coda dei runner macOS, a volte molto lunga.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
