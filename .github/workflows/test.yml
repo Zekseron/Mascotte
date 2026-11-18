@@ -42,9 +42,10 @@ jobs:
         working-directory: windows
         run: node --test --test-concurrency=1 "test/*.test.cjs"
   tools:
-    name: Strumenti e visore (macOS)
-    # Strumenti Python (ponte mascotte-notify e integrazione hook) e test del visore.
-    runs-on: macos-latest
+    name: Strumenti e visore (Linux)
+    # Strumenti Python (ponte mascotte-notify e integrazione hook) e test del visore: niente di specifico per macOS.
+    # Su Linux non contendono ai test dell'app i pochi runner macOS (due volte il job è scaduto in coda senza partire).
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
