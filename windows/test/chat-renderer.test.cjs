@@ -1,5 +1,5 @@
 'use strict';
-// Prove di regressione sul codice della chat (renderer/chat.js) eseguito in un contesto `vm` con un DOM finto minimo:
+// Prove di regressione sul codice della chat (renderer/chat-*.js e chat.js) eseguito in un contesto `vm` con un DOM finto minimo:
 // nessuna finestra, nessun Electron. Il finto DOM risponde a qualunque proprietà; qui conta solo cosa fa il gestore provato.
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -7,7 +7,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const source = fs.readFileSync(path.join(__dirname, '..', 'renderer', 'chat.js'), 'utf8');
+// La chat è divisa in più script classici (renderer/chat-*.js e chat.js): si caricano nell'ordine di chat.html,
+// uno dopo l'altro nello stesso contesto, come fa il browser. Così si prova anche che i file si vedono fra loro.
+const RENDERER = path.join(__dirname, '..', 'renderer');
+const scripts = [...fs.readFileSync(path.join(RENDERER, 'chat.html'), 'utf8').matchAll(/<script src="([^"]+)"><\/script>/g)].map(match => match[1]);
+const sources = scripts.map(name => [name, fs.readFileSync(path.join(RENDERER, name), 'utf8')]);
+function runChat(context) {
+  vm.createContext(context);
+  for (const [name, code] of sources) vm.runInContext(code, context, { filename: name });
+}
 
 // invoke(action, data) → valore restituito dal «main» finto; `undefined` simula il fallimento che `invoke` di chat.js assorbe.
 function loadChat(handler) {
@@ -28,7 +36,7 @@ function loadChat(handler) {
     window: { addEventListener() {}, mascotte: { invoke: async (action, data) => { calls.push([action, data]); return action === 'snapshot' && calls.length === 1 ? never : handler(action, data); }, onWatchStop() {}, onChat() {} } },
     localStorage: { getItem: () => null, setItem() {} }, console, setTimeout, clearTimeout, setInterval, clearInterval, URL, Blob: class {}, Audio: class {}
   };
-  vm.runInNewContext(source, context, { filename: 'chat.js' });
+  runChat(context);
   return { listeners, element, calls };
 }
 
@@ -85,7 +93,7 @@ function loadChatDom() {
     window: { addEventListener() {}, mascotte: { invoke: async (action, data) => { calls.push([action, data]); return action === 'snapshot' && calls.length === 1 ? never : handler(action, data); }, onWatchStop() {}, onChat() {} } },
     localStorage: { getItem: () => null, setItem() {} }, console, setTimeout, clearTimeout, setInterval, clearInterval, URL, Blob: class {}, Audio: class {}
   };
-  vm.runInNewContext(source, context, { filename: 'chat.js' });
+  runChat(context);
   const render = vm.runInContext('render', vm.createContext(context));
   return { render, element, serialize, listeners, calls, evaluate: expression => vm.runInContext(expression, context), setHandler: fn => { handler = fn; } };
 }

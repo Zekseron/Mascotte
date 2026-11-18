@@ -59,5 +59,13 @@
   <dialog id="alarm-dialog"><h2>⏰ Sveglia <span id="alarm-time"></span></h2><p id="alarm-text"></p><div class="dialog-actions"><button id="alarm-snooze" type="button">Rimanda 5 minuti</button><button id="alarm-stop" type="button">Ferma</button></div></dialog>
   <dialog id="pc-action-dialog"><h2>Confermare l’azione?</h2><p id="pc-action-description"></p><div class="dialog-actions"><button id="pc-action-cancel" type="button">Annulla</button><button id="pc-action-confirm" type="button">Conferma</button></div></dialog>
   <dialog id="remote-dialog"><h2>Conferma invio remoto</h2><p>Il testo e l’eventuale contesto qui sotto saranno inviati al servizio selezionato usando il tuo account e il relativo utilizzo.</p><select id="remote-engine" aria-label="Servizio remoto"><option value="codex">Codex</option><option value="claude">Claude</option></select><textarea id="remote-text" maxlength="8000" rows="7" aria-label="Testo da inviare"></textarea><p id="remote-image-status"></p><img id="remote-image" alt="Fotogramma da inviare" hidden><label id="remote-image-choice" class="hint" hidden><input id="remote-include-image" type="checkbox" checked> Includi il fotogramma</label><p id="remote-once" class="hint"></p><details><summary>Contesto della conversazione inviato</summary><pre id="remote-context"></pre></details><div class="dialog-actions"><button id="remote-cancel" type="button">Annulla</button><button id="remote-confirm" type="button">Conferma e invia</button></div></dialog>
+  <script src="chat-base.js"></script>
+  <script src="chat-watch.js"></script>
+  <script src="chat-render.js"></script>
+  <script src="chat-agent.js"></script>
+  <script src="chat-characters.js"></script>
+  <script src="chat-alarm.js"></script>
+  <script src="chat-send.js"></script>
+  <script src="chat-frames.js"></script>
   <script src="chat.js"></script>
 </body></html>
