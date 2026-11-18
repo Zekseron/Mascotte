@@ -1,0 +1,55 @@
+name: Test
+# Esegue i test a ogni push su main e su ogni pull request, su Mac e Windows.
+# Non costruisce né pubblica nulla: le release restano in windows-release.yml e PUBBLICAZIONE.md.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  app:
+    name: App (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Install dependencies
+        working-directory: windows
+        run: npm ci
+      # Stesso comando del workflow di release: un test alla volta, perché alcuni
+      # aprono finestre Electron o usano porte e cartelle temporanee condivise.
+      - name: Run tests
+        working-directory: windows
+        run: node --test --test-concurrency=1 "test/*.test.cjs"
+  tools:
+    name: Strumenti e visore (macOS)
+    # Il test del configuratore di distribuzione gira solo su macOS.
+    runs-on: macos-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Python tools tests
+        run: python3 -m unittest discover -s tools/test -p 'test_*.py' -v
+      - name: Viewer tests
+        run: node --test viewer/test/
