@@ -8,6 +8,7 @@ const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, d
 const Platform = require('./lib/platform.cjs');
 const { showMascot, keepAboveTaskbar } = require('./lib/mascot-window.cjs');
 const Capture = require('./lib/capture.cjs');
+const { createWatch } = require('./lib/watch.cjs');
 const can = Platform.capabilities();
 if (process.platform === 'win32') app.setAppUserModelId('local.mascotte.windows');
 const dataDirectory = Platform.dataDirectory({ appData: app.getPath('appData') });
@@ -52,7 +53,7 @@ function startApplication() {
   let agents;
   let characters = [], includedCharacters = [], characterWarnings = [], characterStatus = '', characterStatusFailed = false;
   let attachment = 'free', singing = false, follower, captureFollower, captureTimer, anchorTimer, anchorDisplay, anchorFraction = .8, targetBounds, concealed = false, userVisible = true;
-  let watchSource = null, activeShareDirectory = null, pendingAction = null;
+  let activeShareDirectory = null, pendingAction = null;
   // Secondo parere: l'ultimo fotogramma analizzato dal modello locale resta solo in memoria per 10 minuti
   // (o fino a «Nuova» nella chat locale o alla chiusura), per poterlo mandare a Codex o Claude dopo conferma.
   const FRAME_TTL = 10 * 60 * 1000;
@@ -78,7 +79,7 @@ function startApplication() {
     cliEngines: CLI.ENGINES.filter(e => CLI.findCLI(e)), defaultModel: LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(),
     localEngineLabel: LocalEngines.label(settings?.localEngine), localManaged: LocalEngines.get(LocalEngines.MANAGED).status(), engineStatus, localCatalog: LocalAI.uiCatalog(), installedCache, localScanning,
     deviceName: can.deviceName, memories: memory.list(), pendingAction, setupPreview, reminders: reminders ? reminders.list() : null, activeAlarm: alarms?.active ?? null, lastFrame, watchAvailable: can.watch,
-    hooksAvailable: can.hooks && app.isPackaged, watchSource, pack, characters, characterWarnings, characterStatus, characterStatusFailed,
+    hooksAvailable: can.hooks && app.isPackaged, watchSource: watch.source, pack, characters, characterWarnings, characterStatus, characterStatusFailed,
     managementAvailable: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), hooks: hooksState(), updateRunning, updateStatus, updateFailed,
     viewableFolders: FolderView.viewableFolders(), folderStatus, folderStatusFailed
   });
@@ -293,28 +294,12 @@ function startApplication() {
       placeAttachment();
     }, () => { detach(); if (!automatic && !quitting) dialog.showErrorBox('Aggancio non disponibile', 'Il lettore locale della posizione finestra non è disponibile su questo PC. Puoi usare l’aggancio ' + can.barName + '.'); });
   }
-  // Su Mac la cattura richiede il permesso «Registrazione schermo» (Privacy e sicurezza). Su Windows non serve.
-  const screenPermission = () => process.platform === 'darwin' ? systemPreferences.getMediaAccessStatus('screen') : 'granted';
-  const permissionMessage = status => status === 'restricted'
-    ? 'La registrazione dello schermo è bloccata da un profilo o da Tempo di utilizzo su questo Mac.'
-    : 'Mascotte non ha il permesso «Registrazione schermo». Attivalo in Impostazioni di Sistema > Privacy e sicurezza > Registrazione schermo, poi esci da Mascotte e riaprila.';
-  async function watchSources() {
-    let status = screenPermission();
-    // Prima richiesta: getSources fa comparire la domanda di macOS. Il permesso vale di solito solo dopo il riavvio dell'app.
-    if (status === 'not-determined') { try { await windowSources(); } catch (e) { ErrorLog.error('richiesta permesso registrazione schermo', e); } status = screenPermission(); }
-    if (status !== 'granted') return { permission: status, message: permissionMessage(status) };
-    return windowSources();
-  }
-  async function windowSources() {
-    const sources = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 0, height: 0 }, fetchWindowIcons: false });
-    const ownHandles = new Set([mascot?.getMediaSourceId(), chat?.getMediaSourceId()].filter(Boolean).map(id => id.split(':')[1]));
-    const list = sources.filter(source => source.name?.trim() && /^window:/.test(source.id) && !ownHandles.has(source.id.split(':')[1]))
-      .map(source => ({ id: source.id, name: source.name.slice(0, 160) }));
-    if (process.platform !== 'darwin') return list;
-    // Mac: via le anteprime di Stage Manager e le finestre di servizio. Senza helper si mostra l'elenco completo.
-    const windows = await Capture.listMacWindows(Platform.macHelperPath(), process.pid);
-    return windows ? Capture.filterMacWindows(list, windows) : list;
-  }
+  // Osservazione di una finestra: permesso, elenco delle finestre, finestra scelta (lib/watch.cjs).
+  const watch = createWatch({
+    desktopCapturer, systemPreferences, Capture, macHelperPath: Platform.macHelperPath(), ErrorLog,
+    ownWindows: () => [mascot, chat],
+    onStop: () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-watch-stop'); broadcast(); },
+  });
   // Apre subito app, cartella o file trovati da «apri …», dopo aver ricontrollato che il percorso sia ancora ammesso.
   async function openLocally(command) {
     const label = command.kind === 'file' ? `«${command.name}»` : command.kind === 'folder' ? `la cartella ${command.name}` : command.name || 'l’elemento richiesto';
@@ -322,11 +307,6 @@ function startApplication() {
     try { const error = await shell.openPath(command.target); if (error) return `Non sono riuscito ad aprire ${label}: ${error}`; }
     catch (error) { return `Non sono riuscito ad aprire ${label}: ${error.message}`; }
     return `Apro ${label}.`;
-  }
-  function stopWatching() {
-    watchSource = null;
-    if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-watch-stop');
-    broadcast();
   }
   function clearTemporaryShares() {
     for (const entry of fs.readdirSync(dataDirectory, { withFileTypes: true })) {
@@ -363,7 +343,7 @@ function startApplication() {
       if (can.allSpaces) chat.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true });
       chat.once('ready-to-show', () => { if (can.hideDock) app.focus({ steal: true }); chat.show(); chat.focus(); });
       chat.on('close', event => { if (!quitting) { event.preventDefault(); currentRun?.stop(); if (process.platform === 'win32') chat.minimize(); else chat.hide(); } });
-      chat.webContents.on('render-process-gone', stopWatching);
+      chat.webContents.on('render-process-gone', () => watch.stop());
       // Grandezza e posizione scelte a mano restano per la prossima apertura. Gli spostamenti fatti da showChat non contano.
       let resizeTimer = null;
       chat.on('resize', () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { if (chat.isDestroyed()) return; const { width, height } = chat.getBounds(); settings.chat = { ...settings.chat, width, height }; saveSettings(); }, 400); });
@@ -404,7 +384,7 @@ function startApplication() {
         { label: 'Aggancia alla finestra attiva', type: 'radio', checked: attachment === 'window', enabled: can.windowAttach, click: attachWindow }
       ] },
       { label: 'Osservazione', submenu: [
-        { label: watchSource ? `Interrompi osservazione · ${watchSource.name}` : 'Interrompi osservazione', enabled: Boolean(watchSource), click: stopWatching },
+        { label: watch.source ? `Interrompi osservazione · ${watch.source.name}` : 'Interrompi osservazione', enabled: Boolean(watch.source), click: () => watch.stop() },
         { label: 'Scegli finestra nella micro chat', click: showChat }
       ] },
       ...(pack.perch?.singing ? [{label:'Canta sul bordo (manuale)',type:'checkbox',checked:singing,enabled:attachment!=='free',click:()=>{singing=!singing;updatePose();}}] : []),
@@ -420,7 +400,7 @@ function startApplication() {
   app.on('before-quit', () => {
     updateAbort?.abort();
     quitting = true; reminderScheduler?.stop(); alarms?.stop(); localDownload?.abort(); LocalEngines.shutdown(); currentRun?.stop('Risposta interrotta.', true); controller?.close(); clearInterval(mouseTimer);
-    stopWatching();
+    watch.stop();
     if (activeShareDirectory && fs.existsSync(activeShareDirectory)) { try { fs.rmSync(activeShareDirectory, { recursive: true, force: true }); } catch (e) { ErrorLog.error('cartella immagini condivise non cancellata alla chiusura', e); } }
     activeShareDirectory = null;
     clearTimeout(captureTimer); captureFollower?.close(); captureFollower = null; detach();
@@ -464,7 +444,7 @@ function startApplication() {
     }
     characters=readCharacters();selectCharacter(characters.some(c=>c.id===raw.character)?raw.character:'rosso',true);
     Capture.configureDisplayCapture(session.defaultSession, {
-      getChat: () => chat, getSource: () => watchSource, listSources: windowSources
+      getChat: () => chat, getSource: () => watch.source, listSources: () => watch.windows()
     });
     session.defaultSession.webRequest.onBeforeRequest((details, callback) => callback({ cancel: !details.url.startsWith('file:') && !details.url.startsWith('data:') }));
     const width = Math.round(pack.frame.width * displayScale()),height = Math.round(pack.frame.height * displayScale());
@@ -780,22 +760,22 @@ function startApplication() {
         } catch (error) { updateRunning = false; updateFailed = true; updateStatus = error.message; broadcast(); }
         return chatSnapshot();
       }
-      if (action === 'watch-sources' && can.watch) return watchSources();
+      if (action === 'watch-sources' && can.watch) return watch.windowsWithPermission();
       if (action === 'watch-permission-settings' && can.watch && process.platform === 'darwin') { await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture'); return; }
       // Miniatura della finestra scelta, solo per l'anteprima nella chat: presa qui, mai salvata né inviata.
       if (action === 'watch-thumbnail' && can.watch && typeof data?.id === 'string') {
-        if (screenPermission() !== 'granted') return null;
+        if (watch.permission() !== 'granted') return null;
         const sources = await desktopCapturer.getSources({ types: ['window'], thumbnailSize: { width: 480, height: 300 }, fetchWindowIcons: false });
         const source = sources.find(item => item.id === data.id);
         return source && !source.thumbnail.isEmpty() ? 'data:image/jpeg;base64,' + source.thumbnail.toJPEG(70).toString('base64') : null;
       }
       if (action === 'watch-enable' && can.watch && typeof data?.id === 'string') {
-        if (screenPermission() !== 'granted') { notice = permissionMessage(screenPermission()); return chatSnapshot(); }
-        const sources = await windowSources(), source = sources.find(item => item.id === data.id);
+        if (watch.permission() !== 'granted') { notice = watch.permissionMessage(watch.permission()); return chatSnapshot(); }
+        const sources = await watch.windows(), source = sources.find(item => item.id === data.id);
         if (!source) { notice = 'La finestra non è più disponibile. Aggiorna l’elenco e riprova.'; return chatSnapshot(); }
-        watchSource = source; notice = ''; broadcast(); return { id: source.id, name: source.name };
+        watch.select(source); notice = ''; broadcast(); return { id: source.id, name: source.name };
       }
-      if (action === 'watch-disable') { stopWatching(); return chatSnapshot(); }
+      if (action === 'watch-disable') { watch.stop(); return chatSnapshot(); }
       if (action === 'chat-hide') { if (chat && !chat.isDestroyed() && !currentRun) { if (process.platform === 'win32') chat.minimize(); else chat.hide(); } return null; }
       if (action === 'engine' && !currentRun && [...CLI.ENGINES, 'locale'].includes(data)) { engine = data; engineTouched = true; notice = ''; return chatSnapshot(); }
       // Sveglie e promemoria nelle Impostazioni: elenco con eliminazione, suono (bip o file scelto dal selettore di sistema) e volume.
@@ -892,12 +872,12 @@ function startApplication() {
           image = { bytes: Buffer.from(lastFrame.bytes), name: lastFrame.name };
         } else if (imageData !== null) {
           if (engine === 'locale' && !localVision()) { notice = settings.localEngine !== 'ollama' ? `${LocalEngines.label(settings.localEngine)} non dichiara il supporto alle immagini per questo modello: allegati disattivati.` : 'Il modello locale scelto è solo testuale.'; broadcast(); return; }
-          if (!watchSource || typeof imageData !== 'string' || imageData.length > 12000000) { notice = 'La vista non è più disponibile: attiva l’osservazione e riprova.'; broadcast(); return; }
+          if (!watch.source || typeof imageData !== 'string' || imageData.length > 12000000) { notice = 'La vista non è più disponibile: attiva l’osservazione e riprova.'; broadcast(); return; }
           const encoded = imageData.match(/^data:image\/jpeg;base64,([A-Za-z0-9+/]+={0,2})$/)?.[1];
           if (!encoded) { notice = 'Il fotogramma non è valido.'; broadcast(); return; }
           const bytes = Buffer.from(encoded, 'base64');
           if (bytes.length > 8000000 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes.at(-2) !== 0xff || bytes.at(-1) !== 0xd9) { notice = 'Il fotogramma supera il limite o non è valido.'; broadcast(); return; }
-          image = { bytes, name: watchSource.name };
+          image = { bytes, name: watch.source.name };
         }
         const command = engine === 'locale' ? null : CLI.findCLI(engine);
         if (engine !== 'locale' && !command) { notice = 'CLI non trovata. Installa e accedi a ' + engine + ' sul tuo ' + can.deviceName + '.'; broadcast(); return; }
