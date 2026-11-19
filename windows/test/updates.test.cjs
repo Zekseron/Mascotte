@@ -50,7 +50,7 @@ function setup(overrides = {}) {
     can: { management: overrides.management ?? true, packageName: 'Mascotte-Mac-0.9.9-arm64.zip' },
     isPackaged: overrides.isPackaged ?? true, appVersion: '0.9.8',
     execPath: '/Applications/Mascotte.app/Contents/MacOS/Mascotte', resourcesPath: '/Applications/Mascotte.app/Contents/Resources',
-    dataDirectory, platform: 'darwin',
+    dataDirectory, platform: overrides.platform ?? 'darwin',
   });
   return { updates, log, dataDirectory, repoPath: () => repoPath, cleanup: () => fs.rmSync(dataDirectory, { recursive: true, force: true }) };
 }
@@ -182,4 +182,22 @@ test('esito del precedente aggiornamento letto all\'avvio, con nota aggiunta', (
   updates.appendStatus(' Premi Crea / aggiorna hook.');
   assert.deepEqual([updates.failed, updates.status], [false, 'Mascotte aggiornata alla 0.9.9. Premi Crea / aggiorna hook.']);
   cleanup();
+});
+
+test('conferma: cosa succede alla versione installata, per sistema (release e sorgenti)', async () => {
+  const expected = {
+    darwin: 'la versione attuale viene sostituita e, se l’installazione non riesce, rimessa al suo posto.',
+    win32: 'la versione precedente viene conservata come backup.',
+  };
+  for (const platform of ['darwin', 'win32']) {
+    const { updates, log, cleanup } = setup({ platform, confirm: false, repoPath: '/Users/prova/Mascotte' });
+    await updates.checkRelease();
+    await updates.runRepositoryUpdate();
+    assert.equal(log.confirms.length, 2, platform);
+    for (const confirm of log.confirms) {
+      assert.ok(confirm.detail.includes(`Mascotte si chiude e si riavvia; ${expected[platform]}`), `${platform}: ${confirm.detail}`);
+      if (platform === 'darwin') assert.ok(!confirm.detail.includes('conservata come backup'), 'su Mac nessuna promessa di backup');
+    }
+    cleanup();
+  }
 });

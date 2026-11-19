@@ -23,6 +23,11 @@ function createUpdates({
   const movedNote = (installDir, text) => Updater.currentLocation(execPath).toLowerCase() !== installDir.toLowerCase() ? text : '';
   // Mac: la vecchia app Swift in Applicazioni (altro identificativo) viene salvata in un ZIP prima di essere sostituita.
   const backupNote = installDir => platform === 'darwin' && fs.existsSync(installDir) && installDir !== Updater.currentLocation(execPath) ? `\n\nSe in ${installDir} c’è un’altra app Mascotte (per esempio la vecchia app Swift), ne viene fatto prima un backup ZIP in ${path.join(dataDirectory, 'backup')}.` : '';
+  // Cosa succede alla versione installata: su Windows resta come Mascotte.backup-<data>; su Mac l'installatore la
+  // sposta da parte, la rimette al suo posto se l'installazione fallisce e la cancella se riesce (install-update.cjs).
+  const previousNote = () => platform === 'darwin'
+    ? 'la versione attuale viene sostituita e, se l’installazione non riesce, rimessa al suo posto.'
+    : 'la versione precedente viene conservata come backup.';
   const installerFiles = () => ({
     resultFile: path.join(dataDirectory, 'update-result.json'), logFile: path.join(dataDirectory, 'update.log'),
     previousExe: execPath, dataDir: dataDirectory, helperScript: path.join(resourcesPath, 'mascotte-updater.cjs'),
@@ -72,7 +77,7 @@ function createUpdates({
       const installDir = Updater.installationDirectory(execPath, repo || dataDirectory, dataDirectory);
       const confirmed = await confirmDialog({ title: 'Aggiorna Mascotte',
         message: `Installare Mascotte ${release.version}?`,
-        detail: `Il pacchetto ${can.packageName} verrà scaricato dalla release ufficiale e verificato prima dell’installazione.\nDestinazione: ${installDir}\n\nMascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${movedNote(installDir, '\n\nDopo il riavvio aggiorna gli hook per collegarli al nuovo percorso.')}${backupNote(installDir)}` }, 'Aggiorna e riavvia', 1);
+        detail: `Il pacchetto ${can.packageName} verrà scaricato dalla release ufficiale e verificato prima dell’installazione.\nDestinazione: ${installDir}\n\nMascotte si chiude e si riavvia; ${previousNote()}${movedNote(installDir, '\n\nDopo il riavvio aggiorna gli hook per collegarli al nuovo percorso.')}${backupNote(installDir)}` }, 'Aggiorna e riavvia', 1);
       if (!confirmed) { running = false; abort = null; status = 'Aggiornamento annullato.'; broadcast(); return; }
       void installPublishedRelease(release).catch(error => {
         running = false; failed = true; status = `Aggiornamento non riuscito: ${error.message}`; broadcast();
@@ -101,7 +106,7 @@ function createUpdates({
     try {
       const repo = Updater.validateRepository(getRepoPath(), { requireClean: true });
       const installDir = Updater.installationDirectory(execPath, repo.root, dataDirectory);
-      const confirmed = await confirmDialog({ title: 'Aggiorna Mascotte', message: 'Scaricare, compilare e installare l’aggiornamento?', detail: `Repo: ${repo.root}\nDestinazione: ${installDir}\n\nServono Git e Node.js 22+ con npm. La repo viene aggiornata con git pull --ff-only. A fine build Mascotte si chiude e si riavvia; la versione precedente viene conservata come backup.${movedNote(installDir, '\n\nL’app verrà installata in una cartella stabile: dopo il riavvio premi Crea / aggiorna hook per collegarli al nuovo percorso.')}${backupNote(installDir)}` }, 'Aggiorna e riavvia', 1);
+      const confirmed = await confirmDialog({ title: 'Aggiorna Mascotte', message: 'Scaricare, compilare e installare l’aggiornamento?', detail: `Repo: ${repo.root}\nDestinazione: ${installDir}\n\nServono Git e Node.js 22+ con npm. La repo viene aggiornata con git pull --ff-only. A fine build Mascotte si chiude e si riavvia; ${previousNote()}${movedNote(installDir, '\n\nL’app verrà installata in una cartella stabile: dopo il riavvio premi Crea / aggiorna hook per collegarli al nuovo percorso.')}${backupNote(installDir)}` }, 'Aggiorna e riavvia', 1);
       if (!confirmed) { running = false; broadcast(); return; }
       abort = new AbortController();
       void installRepositoryUpdate(repo).catch(error => {
