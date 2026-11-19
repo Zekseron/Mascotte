@@ -7,7 +7,15 @@ const os = require('node:os');
 const path = require('node:path');
 const { createUpdates } = require('../lib/updates.cjs');
 
-const tick = () => new Promise(resolve => setImmediate(resolve));
+// Attende una condizione con un tempo reale: download, estrazione e cancellazioni finti finiscono subito, ma la
+// pulizia della cartella di lavoro è un'operazione vera sul disco (su Windows può richiedere più tempo).
+async function waitFor(condition, what, ms = 5000) {
+  const end = Date.now() + ms;
+  while (!condition()) {
+    if (Date.now() > end) throw new Error(`attesa scaduta: ${what}`);
+    await new Promise(resolve => setTimeout(resolve, 10));
+  }
+}
 
 function setup(overrides = {}) {
   const dataDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'mascotte-aggiornamenti-'));
@@ -85,7 +93,7 @@ test('conferma: scarica, verifica, avvia l\'installatore con i file giusti e chi
   const { updates, log, dataDirectory, cleanup } = setup();
   await updates.checkRelease();
   assert.equal(updates.running, true, 'resta in corso finché l\'app non si chiude');
-  await tick(); await tick(); await tick();
+  await waitFor(() => log.quit === 1, 'chiusura dell\'app dopo l\'avvio dell\'installatore');
   assert.deepEqual(log.statuses, ['Controllo le versioni disponibili…', 'Scarico Mascotte 0.9.9…', 'Verifica completata. Preparo l’installazione…']);
   const [installer] = log.installers, work = log.downloads[0];
   assert.ok(work.startsWith(path.join(dataDirectory, 'release-update-')) && fs.existsSync(work), 'cartella di lavoro lasciata all\'installatore');
@@ -103,7 +111,7 @@ test('conferma: scarica, verifica, avvia l\'installatore con i file giusti e chi
 test('download rifiutato: errore, operazione libera, cartella di lavoro tolta', async () => {
   const { updates, log, cleanup } = setup({ downloadFails: true });
   await updates.checkRelease();
-  for (let i = 0; i < 10 && updates.running; i++) await tick();
+  await waitFor(() => !updates.running, 'fine dell\'aggiornamento fallito');
   assert.deepEqual([updates.running, updates.failed, updates.status], [false, true, 'Aggiornamento non riuscito: impronta SHA-256 diversa']);
   assert.ok(!fs.existsSync(log.downloads[0]));
   assert.equal(log.quit, 0);
@@ -119,7 +127,7 @@ test('un secondo «Controlla» mentre il primo è in corso non fa nulla; chiuder
   assert.equal(log.statuses.length, statuses);
   updates.stop();
   assert.equal(log.signals[0].aborted, true);
-  for (let i = 0; i < 10 && updates.running; i++) await tick();
+  await waitFor(() => log.quit === 1 || !updates.running, 'conclusione dopo l\'interruzione');
   cleanup();
 });
 
@@ -156,7 +164,7 @@ test('aggiornamento dai sorgenti: repo con modifiche rifiutata; confermato compi
   cleanup();
   ({ updates, log, cleanup } = setup({ repoPath: '/Users/prova/Mascotte' }));
   await updates.runRepositoryUpdate();
-  for (let i = 0; i < 10 && !log.quit; i++) await tick();
+  await waitFor(() => log.quit === 1, 'chiusura dell\'app dopo la build');
   assert.deepEqual(log.statuses.slice(-3), ['Scarico le modifiche…', 'Compilo…', 'Pacchetto pronto. Chiudo Mascotte per installare e riavviare…']);
   assert.equal(log.installers[0].runtime, '/tmp/build/Mascotte.app');
   assert.equal(log.installers[0].installDir, '/Applications/Mascotte.app');
