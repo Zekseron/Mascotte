@@ -918,8 +918,10 @@ function startApplication() {
   const MASCOT_ACTIONS = [mascotActions];
   const CHAT_ACTIONS = [chatAgentActions, localEngineActions, memoryAndPcActions, guideActions, releaseUpdateActions, characterActions, folderActions, repoUpdateActions, watchActions, chatWindowActions, reminderActions, conversationActions, setupActions, sendAction];
   ipcMain.handle('mascotte', async (event, action, data) => {
-    const kitty = event.sender === mascot?.webContents;
-    const chatting = event.sender === chat?.webContents;
+    // Una finestra già distrutta (solo all'uscita dell'app) non si interroga: leggerne webContents genera un errore.
+    const alive = win => Boolean(win) && !win.isDestroyed();
+    const kitty = alive(mascot) && event.sender === mascot.webContents;
+    const chatting = alive(chat) && event.sender === chat.webContents;
     const expected = pathToFileURL(views(kitty ? 'mascot' : 'chat')).href;
     if ((!kitty && !chatting) || event.senderFrame !== event.sender.mainFrame || event.senderFrame.url !== expected) throw new Error('Interfaccia non autorizzata.');
     for (const group of kitty ? MASCOT_ACTIONS : CHAT_ACTIONS) {

@@ -73,6 +73,10 @@ test('controllo del mittente e rifiuto finale: una sola volta ciascuno', () => {
   assert.match(check, /event\.senderFrame !== event\.sender\.mainFrame/);
   assert.match(check, /event\.senderFrame\.url !== expected/);
   assert.match(check, /\(!kitty && !chatting\)/);
+  // Le finestre distrutte (all'uscita) non vengono interrogate.
+  assert.match(check, /const kitty = alive\(mascot\) && /);
+  assert.match(check, /const chatting = alive\(chat\) && /);
+  assert.match(check, /!win\.isDestroyed\(\)/);
 });
 
 test('B5: cambio di motore o modello rifiutato durante risposta, download o aggiornamento, prima dei loro gestori', () => {
