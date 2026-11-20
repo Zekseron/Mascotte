@@ -66,7 +66,7 @@ In alternativa installa [Ollama per Windows](https://ollama.com/download/windows
 
 ## Stato delle prove
 
-Su Windows x64 sono stati collaudati i comandi locali, i promemoria e le sveglie, l’aggiunta di cartelle e mascotte, la cattura di un fotogramma con un modello locale, l’anteprima degli hook, l’invio di testo a Codex e l’installazione di llama.cpp. Il percorso con un account Claude reale resta da verificare.
+Su Windows x64 sono stati collaudati i comandi locali, i promemoria e le sveglie, l’aggiunta di cartelle e mascotte, la cattura di un fotogramma con un modello locale, l’anteprima degli hook, l’invio di testo a Codex e Claude dalla micro chat e l’installazione di llama.cpp. La modalità Agente con un account Claude reale resta da verificare.
 
 ## Rimuovere
 

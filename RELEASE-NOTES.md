@@ -13,6 +13,7 @@ Questa release aggiorna **Windows x64** e **Mac Apple Silicon**.
 
 - Il codice principale dell’app è stato riorganizzato in parti più piccole (promemoria e sveglie, osservazione delle finestre, aggiornamenti, azioni delle finestre, chat), senza cambiare il comportamento.
 - Verifiche: test automatici su macOS, Windows e Linux a ogni modifica (oltre 300); prove d’uso sul Mac di chat locale, note, «apri», colori delle mascotte, mascotte personali, cartelle visibili, sveglia e promemoria, osservazione di una finestra, invio a Codex e aggiornamento dall’app.
+- Su Windows x64 sono stati verificati anche l’invio di testo a Codex e Claude dalla micro chat, i selettori nativi di cartelle e mascotte, i promemoria e l’installazione di llama.cpp.
 
 ## Aggiornamento
 
