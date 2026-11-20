@@ -1,6 +1,6 @@
 # Mascotte su Windows
 
-Guida per chi riceve l'app Windows, anteprima 0.9.8 (sorgenti in `windows/`). La base Electron è condivisa con il Mac; la nuova modalità Agente non è ancora collaudata sul Mac. Per il Mac vedi [LEGGIMI.md](LEGGIMI.md).
+Guida per chi riceve l'app Windows, anteprima 0.9.9 (sorgenti in `windows/`). La base Electron è condivisa con il Mac; la nuova modalità Agente non è ancora collaudata sul Mac. Per il Mac vedi [LEGGIMI.md](LEGGIMI.md).
 
 Con Codex e Claude puoi scegliere **Chat** oppure **Agente · file e comandi**. In Agente scegli prima una cartella e assegna un compito; attività, modifiche e richieste di permesso compaiono nella finestra. Cronologie e sessioni sono separate dalla chat normale. Guida e limiti dell'anteprima: [AGENTI.md](AGENTI.md). Codex provato realmente su Windows; Claude richiede ancora un collaudo con account reale.
 
@@ -61,12 +61,12 @@ In alternativa installa [Ollama per Windows](https://ollama.com/download/windows
 - Aggancio alla barra delle applicazioni invece che al Dock.
 - Installer disponibile oltre allo ZIP, non firmato digitalmente.
 - Motore locale predefinito llama.cpp (Mascotte) invece di Ollama, modelli Ollama proposti diversi e Ollama avviabile dall'app (vedi sopra).
-- Le azioni locali aprono solo Calcolatrice e cartelle (su Mac anche le app installate).
+- Le azioni locali cercano le app installate nei collegamenti del menu Start e aprono cartelle e file riconosciuti nelle cartelle visibili.
 - Nessun permesso di sistema per l'osservazione.
 
 ## Stato delle prove
 
-Il trascinamento, l'interfaccia, l'aggiornamento con riavvio e la cattura di una finestra sintetica sono stati verificati su Windows. Gli invii remoti di testo e immagini sono stati collaudati con CLI simulate. Il codice comune modificato durante il porting su Mac (comandi locali, cartelle, motori locali, errore di Claude, ordine degli hook) richiede ancora un nuovo collaudo su un PC Windows reale prima del prossimo rilascio. Dettagli in `windows/README.md` nella repo.
+Su Windows x64 sono stati collaudati i comandi locali, i promemoria e le sveglie, l’aggiunta di cartelle e mascotte, la cattura di un fotogramma con un modello locale, l’anteprima degli hook, l’invio di testo a Codex e l’installazione di llama.cpp. Il percorso con un account Claude reale resta da verificare.
 
 ## Rimuovere
 

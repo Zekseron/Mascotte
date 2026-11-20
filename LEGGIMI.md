@@ -2,7 +2,7 @@
 
 Una mascotte animata con micro chat Claude/Codex, chat con IA locale, osservazione facoltativa di una finestra e reazioni agli eventi locali. Questa guida serve a chi riceve l'app già pronta. Gli account e le conversazioni del creatore non sono inclusi.
 
-**Versioni distribuite: 0.9.9 per Mac Apple Silicon e 0.9.8 per Windows.** Le due piattaforme possono ricevere aggiornamenti in momenti diversi.
+**Versioni distribuite: 0.9.9 per Mac Apple Silicon e Windows x64.** Le due piattaforme possono ricevere aggiornamenti in momenti diversi.
 
 ## Cosa funziona oggi
 

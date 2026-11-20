@@ -1,4 +1,4 @@
-# Mascotte — Windows 0.9.8 e Mac 0.9.9
+# Mascotte — Windows 0.9.9 e Mac 0.9.9
 
 La nuova [modalità Agente](../AGENTI.md) è verificata su Windows con Codex; Claude reale e le nuove funzioni comuni sul Mac restano da collaudare. La chat normale e quella locale restano disponibili separatamente.
 
@@ -8,9 +8,9 @@ Prima app Windows: gattino Rosso trasparente e trascinabile, menu nell'area di n
 
 ## Installare su Windows
 
-Apri `Mascotte-Setup-0.9.8-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
+Apri `Mascotte-Setup-0.9.9-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
 
-In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Installer e ZIP Windows sono nella release 0.9.8; il pacchetto Mac Apple Silicon più recente è nella release 0.9.9.
+In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Installer e ZIP Windows sono nella [release 0.9.9](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.9), insieme al pacchetto Mac Apple Silicon.
 
 ### Feedback e identificazione della build
 
@@ -34,7 +34,7 @@ Se manca spazio sopra una finestra massimizzata, la mascotte resta dentro l'area
 
 Il seguito della finestra usa un processo PowerShell locale con API User32/DWM e legge solo coordinate, PID e visibilità: l'aggancio non acquisisce immagini o testo. La chat offre separatamente l'osservazione locale di una finestra, che resta spenta finché non la attivi. Cattura, arresto e conferma del fotogramma sono stati verificati su Windows con una finestra sintetica e CLI simulate locali; le risposte visive dei servizi IA con account reali restano da provare.
 
-1. Per la versione portatile, estrai **tutto** `Mascotte-Windows-0.9.8-x64.zip` in una cartella stabile del tuo utente, per esempio `Mascotte` dentro la tua cartella utente. Non eseguire l'exe dentro lo ZIP. Mantieni accanto all'exe DLL, `resources/` e gli altri file.
+1. Per la versione portatile, estrai **tutto** `Mascotte-Windows-0.9.9-x64.zip` in una cartella stabile del tuo utente, per esempio `Mascotte` dentro la tua cartella utente. Non eseguire l'exe dentro lo ZIP. Mantieni accanto all'exe DLL, `resources/` e gli altri file.
 2. Apri `Mascotte.exe`. Non serve avviarlo come amministratore. Il pacchetto non è ancora firmato: SmartScreen chiede conferma (**Ulteriori informazioni** → **Esegui comunque**) e il Controllo intelligente delle app di Windows 11, se attivo, blocca Mascotte finché non lo disattivi (vedi [WINDOWS.md](../WINDOWS.md)). Verifica provenienza e pacchetto prima di autorizzarlo.
 3. Il gattino compare in basso a destra. Trascinalo per spostarlo. Clic sinistro apre la micro chat; clic destro e icona nell'area di notifica aprono il menu con grandezza, stati, mostra/nascondi ed Esci.
 4. Per la chat scegli Ollama locale oppure installa **Codex CLI e/o Claude Code nativi Windows** e accedi con il tuo account. Per i servizi remoti non basta il solo accesso nel browser; questa anteprima non collega automaticamente le CLI dentro WSL.
