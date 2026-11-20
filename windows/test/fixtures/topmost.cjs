@@ -24,7 +24,8 @@ app.whenReady().then(async () => {
     }
     if (restored && fs.existsSync(path.join(process.env.MASCOTTE_TOPMOST_TEST_PROFILE, 'cover'))) {
       fs.unlinkSync(path.join(process.env.MASCOTTE_TOPMOST_TEST_PROFILE, 'cover'));
-      cover.setAlwaysOnTop(true); cover.moveTop(); cover.focus(); console.log('covered');
+      // Usa lo stesso livello della mascotte, così la copertura simula una finestra topmost di sistema.
+      cover.setAlwaysOnTop(true, 'screen-saver'); cover.moveTop(); cover.focus(); console.log('covered');
     }
     if (fs.existsSync(path.join(process.env.MASCOTTE_TOPMOST_TEST_PROFILE, 'reassert'))) {
       clearInterval(timer); keepAboveTaskbar(mascot);
