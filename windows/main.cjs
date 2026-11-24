@@ -64,6 +64,36 @@ function startApplication() {
   let reminders = null, reminderScheduler = null, alarms = null; // alarms: scatto di promemoria e sveglie (lib/alarms.cjs)
   // Il pianificatore parte solo a fine avvio: prima dello start, reschedule non fa nulla.
   function scheduleReminders() { reminderScheduler?.reschedule(); }
+  // Fumetto della mascotte (lib/bubble.cjs): con l'impostazione «fumetto» e la mascotte visibile, gli avvisi di Mascotte
+  // compaiono accanto al personaggio invece che come notifiche di sistema. Coda solo in memoria.
+  const Bubble = require('./lib/bubble.cjs');
+  let bubbleWindow = null, bubbleHeight = 0;
+  const bubbleReady = () => Boolean(mascot) && !mascot.isDestroyed() && mascot.isVisible() && !quitting;
+  const bubbleQueue = Bubble.createBubbleQueue({ onChange: items => syncBubble(items) });
+  const MascotteNotification = Bubble.createNoticeRouter({ Notification, mode: () => settings?.notices, bubbleReady, queue: bubbleQueue, beep: () => shell.beep() });
+  // Nuovo elenco: la finestra lo disegna e comunica l'altezza (azione bubble-size), solo allora si posiziona e compare.
+  function syncBubble(items = bubbleQueue.list()) {
+    if (quitting) return;
+    if (!items.length) { bubbleHeight = 0; if (bubbleWindow && !bubbleWindow.isDestroyed()) { bubbleWindow.hide(); bubbleWindow.webContents.send('mascotte-bubble', items); } return; }
+    if (!bubbleWindow || bubbleWindow.isDestroyed()) {
+      bubbleHeight = 0;
+      bubbleWindow = safeWindow('bubble', { width: Bubble.WIDTH, height: 60, frame: false, transparent: true, backgroundColor: '#00000000', alwaysOnTop: true, skipTaskbar: true, resizable: false, minimizable: false, maximizable: false, fullscreenable: false, thickFrame: false, focusable: false, show: false, hasShadow: false });
+      if (can.allSpaces) { bubbleWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true }); bubbleWindow.setAlwaysOnTop(true, 'screen-saver'); }
+      return; // appena caricata chiede l'elenco con bubble-init
+    }
+    bubbleWindow.webContents.send('mascotte-bubble', items);
+  }
+  function placeBubble() {
+    if (!bubbleWindow || bubbleWindow.isDestroyed() || !bubbleHeight || !mascot || mascot.isDestroyed()) return;
+    const b = mascot.getBounds(), p = Bubble.bubblePlacement(b, { width: Bubble.WIDTH, height: bubbleHeight }, screen.getDisplayMatching(b).workArea);
+    bubbleWindow.setBounds({ x: p.x, y: p.y, width: p.width, height: p.height });
+  }
+  // Il fumetto segue la mascotte: compare solo se lei è visibile, si nasconde con lei e ricompare quando torna.
+  function showBubble() {
+    if (!bubbleWindow || bubbleWindow.isDestroyed()) { if (bubbleQueue.size) syncBubble(); return; }
+    if (!bubbleReady() || !bubbleQueue.size || !bubbleHeight) { bubbleWindow.hide(); return; }
+    placeBubble(); showMascot(bubbleWindow);
+  }
   function clearLastFrame() { clearTimeout(lastFrameTimer); lastFrameTimer = null; if (lastFrame) { lastFrame.bytes.fill(0); lastFrame = null; } }
   function keepLastFrame(bytes, name, message, reply) {
     clearLastFrame(); lastFrame = { bytes: Buffer.from(bytes), name, message, reply: String(reply).slice(0, 80), expiresAt: Date.now() + FRAME_TTL };
@@ -156,6 +186,7 @@ function startApplication() {
   function moveMascot(x, y) {
     // Always provide the intended size: moving between DPI contexts must not accumulate size changes.
     mascot.setBounds({ x: Math.round(x), y: Math.round(y), ...mascotSize(pack, settings.scale) });
+    placeBubble();
   }
   function updatePose() { if(controller && mascot && !mascot.isDestroyed() && !quitting) mascot.webContents.send('mascotte-state',{animation:stateAnimation()}); }
   // Colori personalizzati del personaggio attuale: { parte: '#rrggbb' } solo per le parti che ha davvero.
@@ -272,7 +303,7 @@ function startApplication() {
   // Osservazione di una finestra: permesso, elenco delle finestre, finestra scelta (lib/watch.cjs).
   const watch = createWatch({
     desktopCapturer, systemPreferences, Capture, macHelperPath: Platform.macHelperPath(), ErrorLog,
-    ownWindows: () => [mascot, chat],
+    ownWindows: () => [mascot, chat, bubbleWindow],
     onStop: () => { if (chat && !chat.isDestroyed()) chat.webContents.send('mascotte-watch-stop'); broadcast(); },
   });
   // Apre subito app, cartella o file trovati da «apri …», dopo aver ricontrollato che il percorso sia ancora ammesso.
@@ -399,7 +430,7 @@ function startApplication() {
     memory = new LocalAI.LocalMemory(chatDirectory);
     reminders = new Reminders.ReminderStore(path.join(dataDirectory, 'reminders.json'));
     alarms = createAlarms({
-      store: reminders, Notification, ErrorLog, showChat, broadcast,
+      store: reminders, Notification: MascotteNotification, ErrorLog, showChat, broadcast,
       notify: (text, { info }) => { notice = text; if (info) infoNotice = text; },
       setWaiting: () => { if (!currentRun) controller.set('waiting'); },
     });
@@ -429,6 +460,7 @@ function startApplication() {
     if (can.allSpaces) { if (can.hideDock) app.dock?.hide(); mascot.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true, skipTransformProcessType: true }); mascot.setAlwaysOnTop(true, 'screen-saver'); }
     mascot.setIgnoreMouseEvents(true, { forward: true });
     mascot.once('ready-to-show', () => showMascot(mascot));
+    mascot.on('show', showBubble); mascot.on('hide', showBubble);
     controller.set('idle');
     if (settings.attachment === 'bar') attachBar();
     mouseTimer = setInterval(updateHit, 100);
@@ -610,7 +642,8 @@ function startApplication() {
             if (selectedAction.when <= Date.now()) throw new Error('l’orario è già passato.');
             reminders.add(selectedAction); scheduleReminders(); notice = infoNotice = `${selectedAction.alarm ? 'Sveglia impostata' : 'Promemoria impostato'} per ${Reminders.formatWhen(selectedAction.when)}.`;
             // Notifica di conferma subito: la prima volta il sistema chiede qui il permesso, così quella alla scadenza non va persa.
-            if (Notification.isSupported()) new Notification({ title: 'Mascotte', body: notice, silent: true }).show();
+            // Con il fumetto scelto e la mascotte visibile compare invece nel fumetto (lib/bubble.cjs).
+            if (MascotteNotification.isSupported()) new MascotteNotification({ title: 'Mascotte', body: notice, silent: true }).show();
           }
           else {
             if (!LocalCommands.validateTarget(selectedAction.target, { extraFolders: settings.extraFolders, dataDir: dataDirectory })) throw new Error(selectedAction.extraName ? ExtraFolders.goneMessage(selectedAction.extraName) : 'l’app o la cartella non è più disponibile o non è in una posizione ammessa.');
@@ -751,6 +784,14 @@ function startApplication() {
   async function reminderActions(action, data) {
       // Sveglie e promemoria nelle Impostazioni: elenco con eliminazione, suono (bip o file scelto dal selettore di sistema) e volume.
       if (action === 'reminder-remove' && typeof data === 'string') { reminders.remove(data); scheduleReminders(); return chatSnapshot(); }
+      // Dove compaiono gli avvisi di Mascotte: nel fumetto accanto alla mascotte o come notifiche di sistema, più una prova.
+      if (action === 'notice-style' && typeof data === 'string') { settings.notices = Bubble.normalizeMode(data); saveSettings(); if (settings.notices === 'sistema') bubbleQueue.clear(); return chatSnapshot(); }
+      if (action === 'notice-test') {
+        if (!MascotteNotification.isSupported()) { notice = 'Le notifiche di sistema non sono disponibili su questo computer.'; return chatSnapshot(); }
+        const where = new MascotteNotification({ title: 'Mascotte', body: 'Avviso di prova: gli avvisi di Mascotte compaiono così.', silent: true }).show();
+        notice = infoNotice = where === 'fumetto' ? 'Avviso di prova mostrato nel fumetto.' : settings.notices === 'fumetto' ? 'La mascotte è nascosta: l’avviso di prova è arrivato come notifica di sistema.' : 'Avviso di prova inviato come notifica di sistema.';
+        return chatSnapshot();
+      }
       if (action === 'alarm-volume' && typeof data === 'number') { settings.alarmVolume = AlarmSound.normalizeVolume(data); saveSettings(); return chatSnapshot(); }
       if (action === 'alarm-sound-data') return settings.alarmSound === 'custom' ? AlarmSound.readSound(dataDirectory) : null;
       if (action === 'alarm-sound-remove') { AlarmSound.removeSound(dataDirectory); settings.alarmSound = 'beep'; settings.alarmSoundName = ''; saveSettings(); notice = infoNotice = 'Suono della sveglia: tornato al bip.'; return chatSnapshot(); }
@@ -830,7 +871,7 @@ function startApplication() {
           if (reminder?.error) return replyNow(reminder.error);
           if (reminder) {
             reply('Posso impostarlo: controlla e conferma.');
-            pendingAction = { id: randomUUID(), kind: 'reminder', description: `Impostare ${reminder.alarm ? 'una sveglia' : 'un promemoria'} per ${Reminders.formatWhen(reminder.when)}: «${reminder.text}». Riceverai una notifica di sistema.`, when: reminder.when.getTime(), text: reminder.text, alarm: reminder.alarm };
+            pendingAction = { id: randomUUID(), kind: 'reminder', description: `Impostare ${reminder.alarm ? 'una sveglia' : 'un promemoria'} per ${Reminders.formatWhen(reminder.when)}: «${reminder.text}». ${settings.notices === 'sistema' ? 'Riceverai una notifica di sistema.' : 'Te lo dirò nel fumetto accanto alla mascotte (se è nascosta, con una notifica di sistema).'}`, when: reminder.when.getTime(), text: reminder.text, alarm: reminder.alarm };
             broadcast(); return chatSnapshot();
           }
           // Comandi gestiti da Mascotte, non dal modello: azioni predefinite e note, sempre con conferma.
@@ -917,14 +958,24 @@ function startApplication() {
   }
   const MASCOT_ACTIONS = [mascotActions];
   const CHAT_ACTIONS = [chatAgentActions, localEngineActions, memoryAndPcActions, guideActions, releaseUpdateActions, characterActions, folderActions, repoUpdateActions, watchActions, chatWindowActions, reminderActions, conversationActions, setupActions, sendAction];
+  // Fumetto: elenco iniziale, altezza del contenuto, chiusura di un avviso, apertura della chat da un avviso.
+  async function bubbleActions(action, data) {
+      if (action === 'bubble-init') return bubbleQueue.list();
+      if (action === 'bubble-size' && Number.isFinite(data) && data >= 0) { bubbleHeight = Math.min(Math.round(data), Bubble.MAX_HEIGHT); showBubble(); return; }
+      if (action === 'bubble-dismiss' && typeof data === 'string') { bubbleQueue.remove(data); return; }
+      if (action === 'bubble-open' && typeof data === 'string') { bubbleQueue.remove(data); showChat(); return; }
+      return NEXT;
+  }
+  const BUBBLE_ACTIONS = [bubbleActions];
   ipcMain.handle('mascotte', async (event, action, data) => {
     // Una finestra già distrutta (solo all'uscita dell'app) non si interroga: leggerne webContents genera un errore.
     const alive = win => Boolean(win) && !win.isDestroyed();
     const kitty = alive(mascot) && event.sender === mascot.webContents;
     const chatting = alive(chat) && event.sender === chat.webContents;
-    const expected = pathToFileURL(views(kitty ? 'mascot' : 'chat')).href;
-    if ((!kitty && !chatting) || event.senderFrame !== event.sender.mainFrame || event.senderFrame.url !== expected) throw new Error('Interfaccia non autorizzata.');
-    for (const group of kitty ? MASCOT_ACTIONS : CHAT_ACTIONS) {
+    const bubbling = alive(bubbleWindow) && event.sender === bubbleWindow.webContents;
+    const expected = pathToFileURL(views(kitty ? 'mascot' : bubbling ? 'bubble' : 'chat')).href;
+    if ((!kitty && !chatting && !bubbling) || event.senderFrame !== event.sender.mainFrame || event.senderFrame.url !== expected) throw new Error('Interfaccia non autorizzata.');
+    for (const group of kitty ? MASCOT_ACTIONS : bubbling ? BUBBLE_ACTIONS : CHAT_ACTIONS) {
       const result = await group(action, data);
       if (result !== NEXT) return result;
     }

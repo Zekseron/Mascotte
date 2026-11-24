@@ -151,6 +151,7 @@ function render(value) {
   $('alarm-sound-name').textContent = alarmSettings.sound === 'custom' ? alarmSettings.name || 'audio personalizzato' : 'bip';
   $('alarm-sound-remove').disabled = alarmSettings.sound !== 'custom';
   if (document.activeElement !== $('alarm-volume')) $('alarm-volume').value = alarmSettings.volume;
+  $('notice-style').value = alarmSettings.notices === 'sistema' ? 'sistema' : 'fumetto';
   $('alarm-sound-test').textContent = alarmTesting ? 'Ferma prova' : 'Prova suono';
   $('sum-note').textContent = noteCount ? `${noteCount} ${noteCount === 1 ? 'nota' : 'note'}` : 'Nessuna nota';
   $('sum-cartelle').textContent = `${folderCount} ${folderCount === 1 ? 'cartella' : 'cartelle'}`;
