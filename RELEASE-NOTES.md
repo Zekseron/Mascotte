@@ -1,22 +1,24 @@
-# Mascotte 0.9.9 — Windows e Mac
+# Mascotte 0.10.0 — Mac
 
-Questa release aggiorna **Windows x64** e **Mac Apple Silicon**.
+Questa release aggiorna **Mac Apple Silicon**. Su Windows la versione disponibile resta la **0.9.9**. [Release Windows 0.9.9](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.9)
 
 ## Novità
 
-- **Registro locale degli errori.** Gli errori interni che prima passavano in silenzio (per esempio una notifica di promemoria che non si mostra o una cartella temporanea di immagini che non si riesce a cancellare) vengono annotati in `errori.log`, nella cartella dati. Contiene solo data, tipo e messaggio dell’errore, con la tua cartella personale scritta `~`: mai testi di chat, note, prompt o contenuti di file. Resta sul computer, non viene inviato e non supera 256 KB (più la copia precedente). Dettagli in [PRIVACY.md](https://github.com/Zekseron/Mascotte/blob/main/PRIVACY.md).
-- **Conferma di aggiornamento più precisa.** Su Windows la versione precedente viene conservata in una cartella di backup. Su Mac viene sostituita e ripristinata se l’installazione non riesce.
-- **Estrazione ZIP più affidabile su Windows.** Gli aggiornamenti e l’installazione di llama.cpp funzionano anche se Mascotte è avviata da PowerShell 7.
-- **Chiusura più pulita.** Uscire da Mascotte mentre la chat o la mascotte stanno comunicando con l’app non lascia più errori nel registro.
+- **Il fumetto della mascotte.** Promemoria, sveglie e conferme compaiono in un fumetto accanto alla mascotte, invece che come notifiche di sistema. Gli avvisi informativi spariscono da soli dopo qualche secondo. Promemoria e sveglie restano finché non li chiudi con «×». Un clic sul testo apre la micro chat.
+- **Sveglia dal fumetto.** Quando suona una sveglia, il fumetto mostra «Ferma» e «Rimanda 5 minuti» e suona da lì (bip o audio scelto), senza aprire la finestra di Mascotte. Se la sveglia si spegne da sola dopo 3 minuti, nel fumetto resta un avviso da chiudere.
+- **Sempre visibile, mai invadente.** Il fumetto segue la mascotte, resta dentro lo schermo e compare anche sopra le app a tutto schermo e sulle altre scrivanie. Se nascondi la mascotte, gli avvisi arrivano come notifiche di sistema e una sveglia che sta suonando passa alla finestra di Mascotte.
+- **A tua scelta.** In **Impostazioni → Sveglie e promemoria → Avvisi di Mascotte** scegli fra il fumetto e le notifiche di sistema, e con «Prova avviso» vedi subito il risultato.
 
-## Sotto il cofano
+## Privacy
 
-- Il codice principale dell’app è stato riorganizzato in parti più piccole (promemoria e sveglie, osservazione delle finestre, aggiornamenti, azioni delle finestre, chat), senza cambiare il comportamento.
-- Verifiche: test automatici su macOS, Windows e Linux a ogni modifica (oltre 300); prove d’uso sul Mac di chat locale, note, «apri», colori delle mascotte, mascotte personali, cartelle visibili, sveglia e promemoria, osservazione di una finestra, invio a Codex e aggiornamento dall’app.
-- Su Windows x64 sono stati verificati anche l’invio di testo a Codex e Claude dalla micro chat, i selettori nativi di cartelle e mascotte, i promemoria e l’installazione di llama.cpp.
+Gli avvisi del fumetto restano solo in memoria: non vengono salvati e spariscono chiudendo l’app. Per ora il fumetto mostra solo gli avvisi di Mascotte, non le notifiche delle altre app. Dettagli in [PRIVACY.md](https://github.com/Zekseron/Mascotte/blob/main/PRIVACY.md).
+
+## Verifiche
+
+- Test automatici su macOS, Windows e Linux a ogni modifica (oltre 320).
+- Prove d’uso sul Mac: avviso di prova, promemoria vero, sveglie con «Ferma» e «Rimanda» dal fumetto, sveglia lasciata spegnere da sola, audio personalizzato scelto dal selettore, mascotte agganciata al Dock, libera vicino ai bordi e sul secondo schermo, «Nascondi» e «Mostra», app a tutto schermo e un’altra scrivania.
 
 ## Aggiornamento
 
-- Apri **Impostazioni → Aggiornamenti → Controlla aggiornamenti**.
-- Per una nuova installazione su Windows, usa `Mascotte-Setup-0.9.9-x64.exe` oppure estrai tutto `Mascotte-Windows-0.9.9-x64.zip` per la versione portatile.
-- Per una nuova installazione, scarica `Mascotte-Mac-0.9.9-arm64.zip`, estrailo e sposta `Mascotte.app` in Applicazioni. Il pacchetto usa la firma locale di Mascotte. [Guida all’installazione](https://github.com/Zekseron/Mascotte/blob/main/LEGGIMI.md)
+- In Mascotte per Mac, apri **Impostazioni → Controlla aggiornamenti**.
+- Per una nuova installazione, scarica `Mascotte-Mac-0.10.0-arm64.zip`, estrailo e sposta `Mascotte.app` in Applicazioni. Il pacchetto usa la firma locale di Mascotte. [Guida all’installazione](https://github.com/Zekseron/Mascotte/blob/main/LEGGIMI.md)
