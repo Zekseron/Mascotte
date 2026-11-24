@@ -16,26 +16,28 @@ function createAlarms({
   notify,                // (testo, { info }) → imposta l'avviso della chat (info: anche l'avviso informativo)
   showChat, broadcast,   // apre la chat / invia lo stato alle finestre
   setWaiting,            // mette la mascotte in attesa, se non sta già lavorando
+  onChange = () => {},   // (attiva, motivo, precedente): la sveglia è partita o si è fermata ('stop', 'timeout', 'snooze')
   ErrorLog,
   now = Date.now, setTimer = setTimeout, clearTimer = clearTimeout,
 }) {
   let active = null, timer = null;
 
-  function stop() { clearTimer(timer); timer = null; active = null; }
+  function stop(reason = 'stop') { clearTimer(timer); timer = null; const was = active; active = null; if (was) onChange(null, reason, was); }
 
   function fire(item) {
     const body = item.text + (now() - item.when > LATE ? ` (era per ${Reminders.formatWhen(item.when)})` : '');
     // Una notifica che non si può mostrare non blocca il resto: un promemoria ricade sull'avviso in chat, una sveglia suona comunque.
-    let shown = false;
+    // Con il fumetto (lib/bubble.cjs) show() risponde 'fumetto': la sveglia si ferma o si rimanda da lì e la chat non si apre.
+    let shown = false, inBubble = false;
     try {
-      if (Notification.isSupported()) { new Notification({ title: item.alarm ? 'Mascotte · sveglia' : 'Mascotte · promemoria', body, silent: false }).show(); shown = true; }
+      if (Notification.isSupported()) { inBubble = new Notification({ title: item.alarm ? 'Mascotte · sveglia' : 'Mascotte · promemoria', body, silent: false, ...(item.alarm ? { alarm: true } : {}) }).show() === 'fumetto'; shown = true; }
     } catch (e) { ErrorLog.error('notifica del promemoria non mostrata', e); }
     if (!shown && !item.alarm) { notify(`⏰ ${body}`, { info: true }); showChat(); broadcast(); }
-    // Sveglia (non troppo in ritardo): finestra con «Ferma» e «Rimanda», suono a ripetizione nella chat per al massimo 3 minuti, mascotte in attesa.
+    // Sveglia (non troppo in ritardo): «Ferma» e «Rimanda» nella chat (o nel fumetto), suono a ripetizione per al massimo 3 minuti, mascotte in attesa.
     if (item.alarm && now() - item.when < TOO_LATE_TO_RING) {
-      stop(); active = { id: item.id, text: item.text, when: item.when };
-      timer = setTimer(() => { if (active) notify(`La sveglia «${active.text}» si è spenta da sola dopo 3 minuti.`, { info: false }); stop(); broadcast(); }, ALARM_RING);
-      setWaiting(); showChat(); broadcast();
+      stop('replaced'); active = { id: item.id, text: item.text, when: item.when, ...(inBubble ? { inBubble: true } : {}) };
+      timer = setTimer(() => { if (active) notify(`La sveglia «${active.text}» si è spenta da sola dopo 3 minuti.`, { info: false }); stop('timeout'); broadcast(); }, ALARM_RING);
+      setWaiting(); if (!inBubble) showChat(); broadcast(); onChange(active);
     }
   }
 
@@ -55,11 +57,18 @@ function createAlarms({
     if (!active) return { error: 'Nessuna sveglia attiva.' };
     const snoozed = Reminders.snoozeAlarm(store, active, { now: now(), delay: SNOOZE });
     if (snoozed.error) return snoozed;
-    stop();
+    stop('snooze');
     return snoozed;
   }
 
-  return { fire, failed, stop, snooze, get active() { return active; } };
+  // La sveglia suonava nel fumetto ma la mascotte è stata nascosta: passa alla chat, con «Ferma», «Rimanda» e il suono.
+  function toChat() {
+    if (!active?.inBubble) return false;
+    delete active.inBubble; showChat(); broadcast();
+    return true;
+  }
+
+  return { fire, failed, stop, snooze, toChat, get active() { return active; } };
 }
 
 module.exports = { createAlarms, ALARM_RING, SNOOZE };

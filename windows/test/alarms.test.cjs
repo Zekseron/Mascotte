@@ -6,19 +6,20 @@ const { createAlarms, ALARM_RING, SNOOZE } = require('../lib/alarms.cjs');
 
 const NOW = new Date(2026, 10, 18, 15, 0).getTime();
 
-function setup({ supported = true, throws = false, addFails = false } = {}) {
-  const log = { notifications: [], notices: [], chat: 0, broadcast: 0, waiting: 0, errors: [], added: [] };
+function setup({ supported = true, throws = false, addFails = false, where } = {}) {
+  const log = { notifications: [], notices: [], chat: 0, broadcast: 0, waiting: 0, errors: [], added: [], changes: [] };
   const timers = new Map(); let nextTimer = 1, clock = NOW;
   class Notification {
     static isSupported() { return supported; }
     constructor(options) { this.options = options; }
-    show() { if (throws) throw new Error('notifiche bloccate'); log.notifications.push(this.options); }
+    show() { if (throws) throw new Error('notifiche bloccate'); log.notifications.push(this.options); return where; }
   }
   const store = { add(item) { if (addFails) throw new Error('Ci sono già troppi promemoria.'); const saved = { id: 'n' + log.added.length, ...item }; log.added.push(saved); return saved; } };
   const alarms = createAlarms({
     store, Notification,
     notify: (text, { info }) => log.notices.push({ text, info }),
     showChat: () => { log.chat++; }, broadcast: () => { log.broadcast++; }, setWaiting: () => { log.waiting++; },
+    onChange: (active, reason, was) => log.changes.push(active ? 'partita' : `${reason}:${was.id}`),
     ErrorLog: { error: (context, error) => log.errors.push(`${context}: ${error.message}`) },
     now: () => clock,
     setTimer: (fn, ms) => { const id = nextTimer++; timers.set(id, { fn, ms }); return id; },
@@ -123,4 +124,32 @@ test('promemoria non mostrato: avviso col testo; un errore di chat finisce nel r
   assert.match(log[0], /^Non sono riuscito a mostrare il promemoria «Pagare» \(era per .+\): disco pieno\.$/);
   assert.equal(log[1], 'Non riesco a controllare i promemoria: file illeggibile.');
   assert.deepEqual(errors, ['chat non aperta per un promemoria fallito: finestra chiusa', 'chat non aperta per un promemoria fallito: finestra chiusa']);
+});
+
+test('sveglia nel fumetto: niente chat, si sa che suona lì; ferma e timeout avvisano chi ascolta', () => {
+  const { alarms, log, runTimers } = setup({ where: 'fumetto' });
+  alarms.fire({ id: 's', text: 'Uscire', when: NOW, alarm: true });
+  assert.equal(log.notifications[0].alarm, true);
+  assert.deepEqual(alarms.active, { id: 's', text: 'Uscire', when: NOW, inBubble: true });
+  assert.deepEqual([log.chat, log.waiting], [0, 1]);
+  runTimers();
+  assert.deepEqual(log.changes, ['partita', 'timeout:s']);
+});
+
+test('sveglia nel fumetto e mascotte nascosta: passa alla chat una volta sola', () => {
+  const { alarms, log } = setup({ where: 'fumetto' });
+  alarms.fire({ id: 's', text: 'Uscire', when: NOW, alarm: true });
+  assert.equal(alarms.toChat(), true);
+  assert.deepEqual([alarms.active, log.chat], [{ id: 's', text: 'Uscire', when: NOW }, 1]);
+  assert.equal(alarms.toChat(), false);
+  alarms.stop();
+  assert.deepEqual(log.changes, ['partita', 'stop:s']);
+});
+
+test('rimanda e sostituzione: il motivo arriva a chi ascolta', () => {
+  const { alarms, log } = setup();
+  alarms.fire({ id: 'uno', text: 'Prima', when: NOW, alarm: true });
+  alarms.fire({ id: 'due', text: 'Seconda', when: NOW, alarm: true });
+  alarms.snooze();
+  assert.deepEqual(log.changes, ['partita', 'replaced:uno', 'partita', 'snooze:due']);
 });

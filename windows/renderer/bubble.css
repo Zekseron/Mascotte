@@ -1,0 +1,127 @@
+html, body {
+  margin: 0;
+  overflow: hidden;
+  background: transparent;
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  user-select: none;
+}
+
+#list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  max-height: 420px;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 3px 5px 6px 3px;
+}
+
+#list:empty { display: none; }
+
+.notice {
+  --paper: #fffdf3;
+  --accent: #366660;
+  --tile: #cfe8dc;
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  color: #272938;
+  background: var(--paper);
+  border: 2px solid #303041;
+  border-radius: 8px;
+  box-shadow: 2px 3px 0 #303041, 0 0 0 1px #fff9e8;
+}
+
+.notice.sticky {
+  --paper: #fff0ce;
+  --accent: #843e24;
+  --tile: #ffd28b;
+}
+
+.text, .close {
+  color: inherit;
+  font: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.text {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  column-gap: 9px;
+  align-content: start;
+  flex: 1;
+  min-width: 0;
+  padding: 10px 0 10px 9px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+
+.marker {
+  grid-column: 1;
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  color: var(--accent);
+  background: var(--tile);
+  border: 1px solid currentColor;
+  border-radius: 4px;
+}
+
+/* Each shadow fills one cell of the pixel glyph. */
+.marker::before {
+  content: "";
+  width: 3px;
+  height: 3px;
+  background: currentColor;
+  box-shadow: -6px 0, 6px 0;
+}
+
+.sticky .marker::before {
+  transform: translateY(-6px);
+  box-shadow: 0 3px, 0 6px, 0 12px;
+}
+
+.title, .body { grid-column: 2; }
+.title { color: var(--accent); font-size: 12px; font-weight: 700; }
+.title + .body { margin-top: 2px; }
+.text:hover .body { text-decoration: underline; }
+
+.close {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  margin: 4px;
+  padding: 0;
+  border-radius: 4px;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.close:hover { background: var(--tile); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+
+/* Sveglia che suona: nessuna «×», si ferma o si rimanda con i pulsanti sotto il testo. */
+.alarm .text { cursor: default; padding-right: 10px; }
+.alarm .text:hover .body { text-decoration: none; }
+.actions { grid-column: 2; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.action {
+  padding: 4px 10px;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--paper);
+  border: 2px solid #303041;
+  border-radius: 6px;
+  box-shadow: 1px 2px 0 #303041;
+  cursor: pointer;
+}
+.action.primary { color: #fffdf3; background: var(--accent); }
+.action:hover { background: var(--tile); color: #303041; }
+.action:active { transform: translate(1px, 1px); box-shadow: 0 1px 0 #303041; }
