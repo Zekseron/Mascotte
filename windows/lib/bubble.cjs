@@ -24,20 +24,22 @@ function createBubbleQueue({ onChange = () => {}, now = Date.now, setTimer = set
     return true;
   }
   // sticky: resta finché non lo chiudi (promemoria, sveglie). Uno uguale già visibile viene sostituito, non duplicato.
-  function add({ title, body, sticky = false }) {
+  // alarm: sveglia che suona, con «Ferma» e «Rimanda» nel fumetto; non lascia mai il posto ad altri avvisi.
+  function add({ title, body, sticky = false, alarm = false }) {
     title = clip(title, 80); body = clip(body, 300);
     if (!title && !body) return null;
     for (const same of items.filter(item => item.title === title && item.body === body)) forget(same.id);
     items = items.filter(item => item.title !== title || item.body !== body);
-    const item = { id: `b${++seq}`, title, body, sticky: Boolean(sticky), at: now() };
+    const item = { id: `b${++seq}`, title, body, sticky: Boolean(sticky || alarm), at: now(), ...(alarm ? { alarm: true } : {}) };
     items.push(item);
-    while (items.length > MAX) forget(items.shift().id);
+    while (items.length > MAX) { const old = Math.max(0, items.findIndex(entry => !entry.alarm)); forget(items.splice(old, 1)[0].id); }
     if (!item.sticky) timers.set(item.id, setTimer(() => { timers.delete(item.id); remove(item.id); }, LINGER));
     onChange(list());
     return { ...item };
   }
+  function removeAlarms() { for (const item of items.filter(entry => entry.alarm)) remove(item.id); }
   function clear() { for (const id of [...timers.keys()]) forget(id); if (items.length) { items = []; onChange(list()); } }
-  return { add, remove, clear, list, get size() { return items.length; } };
+  return { add, remove, removeAlarms, clear, list, get size() { return items.length; } };
 }
 
 // Sopra la mascotte e centrato; se sopra non c'è spazio, sotto. Sempre dentro l'area di lavoro dello schermo.
@@ -52,16 +54,17 @@ function bubblePlacement(mascot, size, workArea) {
 
 // Al posto della classe Notification di Electron, con la stessa forma (isSupported, new …({ title, body, silent }).show()):
 // con il fumetto scelto e la mascotte visibile l'avviso va nel fumetto, altrimenti resta la notifica di sistema.
-// Gli avvisi con suono (silent: false) restano finché non li chiudi e fanno il suono di avviso del sistema.
+// Gli avvisi con suono (silent: false) restano finché non li chiudi e fanno il suono di avviso del sistema; una sveglia
+// (alarm: true) ha invece il suo suono, suonato dal fumetto. Alla notifica di sistema l'opzione alarm non arriva.
 function createNoticeRouter({ Notification, mode, bubbleReady, queue, beep = () => {} }) {
   const useBubble = () => normalizeMode(mode()) === 'fumetto' && Boolean(bubbleReady());
   return class MascotteNotification {
     static isSupported() { return useBubble() || Notification.isSupported(); }
     constructor(options = {}) { this.options = options; }
     show() {
-      const { title, body, silent } = this.options;
-      if (useBubble()) { queue.add({ title, body, sticky: !silent }); if (!silent) beep(); return 'fumetto'; }
-      new Notification(this.options).show();
+      const { alarm, ...options } = this.options, { title, body, silent } = options;
+      if (useBubble()) { queue.add({ title, body, sticky: !silent, alarm: Boolean(alarm) }); if (!silent && !alarm) beep(); return 'fumetto'; }
+      new Notification(options).show();
       return 'sistema';
     }
   };

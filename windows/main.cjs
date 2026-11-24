@@ -91,7 +91,10 @@ function startApplication() {
   // Il fumetto segue la mascotte: compare solo se lei è visibile, si nasconde con lei e ricompare quando torna.
   function showBubble() {
     if (!bubbleWindow || bubbleWindow.isDestroyed()) { if (bubbleQueue.size) syncBubble(); return; }
+    // Sveglia che suona nel fumetto e mascotte nascosta: suono, «Ferma» e «Rimanda» passano alla chat.
+    if (!bubbleReady() && !quitting && alarms?.active?.inBubble) { bubbleQueue.removeAlarms(); alarms.toChat(); }
     if (!bubbleReady() || !bubbleQueue.size || !bubbleHeight) { bubbleWindow.hide(); return; }
+    // Mac: alla comparsa il sistema può spostare la finestra fuori dalla striscia di Stage Manager; si lascia dove la mette.
     placeBubble(); showMascot(bubbleWindow);
   }
   function clearLastFrame() { clearTimeout(lastFrameTimer); lastFrameTimer = null; if (lastFrame) { lastFrame.bytes.fill(0); lastFrame = null; } }
@@ -108,7 +111,7 @@ function startApplication() {
     engine, messages: store.get(engine), currentRun, localDownload, localDownloadStatus, notice, noticeInfo: Boolean(notice) && notice === infoNotice, localAvailable, settings,
     cliEngines: CLI.ENGINES.filter(e => CLI.findCLI(e)), defaultModel: LocalAI.defaultModel(), localInstalledSource: !LocalAI.isModel(settings?.localModel), localVision: localVision(),
     localEngineLabel: LocalEngines.label(settings?.localEngine), localManaged: LocalEngines.get(LocalEngines.MANAGED).status(), engineStatus, localCatalog: LocalAI.uiCatalog(), installedCache, localScanning,
-    deviceName: can.deviceName, memories: memory.list(), pendingAction, setupPreview, reminders: reminders ? reminders.list() : null, activeAlarm: alarms?.active ?? null, lastFrame, watchAvailable: can.watch,
+    deviceName: can.deviceName, memories: memory.list(), pendingAction, setupPreview, reminders: reminders ? reminders.list() : null, activeAlarm: alarms?.active && !alarms.active.inBubble ? alarms.active : null, lastFrame, watchAvailable: can.watch,
     hooksAvailable: can.hooks && app.isPackaged, watchSource: watch.source, pack, characters, characterWarnings, characterStatus, characterStatusFailed,
     managementAvailable: can.management && app.isPackaged, packageName: can.packageName, version: app.getVersion(), hooks: hooksState(), updateRunning: updates.running, updateStatus: updates.status, updateFailed: updates.failed,
     viewableFolders: FolderView.viewableFolders(), folderStatus, folderStatusFailed
@@ -433,6 +436,12 @@ function startApplication() {
       store: reminders, Notification: MascotteNotification, ErrorLog, showChat, broadcast,
       notify: (text, { info }) => { notice = text; if (info) infoNotice = text; },
       setWaiting: () => { if (!currentRun) controller.set('waiting'); },
+      // Sveglia ferma (Ferma, Rimanda, 3 minuti): via dal fumetto; se si è spenta da sola lì resta un avviso da chiudere.
+      onChange: (active, reason, was) => {
+        if (active) return;
+        bubbleQueue.removeAlarms();
+        if (reason === 'timeout' && was?.inBubble) bubbleQueue.add({ title: 'Mascotte · sveglia', body: `La sveglia «${was.text}» si è spenta da sola dopo 3 minuti.`, sticky: true });
+      },
     });
     reminderScheduler = createScheduler({ store: reminders, fire: item => alarms.fire(item), onError: (item, error) => alarms.failed(item, error) });
     const raw = readJSON(stateFile, {});
@@ -780,6 +789,14 @@ function startApplication() {
       if (action === 'engine' && !currentRun && [...CLI.ENGINES, 'locale'].includes(data)) { engine = data; engineTouched = true; notice = ''; return chatSnapshot(); }
       return NEXT;
   }
+  // «Rimanda» dalla chat o dal fumetto. Con l'elenco pieno il rimando fallisce: avviso, e la sveglia resta attiva (Ferma continua a funzionare).
+  function snoozeAlarm() {
+    const snoozed = alarms.snooze();
+    if (snoozed.error) { notice = snoozed.error; return { error: snoozed.error }; }
+    scheduleReminders();
+    if (!currentRun) controller.set('idle'); notice = infoNotice = `Sveglia rimandata a ${Reminders.formatWhen(snoozed.item.when)}.`;
+    return { text: notice };
+  }
   // Promemoria e sveglie nelle Impostazioni.
   async function reminderActions(action, data) {
       // Sveglie e promemoria nelle Impostazioni: elenco con eliminazione, suono (bip o file scelto dal selettore di sistema) e volume.
@@ -805,13 +822,7 @@ function startApplication() {
         return chatSnapshot();
       }
       if (action === 'alarm-stop') { alarms.stop(); if (!currentRun) controller.set('idle'); return chatSnapshot(); }
-      if (action === 'alarm-snooze' && alarms.active) {
-        // Con l'elenco pieno il rimando fallisce: avviso, e la sveglia resta attiva (Ferma continua a funzionare).
-        const snoozed = alarms.snooze();
-        if (snoozed.error) { notice = snoozed.error; return chatSnapshot(); }
-        scheduleReminders();
-        if (!currentRun) controller.set('idle'); notice = infoNotice = `Sveglia rimandata a ${Reminders.formatWhen(snoozed.item.when)}.`; return chatSnapshot();
-      }
+      if (action === 'alarm-snooze' && alarms.active) { snoozeAlarm(); return chatSnapshot(); }
       return NEXT;
   }
   // Nuova conversazione, fotogramma del secondo parere, interruzione.
@@ -964,6 +975,14 @@ function startApplication() {
       if (action === 'bubble-size' && Number.isFinite(data) && data >= 0) { bubbleHeight = Math.min(Math.round(data), Bubble.MAX_HEIGHT); showBubble(); return; }
       if (action === 'bubble-dismiss' && typeof data === 'string') { bubbleQueue.remove(data); return; }
       if (action === 'bubble-open' && typeof data === 'string') { bubbleQueue.remove(data); showChat(); return; }
+      // Sveglia nel fumetto: suono (bip o audio scelto, con il volume delle Impostazioni), «Ferma» e «Rimanda 5 minuti».
+      if (action === 'bubble-alarm-sound') return { volume: settings.alarmVolume ?? 0.8, custom: settings.alarmSound === 'custom' ? AlarmSound.readSound(dataDirectory) : null };
+      if (action === 'bubble-alarm' && ['stop', 'snooze'].includes(data)) {
+        if (!alarms.active?.inBubble) { bubbleQueue.removeAlarms(); return; } // già fermata altrove: resta solo da togliere il fumetto
+        if (data === 'stop') { alarms.stop(); if (!currentRun) controller.set('idle'); }
+        else { const result = snoozeAlarm(); bubbleQueue.add(result.error ? { title: 'Mascotte · sveglia', body: `Non riesco a rimandarla: ${result.error}`, sticky: true } : { title: 'Mascotte · sveglia', body: result.text }); }
+        broadcast(); return;
+      }
       return NEXT;
   }
   const BUBBLE_ACTIONS = [bubbleActions];

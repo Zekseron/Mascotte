@@ -110,3 +110,18 @@ test('notifiche di sistema non disponibili: il fumetto basta, senza fumetto non 
 test('modalità: tutto ciò che non è «sistema» vale fumetto', () => {
   assert.deepEqual(['sistema', 'fumetto', undefined, 'altro'].map(normalizeMode), ['sistema', 'fumetto', 'fumetto', 'fumetto']);
 });
+
+test('sveglia nel fumetto: resta sempre, senza bip di avviso, e non arriva al sistema con l\'opzione alarm', () => {
+  const { Routed, queue, log } = router();
+  assert.equal(new Routed({ title: 'Mascotte · sveglia', body: 'Uscire', silent: false, alarm: true }).show(), 'fumetto');
+  for (let i = 0; i < MAX + 1; i++) queue.add({ title: 'Mascotte', body: `avviso ${i}` });
+  const alarm = queue.list().filter(item => item.alarm);
+  assert.deepEqual(alarm.map(item => [item.body, item.sticky]), [['Uscire', true]]);
+  assert.equal(queue.size, MAX);
+  assert.equal(log.beeps, 0);
+  queue.removeAlarms();
+  assert.equal(queue.list().some(item => item.alarm), false);
+  const hidden = router({ ready: false });
+  new hidden.Routed({ title: 'Mascotte · sveglia', body: 'Uscire', silent: false, alarm: true }).show();
+  assert.deepEqual(hidden.log.system, [{ title: 'Mascotte · sveglia', body: 'Uscire', silent: false }]);
+});

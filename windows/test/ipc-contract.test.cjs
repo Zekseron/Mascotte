@@ -26,7 +26,7 @@ const CHAT = [
   'alarm-stop', 'alarm-snooze', 'notice-style', 'notice-test', 'new', 'second-opinion-frame', 'stop', 'setup-preview', 'setup-apply', 'setup-dismiss', 'send'
 ];
 // Solo il fumetto degli avvisi (gestore `bubbling`).
-const BUBBLE = ['bubble-init', 'bubble-size', 'bubble-dismiss', 'bubble-open'];
+const BUBBLE = ['bubble-init', 'bubble-size', 'bubble-dismiss', 'bubble-open', 'bubble-alarm-sound', 'bubble-alarm'];
 
 const names = text => [...new Set([...text.matchAll(/action === '([^']+)'/g)].map(match => match[1]))];
 const kittyStart = source.indexOf('  async function mascotActions(action, data) {');
@@ -66,10 +66,10 @@ test('azioni del fumetto: elenco fisso, gruppo chiuso da return NEXT', () => {
   assert.match(body, /\n      return NEXT;\n  \}\n/);
 });
 
-test('61 azioni distinte e nessuna in comune tra le tre finestre', () => {
+test('63 azioni distinte e nessuna in comune tra le tre finestre', () => {
   const all = names(source.slice(kittyStart, groupsEnd) + source.slice(bubbleStart, bubbleEnd));
-  assert.equal(all.length, 61);
-  assert.equal(MASCOT.length + CHAT.length + BUBBLE.length, 61);
+  assert.equal(all.length, 63);
+  assert.equal(MASCOT.length + CHAT.length + BUBBLE.length, 63);
   assert.deepEqual(all.sort(), [...MASCOT, ...CHAT, ...BUBBLE].sort());
   assert.equal(MASCOT.filter(name => CHAT.includes(name) || BUBBLE.includes(name)).length, 0);
   assert.equal(CHAT.filter(name => BUBBLE.includes(name)).length, 0);
