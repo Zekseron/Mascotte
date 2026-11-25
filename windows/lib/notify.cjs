@@ -22,11 +22,13 @@ function hookState(event) {
 }
 // Identificatore opaco della sessione per gli avvisi degli agenti (lib/agent-notices.cjs): impronta sha256 di
 // «agente:id», 16 caratteri. L'id grezzo e gli altri campi dell'hook non lasciano mai il ponte.
-// Solo dove l'id è stato verificato con hook reali (24 novembre 2026, Mac): Claude `session_id` (uguale in tutti gli
-// eventi di una sessione, diverso fra sessioni) e il vecchio notify di Codex `thread-id` (agent-turn-complete).
-// Gli hook di Codex (--codex-hook) restano anonimi finché il loro identificatore non è verificato.
+// Solo dove l'id è stato verificato con hook reali su Mac: Claude `session_id` (24 novembre 2026: uguale in tutti gli
+// eventi di una sessione, diverso fra sessioni), il vecchio notify di Codex `thread-id` (agent-turn-complete) e gli hook
+// di Codex `session_id` (25 novembre 2026, Codex CLI 0.171.0-alpha.13.2: presente e stabile in UserPromptSubmit,
+// PreToolUse, PostToolUse, PermissionRequest, Interrupt e Stop della stessa sessione, diverso fra due sessioni; turn_id
+// invece cambia a ogni turno e non si usa). Senza un id valido l'evento resta anonimo.
 function sessionKey(mode, source, event) {
-  const raw = mode === '--claude-hook' ? event?.session_id : mode === '--codex-notify' ? event?.['thread-id'] : null;
+  const raw = mode === '--claude-hook' || mode === '--codex-hook' ? event?.session_id : mode === '--codex-notify' ? event?.['thread-id'] : null;
   if (typeof raw !== 'string' || !raw || raw.length > 200) return null;
   return crypto.createHash('sha256').update(`${source}:${raw}`).digest('hex').slice(0, 16);
 }

@@ -5,7 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { createBubbleQueue, LINGER } = require('../lib/bubble.cjs');
 const { createAgentNotices } = require('../lib/agent-notices.cjs');
-const { sessionKey } = require('../lib/notify.cjs');
+const { sessionKey, hookState } = require('../lib/notify.cjs');
 
 const A = 'aaaaaaaaaaaaaaaa', B = 'bbbbbbbbbbbbbbbb';
 
@@ -130,7 +130,50 @@ test('ponte: impronta di sessione solo per i percorsi verificati, mai l\'id grez
   assert.equal(sessionKey('--claude-hook', 'claude', { session_id: 'sessione-uno' }), claude, 'stabile');
   assert.notEqual(sessionKey('--claude-hook', 'claude', { session_id: 'sessione-due' }), claude);
   assert.match(sessionKey('--codex-notify', 'codex', { 'thread-id': 't1' }), /^[a-f0-9]{16}$/);
-  assert.equal(sessionKey('--codex-hook', 'codex', { session_id: 'x', 'thread-id': 'y' }), null, 'hook di Codex non verificati: anonimi');
+  // Hook di Codex: session_id verificato su Mac il 25 novembre 2026; thread-id e turn_id non si usano.
+  assert.match(sessionKey('--codex-hook', 'codex', { session_id: 'x' }), /^[a-f0-9]{16}$/);
+  assert.equal(sessionKey('--codex-hook', 'codex', { session_id: 'x', turn_id: 't1' }), sessionKey('--codex-hook', 'codex', { session_id: 'x', turn_id: 't2' }), 'turn_id non conta');
+  assert.equal(sessionKey('--codex-hook', 'codex', { 'thread-id': 'y' }), null, 'senza session_id: anonimo');
   for (const event of [{}, { session_id: '' }, { session_id: 5 }, { session_id: 'x'.repeat(201) }, null]) assert.equal(sessionKey('--claude-hook', 'claude', event), null);
   assert.notEqual(sessionKey('--claude-hook', 'claude', { session_id: 'z' }), sessionKey('--codex-notify', 'codex', { 'thread-id': 'z' }), 'agenti diversi, impronte diverse');
+});
+
+// Percorso completo come nel ponte: payload dell'hook Codex → hookState → sessionKey → avviso nel fumetto.
+function codexHook(notices, payload) {
+  const state = hookState(payload);
+  if (state) notices.handle({ state, source: 'codex', ...(sessionKey('--codex-hook', 'codex', payload) ? { session: sessionKey('--codex-hook', 'codex', payload) } : {}) });
+}
+
+test('regressione hook Codex: due sessioni, l\'attività di B non chiude l\'attesa di A; A ripartendo chiude solo la sua', () => {
+  const { notices, texts } = setup();
+  const A = { session_id: 'sessione-codex-A' }, B = { session_id: 'sessione-codex-B' };
+  codexHook(notices, { ...A, hook_event_name: 'PermissionRequest', tool_name: 'exec_command', turn_id: 'a1' });
+  codexHook(notices, { ...B, hook_event_name: 'PermissionRequest', tool_name: 'exec_command', turn_id: 'b1' });
+  assert.deepEqual(texts(), ['Codex è in attesa in 2 sessioni']);
+  codexHook(notices, { ...B, hook_event_name: 'PreToolUse', tool_name: 'exec_command', turn_id: 'b1' });
+  assert.deepEqual(texts(), ['Codex è in attesa'], 'B riparte: resta solo l\'attesa di A');
+  codexHook(notices, { ...B, hook_event_name: 'Stop', turn_id: 'b1' });
+  assert.deepEqual(texts(), ['Codex è in attesa', 'Codex ha concluso il turno'], 'lo Stop di B non chiude A');
+  codexHook(notices, { ...A, hook_event_name: 'PostToolUse', tool_name: 'exec_command', tool_response: { exit_code: 0 }, turn_id: 'a2' });
+  assert.deepEqual(texts(), ['Codex ha concluso il turno'], 'A riparte (turno diverso, stessa sessione): chiusa');
+});
+
+test('regressione hook Codex: l\'interruzione della stessa sessione chiude l\'attesa', () => {
+  const { notices, texts } = setup();
+  codexHook(notices, { session_id: 'sessione-codex-A', hook_event_name: 'PermissionRequest', tool_name: 'exec_command' });
+  codexHook(notices, { session_id: 'sessione-codex-B', hook_event_name: 'Interrupt' });
+  assert.deepEqual(texts(), ['Codex è in attesa']);
+  codexHook(notices, { session_id: 'sessione-codex-A', hook_event_name: 'Interrupt' });
+  assert.deepEqual(texts(), []);
+});
+
+test('regressione hook Codex senza session_id: attesa anonima, nessun evento anonimo la chiude', () => {
+  const { notices, texts } = setup();
+  codexHook(notices, { hook_event_name: 'PermissionRequest', tool_name: 'exec_command' });
+  codexHook(notices, { session_id: 'sessione-codex-B', hook_event_name: 'PermissionRequest', tool_name: 'exec_command' });
+  assert.deepEqual(texts(), ['Codex è in attesa'], 'conteggio incerto con un\'attesa anonima');
+  codexHook(notices, { hook_event_name: 'PreToolUse', tool_name: 'exec_command' });
+  codexHook(notices, { hook_event_name: 'Stop' });
+  codexHook(notices, { session_id: 'sessione-codex-B', hook_event_name: 'Stop' });
+  assert.equal(texts()[0], 'Codex è in attesa', 'resta l\'attesa anonima, chiusa solo dal clic');
 });
