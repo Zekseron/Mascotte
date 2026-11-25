@@ -45,4 +45,72 @@ header>.controls{flex-shrink:0}.title-row{flex-wrap:wrap;gap:3px 8px}h1{white-sp
 .attach-menu button{display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;text-align:left;font-size:13px;padding:8px 10px;border-radius:7px}.attach-menu button:hover,.attach-menu button:focus-visible{background:#30333e}.attach-menu svg{color:#e4a964;flex:none}
 .color-list{display:grid;gap:6px;margin:6px 0 10px}.color-row{display:grid;grid-template-columns:1fr 54px 30px;align-items:center;gap:8px;font-size:12px;color:#d6d9e2}.color-row input[type=color]{width:54px;height:28px;padding:2px;border:1px solid #3d404b;border-radius:7px;background:#262932;cursor:pointer}.color-row button{padding:4px 0;font-size:12px}
 .check{display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px;cursor:pointer}.check input{margin:0}
-.diag-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}.diag-item{display:flex;gap:8px;align-items:flex-start;padding:8px;border:1px solid #3d404b;border-radius:8px}.diag-problema{border-color:#c0634a}.diag-avviso{border-color:#e4a964}.diag-icon{flex:none;width:20px;text-align:center}.diag-text{min-width:0}.diag-text p{margin:2px 0 0;font-size:12px;line-height:1.4}.diag-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.diag-actions button{font-size:12px;padding:4px 8px}
+#diagnostics-run {
+  background: #e4a964;
+  border-color: #e4a964;
+  color: #22202a;
+  font-weight: 600;
+}
+#diagnostics-run:hover:enabled { background: #f0bd80; }
+.sec-body .diag-status { margin: 10px 0 0; }
+.sec-body .diag-status:empty { margin: 0; }
+.diag-list:empty { display: none; }
+.diag-status.diag-running {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #2c2f3a;
+  color: #f1eee9;
+}
+.diag-running::before {
+  content: '';
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-top: 2px;
+  border: 2px solid #515563;
+  border-top-color: #e4a964;
+  border-radius: 50%;
+  animation: diag-spin .8s linear infinite;
+}
+@keyframes diag-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .diag-running::before { animation: none; }
+}
+.diag-list {
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 0;
+}
+.diag-item {
+  --diag-accent: #adc6ee;
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 9px;
+  padding: 10px;
+  border: 1px solid #3e424e;
+  border-inline-start: 3px solid var(--diag-accent);
+  border-radius: 8px;
+  background: #262932;
+  overflow-wrap: anywhere;
+}
+.diag-problema { --diag-accent: #f1ae9d; }
+.diag-avviso { --diag-accent: #e4a964; }
+.diag-ok { --diag-accent: #a8d5b5; }
+.diag-icon { text-align: center; line-height: 22px; }
+.diag-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
+.diag-heading strong { font-size: 13px; }
+.diag-outcome { font-size: 11px; font-weight: 600; color: var(--diag-accent); }
+.diag-text p { margin: 4px 0 0; }
+.diag-actions { margin-top: 8px; }
+.diag-actions button { max-width: 100%; font-size: 12px; padding: 5px 8px; }

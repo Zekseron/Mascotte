@@ -914,8 +914,8 @@ function startApplication() {
       }
       if (action === 'diagnostics-copy') { if (diagnosticReport) clipboard.writeText(diagnosticReport); return { copied: Boolean(diagnosticReport) }; }
       if (action === 'diagnostics-open' && typeof data === 'string') {
-        if (process.platform === 'darwin' && Object.hasOwn(Diagnostics.MAC_SETTINGS, data)) await shell.openExternal(Diagnostics.MAC_SETTINGS[data]);
-        else if (/^[a-z-]{1,40}$/.test(data)) await shell.openExternal(`${Diagnostics.GUIDE}#${data}`);
+        if (/^#[a-z-]{1,40}$/.test(data)) await shell.openExternal(`${Diagnostics.GUIDE}${data}`);
+        else if (process.platform === 'darwin' && Object.hasOwn(Diagnostics.MAC_SETTINGS, data)) await shell.openExternal(Diagnostics.MAC_SETTINGS[data]);
         return null;
       }
       return NEXT;
