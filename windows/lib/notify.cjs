@@ -2,6 +2,7 @@
 const net = require('node:net');
 const { readJSON } = require('./storage.cjs');
 const { spawn } = require('node:child_process');
+const crypto = require('node:crypto');
 
 function hookState(event) {
   const type = event?.hook_event_name;
@@ -19,10 +20,20 @@ function hookState(event) {
   if (/read|grep|glob|fetch|search|list|get/.test(tool)) return 'reading';
   return 'working';
 }
-function sendEvent(file, state, source, timeout = 200) {
+// Identificatore opaco della sessione per gli avvisi degli agenti (lib/agent-notices.cjs): impronta sha256 di
+// «agente:id», 16 caratteri. L'id grezzo e gli altri campi dell'hook non lasciano mai il ponte.
+// Solo dove l'id è stato verificato con hook reali (24 novembre 2026, Mac): Claude `session_id` (uguale in tutti gli
+// eventi di una sessione, diverso fra sessioni) e il vecchio notify di Codex `thread-id` (agent-turn-complete).
+// Gli hook di Codex (--codex-hook) restano anonimi finché il loro identificatore non è verificato.
+function sessionKey(mode, source, event) {
+  const raw = mode === '--claude-hook' ? event?.session_id : mode === '--codex-notify' ? event?.['thread-id'] : null;
+  if (typeof raw !== 'string' || !raw || raw.length > 200) return null;
+  return crypto.createHash('sha256').update(`${source}:${raw}`).digest('hex').slice(0, 16);
+}
+function sendEvent(file, state, source, timeout = 200, session = null) {
   const endpoint = readJSON(file, {}, 4096);
   if (!Number.isInteger(endpoint.port) || endpoint.port < 1 || endpoint.port > 65535 || !/^[a-f0-9]{64}$/.test(endpoint.token || '')) return Promise.resolve();
-  const body = JSON.stringify({ state, source });
+  const body = JSON.stringify(session ? { state, source, session } : { state, source });
   return new Promise(resolve => {
     const socket = net.createConnection({ host: '127.0.0.1', port: endpoint.port });
     const timer = setTimeout(() => socket.destroy(), timeout);
@@ -51,7 +62,8 @@ async function notifyMain(args, endpoint) {
     let event; try { if (Buffer.byteLength(payload || '') <= 65536) event = JSON.parse(payload); } catch {}
     const source = args.includes('--claude-hook') ? 'claude' : 'codex';
     const state = args.includes('--codex-notify') ? (event?.type === 'agent-turn-complete' ? 'done' : null) : hookState(event);
-    if (state) await sendEvent(endpoint, state, source);
+    const mode = ['--claude-hook', '--codex-notify', '--codex-hook'].find(flag => args.includes(flag));
+    if (state) await sendEvent(endpoint, state, source, 200, sessionKey(mode, source, event));
     const forward = args.indexOf('--forward-base64');
     if (forward >= 0) {
       const command = JSON.parse(Buffer.from(args[forward + 1], 'base64').toString('utf8'));
@@ -67,4 +79,4 @@ async function notifyMain(args, endpoint) {
     }
   } catch {} // Gli hook non devono bloccare il lavoro o stampare dati.
 }
-module.exports = { hookState, sendEvent, notifyMain };
+module.exports = { hookState, sendEvent, notifyMain, sessionKey };

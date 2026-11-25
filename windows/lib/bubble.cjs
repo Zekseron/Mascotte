@@ -4,7 +4,7 @@
 // Qui c'è solo la logica (coda, posizione, scelta fumetto/sistema), con timer e Notification iniettati: si prova senza Electron.
 // Finestra e collegamenti stanno in main.cjs, l'aspetto in renderer/bubble.*.
 
-const MAX = 4;            // avvisi visibili insieme; il più vecchio lascia il posto al nuovo
+const MAX = 4;            // avvisi visibili insieme; a coda piena lascia il posto prima il più vecchio di quelli che spariscono da soli
 const LINGER = 8000;      // gli avvisi informativi (silent) spariscono da soli dopo 8 secondi
 const WIDTH = 280;        // larghezza fissa della finestra del fumetto (punti)
 const MAX_HEIGHT = 420;   // oltre, il contenuto scorre dentro il fumetto
@@ -25,21 +25,38 @@ function createBubbleQueue({ onChange = () => {}, now = Date.now, setTimer = set
   }
   // sticky: resta finché non lo chiudi (promemoria, sveglie). Uno uguale già visibile viene sostituito, non duplicato.
   // alarm: sveglia che suona, con «Ferma» e «Rimanda» nel fumetto; non lascia mai il posto ad altri avvisi.
-  function add({ title, body, sticky = false, alarm = false }) {
+  // agent: avviso di Claude o Codex (lib/agent-notices.cjs): il clic sul testo lo chiude e basta, senza aprire la chat.
+  function add({ title, body, sticky = false, alarm = false, agent = false }) {
     title = clip(title, 80); body = clip(body, 300);
     if (!title && !body) return null;
     for (const same of items.filter(item => item.title === title && item.body === body)) forget(same.id);
     items = items.filter(item => item.title !== title || item.body !== body);
-    const item = { id: `b${++seq}`, title, body, sticky: Boolean(sticky || alarm), at: now(), ...(alarm ? { alarm: true } : {}) };
+    const item = { id: `b${++seq}`, title, body, sticky: Boolean(sticky || alarm), at: now(), ...(alarm ? { alarm: true } : {}), ...(agent ? { agent: true } : {}) };
     items.push(item);
-    while (items.length > MAX) { const old = Math.max(0, items.findIndex(entry => !entry.alarm)); forget(items.splice(old, 1)[0].id); }
+    // Coda piena: prima il più vecchio che sparirebbe da solo (conferme, fine turno degli agenti), poi il più vecchio
+    // fra quelli che restano. La sveglia che suona non lascia mai il posto.
+    while (items.length > MAX) {
+      const transient = items.findIndex(entry => !entry.sticky);
+      const old = transient >= 0 ? transient : Math.max(0, items.findIndex(entry => !entry.alarm));
+      forget(items.splice(old, 1)[0].id);
+    }
     if (!item.sticky) timers.set(item.id, setTimer(() => { timers.delete(item.id); remove(item.id); }, LINGER));
     onChange(list());
     return { ...item };
   }
+  // Cambia il testo di un avviso già visibile senza spostarlo né toccare il suo timer (attesa di un agente: «in 2 sessioni»).
+  function update(id, { title, body }) {
+    const item = items.find(entry => entry.id === id);
+    if (!item) return false;
+    const next = { title: title === undefined ? item.title : clip(title, 80), body: body === undefined ? item.body : clip(body, 300) };
+    if (next.title === item.title && next.body === item.body) return true;
+    Object.assign(item, next); onChange(list());
+    return true;
+  }
+  const has = id => items.some(item => item.id === id);
   function removeAlarms() { for (const item of items.filter(entry => entry.alarm)) remove(item.id); }
   function clear() { for (const id of [...timers.keys()]) forget(id); if (items.length) { items = []; onChange(list()); } }
-  return { add, remove, removeAlarms, clear, list, get size() { return items.length; } };
+  return { add, remove, update, has, removeAlarms, clear, list, get size() { return items.length; } };
 }
 
 // Sopra la mascotte e centrato; se sopra non c'è spazio, sotto. Sempre dentro l'area di lavoro dello schermo.

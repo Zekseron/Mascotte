@@ -22,7 +22,7 @@ Progetto e decisioni: [DESIGN.md](DESIGN.md).
 - **Colori delle mascotte** (Mac dalla 0.9.5): scegli il colore di ogni parte di Luma e Rosso da **Impostazioni → Mascotte → Colori**; luci e ombre del disegno restano.
 - **Mascotte personali:** da **Impostazioni → Mascotte → Aggiungi mascotte…** puoi caricare altri personaggi (una cartella con `character.json` e `sprites.png`). Come crearli e collegarli: [PERSONAGGI.md](PERSONAGGI.md).
 - **Secondo parere:** sotto una risposta locale, «Chiedi a Codex o Claude…» manda domanda e risposta per una verifica; «Secondo parere con schermata…» aggiunge il fotogramma che ha visto il modello locale (conservato in memoria 10 minuti) o quello della finestra osservata. Sempre con anteprima e conferma.
-- **Hook:** dalle **Impostazioni** si collegano le sessioni di Claude Code e Codex, così la mascotte reagisce a ciò che fanno. Anteprima prima di applicare, con backup.
+- **Hook:** dalle **Impostazioni** si collegano le sessioni di Claude Code e Codex, così la mascotte reagisce a ciò che fanno. Anteprima prima di applicare, con backup. Facoltativo: **avvisi di Claude e Codex nel fumetto** («Claude ha concluso il turno» per qualche secondo, «Codex è in attesa» finché non lo chiudi o finché quella sessione non riparte; con più sessioni di Claude l'attività di una non chiude l'attesa di un'altra).
 - **Aggiornamenti:** dalle **Impostazioni** si controllano e si installano le nuove versioni pubblicate. Dalla 0.9.1 la ricerca tiene conto del sistema operativo.
 - **Feedback (dalla 0.9.1):** dalle Impostazioni puoi segnalare un problema o proporre un’idea con un modulo in italiano e inglese. Contatto facoltativo; nessun dato viene allegato automaticamente.
 

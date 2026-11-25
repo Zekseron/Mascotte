@@ -23,6 +23,8 @@ function reference(raw, dataDirectory) {
   settings.colors = normalizeColors(raw.colors);
   // Aggiunta voluta del 24 novembre 2026: dove compaiono gli avvisi di Mascotte (fumetto o notifiche di sistema).
   settings.notices = raw.notices === 'sistema' ? 'sistema' : 'fumetto';
+  // Aggiunta voluta del 24 novembre 2026 (0.11): avvisi di Claude e Codex nel fumetto, spenti di predefinito.
+  settings.agentNotices = raw.agentNotices === true;
   return settings;
 }
 
@@ -60,6 +62,7 @@ test('normalizeSettings uguale all’espressione originale su molti casi', () =>
     { extraFolders: 'non un array' }, { extraFolders: null }, { extraFolders: {} },
     { alarmSound: 'custom' }, { alarmSound: 'sconosciuto' }, { alarmSound: 3 },
     { notices: 'sistema' }, { notices: 'fumetto' }, { notices: 'altro' }, { notices: 1 },
+    { agentNotices: true }, { agentNotices: false }, { agentNotices: 'true' }, { agentNotices: 1 },
     { alarmSoundName: 'a'.repeat(300) }, { alarmSoundName: 'suono.mp3' }, { alarmSoundName: 12 },
     { alarmVolume: 0 }, { alarmVolume: 0.5 }, { alarmVolume: 1 }, { alarmVolume: 1.5 }, { alarmVolume: -1 }, { alarmVolume: 'x' }, { alarmVolume: NaN }, { alarmVolume: null },
     { campoInPiu: 1, altro: { b: 2 }, scale: 6 },

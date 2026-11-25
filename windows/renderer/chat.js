@@ -50,6 +50,7 @@ onClickRender('alarm-sound-remove', 'alarm-sound-remove');
 $('alarm-volume').addEventListener('change', async () => render(await invoke('alarm-volume', Number($('alarm-volume').value))));
 $('notice-style').addEventListener('change', async () => render(await invoke('notice-style', $('notice-style').value)));
 onClickRender('notice-test', 'notice-test');
+$('agent-notices').addEventListener('change', async () => render(await invoke('agent-notices', $('agent-notices').checked)));
 $('alarm-sound-test').addEventListener('click', async () => {
   if (alarmTesting) { alarmTesting = false; stopAlarmSound(); }
   else { alarmTesting = true; await startAlarmSound(); setTimeout(() => { if (alarmTesting) { alarmTesting = false; stopAlarmSound(); $('alarm-sound-test').textContent = 'Prova suono'; } }, 8000); }

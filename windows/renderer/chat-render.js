@@ -152,6 +152,7 @@ function render(value) {
   $('alarm-sound-remove').disabled = alarmSettings.sound !== 'custom';
   if (document.activeElement !== $('alarm-volume')) $('alarm-volume').value = alarmSettings.volume;
   $('notice-style').value = alarmSettings.notices === 'sistema' ? 'sistema' : 'fumetto';
+  $('agent-notices').checked = alarmSettings.agentNotices === true;
   $('alarm-sound-test').textContent = alarmTesting ? 'Ferma prova' : 'Prova suono';
   $('sum-note').textContent = noteCount ? `${noteCount} ${noteCount === 1 ? 'nota' : 'note'}` : 'Nessuna nota';
   $('sum-cartelle').textContent = `${folderCount} ${folderCount === 1 ? 'cartella' : 'cartelle'}`;

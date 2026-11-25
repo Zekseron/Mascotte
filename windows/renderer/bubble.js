@@ -45,8 +45,9 @@ function alarmRow(item) {
 
 function noticeRow(item) {
   const row = element('li', item.sticky ? 'notice sticky' : 'notice');
-  const text = button('text', undefined, () => window.mascotte.invoke('bubble-open', item.id));
-  text.title = 'Apri la micro chat';
+  // Avvisi di Claude e Codex: il clic sul testo chiude e basta (la chat di Mascotte non è il posto dell'agente).
+  const text = button('text', undefined, () => window.mascotte.invoke(item.agent ? 'bubble-dismiss' : 'bubble-open', item.id));
+  text.title = item.agent ? 'Chiudi avviso' : 'Apri la micro chat';
   const marker = element('span', 'marker');
   marker.setAttribute('aria-hidden', 'true');
   text.append(marker);

@@ -67,6 +67,14 @@ test('parser richiede autenticazione, formato ridotto e body completo', () => {
   assert.equal(parseRequest(Buffer.alloc(4097), token, states).status, 413);
   assert.equal(parseRequest(request().subarray(0, -1), token, states), null);
 });
+test('parser: terza chiave session solo come impronta opaca di 16 caratteri', () => {
+  const states = Object.keys(P.STATES.states);
+  const ok = parseRequest(request('{"state":"waiting","source":"claude","session":"0123456789abcdef"}'), token, states);
+  assert.deepEqual([ok.status, ok.event.session], [204, '0123456789abcdef']);
+  for (const session of ['0123456789ABCDEF', '0123456789abcde', '0123456789abcdef0', 'ses-123', 12, null])
+    assert.equal(parseRequest(request(JSON.stringify({ state: 'waiting', source: 'claude', session })), token, states).status, 400, String(session));
+  assert.equal(parseRequest(request('{"state":"waiting","source":"claude","session":"0123456789abcdef","cwd":"/x"}'), token, states).status, 400);
+});
 test('server reale loopback, bridge, richieste spezzate e cleanup', async t => {
   const directory = temporary(t), file = path.join(directory, 'events.json'), received = [];
   prepareDirectory(directory);

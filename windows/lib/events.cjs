@@ -33,7 +33,9 @@ function parseRequest(data, token, states) {
   if (body.length !== length) return { status: 400 };
   try {
     const event = JSON.parse(body.toString('utf8'));
-    if (!event || Array.isArray(event) || Object.keys(event).sort().join(',') !== 'source,state' ||
+    // Due chiavi (state, source) oppure tre con `session`: impronta opaca di 16 caratteri esadecimali (lib/notify.cjs).
+    const keys = event && !Array.isArray(event) ? Object.keys(event).sort().join(',') : '';
+    if (!['source,state', 'session,source,state'].includes(keys) || (keys.startsWith('session') && !/^[a-f0-9]{16}$/.test(String(event.session))) ||
       !states.includes(event.state) || !['codex', 'claude', 'manual'].includes(event.source)) return { status: 400 };
     return { status: 204, event };
   } catch { return { status: 400 }; }

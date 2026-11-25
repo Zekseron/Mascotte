@@ -60,6 +60,8 @@ Puoi anche usare modelli già presenti in Ollama o altri motori locali già avvi
 
 Dalla chat apri le **Impostazioni** (ingranaggio in alto a destra), premi **Crea / aggiorna hook**, leggi l'anteprima e scegli **Applica con backup**. L'app modifica solo `~/.claude/settings.json` e `~/.codex/config.toml` (su Windows nella tua cartella utente), conserva gli altri hook e salva copie `*.before-mascotte-*`. Poi riapri le sessioni Claude/Codex; Codex chiede di approvare i nuovi hook (nella CLI: `/hooks`). L'anteprima può contenere impostazioni personali: non condividerla.
 
+Con gli hook attivi puoi accendere anche **Avvisi di Claude e Codex nel fumetto** (Impostazioni → Sveglie e promemoria): «Claude ha concluso il turno» resta qualche secondo, «Codex è in attesa» resta finché non lo chiudi o finché quella sessione non riparte. Compaiono solo con la mascotte visibile e mai come notifiche di sistema.
+
 Se sposti l'app (per esempio nella cartella Applicazioni dopo aver fatto gli hook), premi di nuovo **Crea / aggiorna hook**: puntano alla posizione dell'app. Questa funzione è disponibile solo nell'app installata dal pacchetto, non quando la avvii dai sorgenti con `npm start`.
 
 ## Differenze tra Mac e Windows

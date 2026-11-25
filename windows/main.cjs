@@ -71,6 +71,8 @@ function startApplication() {
   const bubbleReady = () => Boolean(mascot) && !mascot.isDestroyed() && mascot.isVisible() && !quitting;
   const bubbleQueue = Bubble.createBubbleQueue({ onChange: items => syncBubble(items) });
   const MascotteNotification = Bubble.createNoticeRouter({ Notification, mode: () => settings?.notices, bubbleReady, queue: bubbleQueue, beep: () => shell.beep() });
+  // Avvisi di Claude e Codex dagli hook (lib/agent-notices.cjs): solo nel fumetto, mai come notifiche di sistema; spenti di predefinito.
+  const agentNotices = require('./lib/agent-notices.cjs').createAgentNotices({ queue: bubbleQueue, enabled: () => Boolean(settings?.agentNotices), ready: bubbleReady });
   // Nuovo elenco: la finestra lo disegna e comunica l'altezza (azione bubble-size), solo allora si posiziona e compare.
   function syncBubble(items = bubbleQueue.list()) {
     if (quitting) return;
@@ -481,7 +483,7 @@ function startApplication() {
     screen.on('display-metrics-changed', () => setScale(settings.scale));
     // Solo ora esistono controllo degli stati, finestre e tray: le sveglie scadute ad app chiusa possono reagire (B1).
     reminderScheduler.start(); powerMonitor.on('resume', scheduleReminders);
-    server = new EventServer(endpoint, Object.keys(P.STATES.states), event => { if (!currentRun) controller.set(event.state); });
+    server = new EventServer(endpoint, Object.keys(P.STATES.states), event => { if (!currentRun) controller.set(event.state); agentNotices.handle(event); });
     try { await server.start(process.env.MASCOTTE_PREVIEW ? 0 : 8766); }
     catch { notice = 'Server eventi non disponibile: controlla se la porta 8766 è occupata.'; }
     if (process.platform === 'win32') showChat();
@@ -803,6 +805,8 @@ function startApplication() {
       if (action === 'reminder-remove' && typeof data === 'string') { reminders.remove(data); scheduleReminders(); return chatSnapshot(); }
       // Dove compaiono gli avvisi di Mascotte: nel fumetto accanto alla mascotte o come notifiche di sistema, più una prova.
       if (action === 'notice-style' && typeof data === 'string') { settings.notices = Bubble.normalizeMode(data); saveSettings(); if (settings.notices === 'sistema') bubbleQueue.clear(); return chatSnapshot(); }
+      // Avvisi di Claude e Codex nel fumetto (richiedono gli hook); spegnendoli spariscono anche quelli già mostrati.
+      if (action === 'agent-notices' && typeof data === 'boolean') { settings.agentNotices = data; saveSettings(); if (!data) agentNotices.reset(); return chatSnapshot(); }
       if (action === 'notice-test') {
         if (!MascotteNotification.isSupported()) { notice = 'Le notifiche di sistema non sono disponibili su questo computer.'; return chatSnapshot(); }
         const where = new MascotteNotification({ title: 'Mascotte', body: 'Avviso di prova: gli avvisi di Mascotte compaiono così.', silent: true }).show();
@@ -973,8 +977,8 @@ function startApplication() {
   async function bubbleActions(action, data) {
       if (action === 'bubble-init') return bubbleQueue.list();
       if (action === 'bubble-size' && Number.isFinite(data) && data >= 0) { bubbleHeight = Math.min(Math.round(data), Bubble.MAX_HEIGHT); showBubble(); return; }
-      if (action === 'bubble-dismiss' && typeof data === 'string') { bubbleQueue.remove(data); return; }
-      if (action === 'bubble-open' && typeof data === 'string') { bubbleQueue.remove(data); showChat(); return; }
+      if (action === 'bubble-dismiss' && typeof data === 'string') { agentNotices.dismissed(data); bubbleQueue.remove(data); return; }
+      if (action === 'bubble-open' && typeof data === 'string') { agentNotices.dismissed(data); bubbleQueue.remove(data); showChat(); return; }
       // Sveglia nel fumetto: suono (bip o audio scelto, con il volume delle Impostazioni), «Ferma» e «Rimanda 5 minuti».
       if (action === 'bubble-alarm-sound') return { volume: settings.alarmVolume ?? 0.8, custom: settings.alarmSound === 'custom' ? AlarmSound.readSound(dataDirectory) : null };
       if (action === 'bubble-alarm' && ['stop', 'snooze'].includes(data)) {
