@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const { randomUUID } = require('node:crypto');
 const { pathToFileURL } = require('node:url');
-const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer, shell, systemPreferences, Notification, powerMonitor } = require('electron');
+const { app, BrowserWindow, Menu, Tray, nativeImage, ipcMain, screen, session, dialog, desktopCapturer, shell, systemPreferences, Notification, powerMonitor, clipboard } = require('electron');
 const Platform = require('./lib/platform.cjs');
 const { showMascot, keepAboveTaskbar } = require('./lib/mascot-window.cjs');
 const Capture = require('./lib/capture.cjs');
@@ -70,7 +70,17 @@ function startApplication() {
   let bubbleWindow = null, bubbleHeight = 0;
   const bubbleReady = () => Boolean(mascot) && !mascot.isDestroyed() && mascot.isVisible() && !quitting;
   const bubbleQueue = Bubble.createBubbleQueue({ onChange: items => syncBubble(items) });
-  const MascotteNotification = Bubble.createNoticeRouter({ Notification, mode: () => settings?.notices, bubbleReady, queue: bubbleQueue, beep: () => shell.beep() });
+  // Notifica di sistema non partita (evento `failed`): resta nel registro (senza il testo) e per la diagnostica; un promemoria
+  // ripiega sul fumetto o, se la mascotte è nascosta, sull'avviso in chat. Una sveglia ha già la sua finestra in chat.
+  let lastNotificationFailure = null;
+  function notificationFailed({ title, body, silent, alarm, error }) {
+    lastNotificationFailure = { at: Date.now(), error: String(error || '').slice(0, 200) };
+    ErrorLog.error('notifica di sistema non mostrata', new Error(lastNotificationFailure.error || 'errore sconosciuto'));
+    if (silent || alarm || quitting) return;
+    if (bubbleReady()) bubbleQueue.add({ title, body, sticky: true });
+    else { notice = infoNotice = `⏰ ${body}`; showChat(); broadcast(); }
+  }
+  const MascotteNotification = Bubble.createNoticeRouter({ Notification, mode: () => settings?.notices, bubbleReady, queue: bubbleQueue, beep: () => shell.beep(), onFailed: notificationFailed });
   // Avvisi di Claude e Codex dagli hook (lib/agent-notices.cjs): solo nel fumetto, mai come notifiche di sistema; spenti di predefinito.
   const agentNotices = require('./lib/agent-notices.cjs').createAgentNotices({ queue: bubbleQueue, enabled: () => Boolean(settings?.agentNotices), ready: bubbleReady });
   // Nuovo elenco: la finestra lo disegna e comunica l'altezza (azione bubble-size), solo allora si posiziona e compare.
@@ -857,6 +867,59 @@ function startApplication() {
       if (action === 'setup-dismiss') { setupPreview = null; return chatSnapshot(); }
       return NEXT;
   }
+  // Diagnostica (lib/diagnostics.cjs): raccoglie i fatti in locale, senza inviare nulla; il resoconto resta in memoria.
+  const Diagnostics = require('./lib/diagnostics.cjs');
+  let diagnosticReport = '', testNotification = null;
+  const commandOk = (file, args, env = process.env) => new Promise(resolve => {
+    try { require('node:child_process').execFile(file, args, { timeout: 8000, windowsHide: true, env }, error => resolve(!error)); }
+    catch { resolve(false); }
+  });
+  // Notifica di prova di sistema (senza fumetto): 'ok' se il sistema la mostra, 'failed' se Electron segnala un errore.
+  function probeSystemNotification() {
+    return new Promise(resolve => {
+      if (!Notification.isSupported()) { resolve('failed'); return; }
+      const done = result => { clearTimeout(timer); testNotification = null; resolve(result); };
+      const timer = setTimeout(() => done('unknown'), 3000);
+      testNotification = new Notification({ title: 'Mascotte · diagnostica', body: 'Notifica di prova della diagnostica.', silent: true });
+      testNotification.once('failed', (_event, error) => { lastNotificationFailure = { at: Date.now(), error: String(error || '').slice(0, 200) }; ErrorLog.error('notifica di prova della diagnostica non mostrata', new Error(lastNotificationFailure.error || 'errore sconosciuto')); done('failed'); });
+      testNotification.once('show', () => done('ok'));
+      try { testNotification.show(); } catch (error) { ErrorLog.error('notifica di prova della diagnostica', error); done('failed'); }
+    });
+  }
+  async function diagnosticFacts() {
+    const mac = process.platform === 'darwin', bundle = mac && app.isPackaged ? path.resolve(process.execPath, '..', '..', '..') : null;
+    const cli = {};
+    for (const agent of ['claude', 'codex']) {
+      const found = CLI.findCLI(agent);
+      if (!found) { cli[agent] = { found: false }; continue; }
+      const env = { ...process.env, ...found.env, PATH: [process.env.PATH, ...(found.pathDirs || [])].filter(Boolean).join(path.delimiter) };
+      // Solo il codice d'uscita: l'output (che può contenere l'account) non viene letto né salvato.
+      cli[agent] = { found: true, login: await commandOk(found.file, [...found.prefix, ...(agent === 'claude' ? ['auth', 'status'] : ['login', 'status'])], env) };
+    }
+    return {
+      signatureTrusted: bundle ? await commandOk('/usr/bin/codesign', ['--verify', '-R=anchor trusted', bundle]) : null,
+      notificationTest: await probeSystemNotification(), lastNotificationFailure: Boolean(lastNotificationFailure),
+      notices: settings.notices, mascotVisible: bubbleReady(), agentNotices: Boolean(settings.agentNotices),
+      screenAccess: mac ? systemPreferences.getMediaAccessStatus('screen') : null,
+      hooks: hooksState(), cli, localAvailable, eventServer: Boolean(server?.server?.listening),
+      inApplications: bundle ? bundle.startsWith('/Applications/') : null,
+    };
+  }
+  // Impostazioni → Diagnostica: «Controlla», «Copia resoconto», pagine di Impostazioni di Sistema e guida ai problemi.
+  async function diagnosticsActions(action, data) {
+      if (action === 'diagnostics-run') {
+        const results = Diagnostics.evaluate(await diagnosticFacts());
+        diagnosticReport = Diagnostics.report(results, { version: app.getVersion(), platform: process.platform, osVersion: process.getSystemVersion?.() });
+        return { results, at: Date.now() };
+      }
+      if (action === 'diagnostics-copy') { if (diagnosticReport) clipboard.writeText(diagnosticReport); return { copied: Boolean(diagnosticReport) }; }
+      if (action === 'diagnostics-open' && typeof data === 'string') {
+        if (process.platform === 'darwin' && Object.hasOwn(Diagnostics.MAC_SETTINGS, data)) await shell.openExternal(Diagnostics.MAC_SETTINGS[data]);
+        else if (/^[a-z-]{1,40}$/.test(data)) await shell.openExternal(`${Diagnostics.GUIDE}#${data}`);
+        return null;
+      }
+      return NEXT;
+  }
   // Invio di un messaggio.
   async function sendAction(action, data) {
       if (action === 'send') {
@@ -972,7 +1035,7 @@ function startApplication() {
       return NEXT;
   }
   const MASCOT_ACTIONS = [mascotActions];
-  const CHAT_ACTIONS = [chatAgentActions, localEngineActions, memoryAndPcActions, guideActions, releaseUpdateActions, characterActions, folderActions, repoUpdateActions, watchActions, chatWindowActions, reminderActions, conversationActions, setupActions, sendAction];
+  const CHAT_ACTIONS = [chatAgentActions, localEngineActions, memoryAndPcActions, guideActions, releaseUpdateActions, characterActions, folderActions, repoUpdateActions, watchActions, chatWindowActions, reminderActions, conversationActions, setupActions, diagnosticsActions, sendAction];
   // Fumetto: elenco iniziale, altezza del contenuto, chiusura di un avviso, apertura della chat da un avviso.
   async function bubbleActions(action, data) {
       if (action === 'bubble-init') return bubbleQueue.list();

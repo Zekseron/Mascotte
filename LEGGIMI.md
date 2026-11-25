@@ -87,6 +87,7 @@ Apri `viewer/index.html` (nella repo) con il browser e trascina la cartella `cha
 
 ## Altre guide
 
+- [PROBLEMI.md](PROBLEMI.md): se qualcosa non funziona (notifiche, firma, hook, accessi), con i passi per sistemarlo. Nell'app: Impostazioni → **Diagnostica** → Controlla.
 - [PRIVACY.md](PRIVACY.md): quali dati escono dal computer e quali no.
 - [WINDOWS.md](WINDOWS.md): guida Windows.
 - Nella repo: `README.md` (panoramica), `windows/README.md` (comandi, limiti e prove).

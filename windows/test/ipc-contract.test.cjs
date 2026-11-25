@@ -23,7 +23,7 @@ const CHAT = [
   'memory-add', 'memory-remove', 'open-request', 'pc-action-cancel', 'pc-action-confirm', 'cli-guide', 'release-update', 'character-select', 'character-scale',
   'character-colors', 'character-add', 'character-remove', 'folders-add', 'folders-remove', 'repo-select', 'update-run', 'watch-sources', 'watch-permission-settings',
   'watch-thumbnail', 'watch-enable', 'watch-disable', 'chat-hide', 'engine', 'reminder-remove', 'alarm-volume', 'alarm-sound-data', 'alarm-sound-remove', 'alarm-sound-choose',
-  'alarm-stop', 'alarm-snooze', 'notice-style', 'notice-test', 'agent-notices', 'new', 'second-opinion-frame', 'stop', 'setup-preview', 'setup-apply', 'setup-dismiss', 'send'
+  'alarm-stop', 'alarm-snooze', 'notice-style', 'notice-test', 'agent-notices', 'diagnostics-run', 'diagnostics-copy', 'diagnostics-open', 'new', 'second-opinion-frame', 'stop', 'setup-preview', 'setup-apply', 'setup-dismiss', 'send'
 ];
 // Solo il fumetto degli avvisi (gestore `bubbling`).
 const BUBBLE = ['bubble-init', 'bubble-size', 'bubble-dismiss', 'bubble-open', 'bubble-alarm-sound', 'bubble-alarm'];
@@ -66,10 +66,10 @@ test('azioni del fumetto: elenco fisso, gruppo chiuso da return NEXT', () => {
   assert.match(body, /\n      return NEXT;\n  \}\n/);
 });
 
-test('64 azioni distinte e nessuna in comune tra le tre finestre', () => {
+test('67 azioni distinte e nessuna in comune tra le tre finestre', () => {
   const all = names(source.slice(kittyStart, groupsEnd) + source.slice(bubbleStart, bubbleEnd));
-  assert.equal(all.length, 64);
-  assert.equal(MASCOT.length + CHAT.length + BUBBLE.length, 64);
+  assert.equal(all.length, 67);
+  assert.equal(MASCOT.length + CHAT.length + BUBBLE.length, 67);
   assert.deepEqual(all.sort(), [...MASCOT, ...CHAT, ...BUBBLE].sort());
   assert.equal(MASCOT.filter(name => CHAT.includes(name) || BUBBLE.includes(name)).length, 0);
   assert.equal(CHAT.filter(name => BUBBLE.includes(name)).length, 0);

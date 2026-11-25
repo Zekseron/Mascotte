@@ -73,7 +73,9 @@ function bubblePlacement(mascot, size, workArea) {
 // con il fumetto scelto e la mascotte visibile l'avviso va nel fumetto, altrimenti resta la notifica di sistema.
 // Gli avvisi con suono (silent: false) restano finché non li chiudi e fanno il suono di avviso del sistema; una sveglia
 // (alarm: true) ha invece il suo suono, suonato dal fumetto. Alla notifica di sistema l'opzione alarm non arriva.
-function createNoticeRouter({ Notification, mode, bubbleReady, queue, beep = () => {} }) {
+// onFailed: la notifica di sistema non è partita (evento `failed` di Electron, per esempio su un Mac che non si fida
+// della firma dell'app): chi la riceve decide il ripiego. Senza ascoltarlo l'errore si perdeva in silenzio.
+function createNoticeRouter({ Notification, mode, bubbleReady, queue, beep = () => {}, onFailed = () => {} }) {
   const useBubble = () => normalizeMode(mode()) === 'fumetto' && Boolean(bubbleReady());
   return class MascotteNotification {
     static isSupported() { return useBubble() || Notification.isSupported(); }
@@ -81,7 +83,9 @@ function createNoticeRouter({ Notification, mode, bubbleReady, queue, beep = () 
     show() {
       const { alarm, ...options } = this.options, { title, body, silent } = options;
       if (useBubble()) { queue.add({ title, body, sticky: !silent, alarm: Boolean(alarm) }); if (!silent && !alarm) beep(); return 'fumetto'; }
-      new Notification(options).show();
+      const notification = new Notification(options);
+      notification.on?.('failed', (_event, error) => onFailed({ title, body, silent: Boolean(silent), alarm: Boolean(alarm), error: String(error || '') }));
+      notification.show();
       return 'sistema';
     }
   };

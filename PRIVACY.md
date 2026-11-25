@@ -59,6 +59,11 @@ Questa sezione descrive la modalità **Chat**. La modalità **Agente** ha capaci
 - **Niente immagini nella cronologia.** La cronologia conserva solo il testo, compresa la riga «[Fotogramma condiviso: titolo della finestra]» con il titolo della finestra. Con Claude l'immagine viaggia sullo standard input della CLI, senza file; con Codex viene scritta in un file temporaneo (cartella `mascotte-share-…` nei dati dell'app, permessi riservati all'utente) che viene cancellato a fine richiesta e ripulito al successivo avvio se l'app si era interrotta.
 - **Secondo parere con schermata.** Quando il modello locale ha analizzato un fotogramma, Mascotte lo tiene **solo in memoria per 10 minuti** (si cancella prima con «Nuova» nella chat locale o chiudendo Mascotte; non viene mai scritto su disco né nella cronologia) per poterlo mandare a Codex o Claude con «Secondo parere con schermata…». Prima dell'invio vedi servizio, testo modificabile e anteprima dell'immagine, e puoi togliere l'immagine o annullare: senza la tua conferma non parte nulla. Il secondo parere non invia la cronologia della chat.
 
+## Diagnostica
+
+- Impostazioni → Diagnostica esegue i controlli solo sul computer e non invia nulla. Per gli accessi a Claude Code e Codex legge solo l'esito dei comandi `claude auth status` e `codex login status`, non il loro testo (che può contenere l'account). Il controllo mostra una notifica di prova. Il resoconto da copiare contiene solo versione, sistema ed esiti, resta in memoria e lo copi tu negli appunti.
+- Se una notifica di sistema non parte, in `errori.log` resta solo il messaggio d'errore del sistema, mai il testo del promemoria.
+
 ## Hook delle sessioni esterne
 
 - Sono facoltativi: si applicano dalle Impostazioni → «Crea / aggiorna hook», dopo un'anteprima, con backup `*.before-mascotte-*` accanto ai file. Modificano solo la configurazione di Claude (`~/.claude/settings.json`) e di Codex (`~/.codex/config.toml`, o i percorsi `CLAUDE_CONFIG_DIR` / `CODEX_HOME`), conservano gli altri hook e non leggono i file di login. Se la configurazione cambia tra anteprima e applicazione, la scrittura è rifiutata. L'anteprima può contenere impostazioni personali del destinatario: non condividerla.
