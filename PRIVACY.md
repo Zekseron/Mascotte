@@ -1,4 +1,4 @@
-# Dati e limiti — Windows 0.9.9 e Mac 0.10.0
+# Dati e limiti — Windows 0.9.9 e Mac 0.10.1
 
 Questa pagina vale per l'app Electron attuale, su Windows x64 e su Mac Apple Silicon. Le differenze tra i due sistemi sono indicate dove ci sono. La vecchia app Swift per Mac (cartella `app/`) non è più distribuita e non è descritta qui.
 

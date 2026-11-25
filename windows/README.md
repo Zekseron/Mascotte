@@ -1,4 +1,4 @@
-# Mascotte — Windows 0.9.9 e Mac 0.10.0
+# Mascotte — Windows 0.9.9 e Mac 0.10.1
 
 La nuova [modalità Agente](../AGENTI.md) è verificata su Windows con Codex; Claude reale e le nuove funzioni comuni sul Mac restano da collaudare. La chat normale e quella locale restano disponibili separatamente.
 
@@ -10,7 +10,7 @@ Prima app Windows: gattino Rosso trasparente e trascinabile, menu nell'area di n
 
 Apri `Mascotte-Setup-0.9.9-x64.exe` per installare Mascotte nel profilo Windows e creare il collegamento. L'installer non richiede Git o Node.js. L'app e l'installer sono ancora privi di firma digitale: Windows potrebbe chiedere una verifica della provenienza. Per rimuoverla usa **Impostazioni → App → Mascotte → Disinstalla**; le impostazioni e la chat in `%LOCALAPPDATA%\Mascotte` restano sul PC.
 
-In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Installer e ZIP Windows sono nella [release 0.9.9](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.9); il pacchetto Mac Apple Silicon più recente è nella [release 0.10.0](https://github.com/Zekseron/Mascotte/releases/tag/v0.10.0).
+In alternativa puoi usare la versione portatile ZIP descritta qui sotto. Installer e ZIP Windows sono nella [release 0.9.9](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.9); il pacchetto Mac Apple Silicon più recente è nella [release 0.10.1](https://github.com/Zekseron/Mascotte/releases/tag/v0.10.1).
 
 ### Feedback e identificazione della build
 

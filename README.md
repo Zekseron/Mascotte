@@ -4,7 +4,7 @@
 
 Una mascotte desktop per **Windows (x64)** e **Mac (Apple Silicon)** che reagisce con animazioni a Claude Code e Codex, e che all'occorrenza fa domande al volo, risponde con un'IA locale o guarda una finestra che scegli tu. Il personaggio è intercambiabile: sono inclusi il gattino in pixel art Rosso e Luma, illustrata.
 
-Versioni distribuite: [Mac Apple Silicon 0.10.0](https://github.com/Zekseron/Mascotte/releases/tag/v0.10.0) e [Windows 0.9.9](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.9). I due pacchetti possono essere aggiornati in momenti diversi.
+Versioni distribuite: [Mac Apple Silicon 0.10.1](https://github.com/Zekseron/Mascotte/releases/tag/v0.10.1) e [Windows 0.9.9](https://github.com/Zekseron/Mascotte/releases/tag/v0.9.9). I due pacchetti possono essere aggiornati in momenti diversi.
 
 Progetto e decisioni: [DESIGN.md](DESIGN.md).
 
