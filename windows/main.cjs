@@ -494,8 +494,9 @@ function startApplication() {
     // Solo ora esistono controllo degli stati, finestre e tray: le sveglie scadute ad app chiusa possono reagire (B1).
     reminderScheduler.start(); powerMonitor.on('resume', scheduleReminders);
     server = new EventServer(endpoint, Object.keys(P.STATES.states), event => { if (!currentRun) controller.set(event.state); agentNotices.handle(event); });
-    try { await server.start(process.env.MASCOTTE_PREVIEW ? 0 : 8766); }
-    catch { notice = 'Server eventi non disponibile: controlla se la porta 8766 è occupata.'; }
+    // Porta 8766, poi le riserve, poi una porta libera scelta dal sistema (lib/events.cjs): gli hook la leggono da events.json.
+    try { await (process.env.MASCOTTE_PREVIEW ? server.start(0) : server.startFirst()); }
+    catch (error) { ErrorLog.error('server degli eventi non avviato', error); notice = 'Mascotte non riesce a ricevere gli eventi degli hook: apri Impostazioni → Diagnostica.'; }
     if (process.platform === 'win32') showChat();
     console.log('Mascotte pronta. Nessuna richiesta IA automatica.');
   }).catch(error => { dialog.showErrorBox('Mascotte non riesce ad avviarsi', error.message); app.quit(); });
@@ -886,6 +887,19 @@ function startApplication() {
       try { testNotification.show(); } catch (error) { ErrorLog.error('notifica di prova della diagnostica', error); done('failed'); }
     });
   }
+  // Chi tiene occupata una porta in ascolto su questo computer: solo il nome del programma, per la Diagnostica.
+  const EVENT_PORTS = require('./lib/events.cjs').PORTS;
+  const commandOutput = (file, args) => new Promise(resolve => {
+    try { require('node:child_process').execFile(file, args, { timeout: 5000, windowsHide: true, maxBuffer: 1 << 20 }, (error, stdout) => resolve(error ? '' : String(stdout))); }
+    catch { resolve(''); }
+  });
+  async function portOwner(port) {
+    if (process.platform === 'darwin') return Diagnostics.parseLsofCommand(await commandOutput('/usr/sbin/lsof', ['-nP', `-iTCP:${port}`, '-sTCP:LISTEN', '-Fc']));
+    if (process.platform !== 'win32') return null;
+    const system32 = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32');
+    const pid = Diagnostics.parseNetstatPid(await commandOutput(path.join(system32, 'netstat.exe'), ['-ano', '-p', 'TCP']), port);
+    return pid ? Diagnostics.parseTasklistName(await commandOutput(path.join(system32, 'tasklist.exe'), ['/FI', `PID eq ${pid}`, '/FO', 'CSV', '/NH'])) : null;
+  }
   async function diagnosticFacts() {
     const mac = process.platform === 'darwin', bundle = mac && app.isPackaged ? path.resolve(process.execPath, '..', '..', '..') : null;
     const cli = {};
@@ -902,6 +916,8 @@ function startApplication() {
       notices: settings.notices, mascotVisible: bubbleReady(), agentNotices: Boolean(settings.agentNotices),
       screenAccess: mac ? systemPreferences.getMediaAccessStatus('screen') : null,
       hooks: hooksState(), cli, localAvailable, eventServer: Boolean(server?.server?.listening),
+      eventPort: server?.port ?? null, preferredPort: EVENT_PORTS[0], preferredBusy: Boolean(server?.preferredBusy),
+      preferredOwner: server?.preferredBusy ? await portOwner(EVENT_PORTS[0]) : null,
       inApplications: bundle ? bundle.startsWith('/Applications/') : null,
     };
   }

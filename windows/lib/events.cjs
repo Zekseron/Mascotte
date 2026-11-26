@@ -44,6 +44,11 @@ function response(status) {
   const reasons = { 204: 'No Content', 400: 'Bad Request', 401: 'Unauthorized', 403: 'Forbidden', 404: 'Not Found', 405: 'Method Not Allowed', 413: 'Payload Too Large', 415: 'Unsupported Media Type', 429: 'Too Many Requests' };
   return `HTTP/1.1 ${status} ${reasons[status]}\r\nContent-Length: 0\r\nConnection: close\r\n\r\n`;
 }
+// Porta preferita e due riserve: nessuna appartiene a un protocollo standard e nessuna è sotto 1024 (riservate al
+// sistema e ai servizi come SSH 22 o HTTPS 443). Se sono tutte occupate si chiede al sistema una porta libera (0):
+// macOS e Windows la prendono solo dall'intervallo temporaneo 49152–65535. Una porta già in ascolto non si può prendere
+// (EADDRINUSE). Gli hook non conoscono il numero: lo leggono da events.json, che il server riscrive a ogni avvio.
+const PORTS = Object.freeze([8766, 8767, 8768]);
 class EventServer {
   constructor(file, states, onEvent) { Object.assign(this, { file, states, onEvent, token: crypto.randomBytes(32).toString('hex'), sockets: new Set() }); }
   start(port = 8766) {
@@ -81,10 +86,20 @@ class EventServer {
       });
     });
   }
+  // Avvio con ripiego: prima porta libera dell'elenco, poi quella del sistema. preferredBusy: la preferita era occupata.
+  async startFirst(ports = PORTS) {
+    let last = null;
+    for (const port of [...ports, 0]) {
+      try { const got = await this.start(port); this.preferredBusy = port !== ports[0]; return got; }
+      catch (error) { last = error; if (!['EADDRINUSE', 'EACCES'].includes(error?.code)) throw error; }
+    }
+    throw last;
+  }
+  get port() { return this.server?.listening ? this.server.address().port : null; }
   async close() {
     if (readJSON(this.file, {}).token === this.token) fs.unlinkSync(this.file);
     for (const s of this.sockets) s.destroy();
     if (this.server?.listening) await new Promise(resolve => this.server.close(resolve));
   }
 }
-module.exports = { parseRequest, response, EventServer };
+module.exports = { parseRequest, response, EventServer, PORTS };

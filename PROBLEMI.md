@@ -134,11 +134,13 @@ Se le notifiche di sistema non funzionano, gli avvisi non vanno persi: compaiono
 <a id="eventi"></a>
 ## Ricezione degli eventi
 
-**Cosa significa.** Mascotte non riesce ad aprire il canale che riceve gli avvisi degli hook, di solito perché un'altra copia di Mascotte è già aperta.
+**Cosa significa.** Per ricevere gli avvisi degli hook Mascotte apre una «porta» solo sul computer (non verso Internet). Di solito è la **8766**.
 
-1. Chiudi tutte le copie di Mascotte (clic destro sull'icona → **Esci**).
-2. Riapri Mascotte una volta sola.
-3. Ripeti il controllo. Se resta ❌, riavvia il computer.
+- **ℹ️ «La porta abituale 8766 è già usata da …»:** un altro programma usa già quella porta, quindi Mascotte ne ha scelta un'altra da sola: prima 8767 o 8768, altrimenti una libera indicata dal sistema. **Non devi fare nulla**: gli hook trovano la porta giusta da soli. Mascotte non usa mai porte riservate a servizi come SSH (22) o HTTPS (443), e non può prendere una porta già usata da un altro programma.
+- **❌ «Mascotte non riesce a ricevere gli eventi»:** il canale non si è aperto affatto.
+  1. Chiudi tutte le copie di Mascotte (clic destro sull'icona → **Esci**).
+  2. Riapri Mascotte una volta sola.
+  3. Ripeti il controllo. Se resta ❌, riavvia il computer.
 
 <a id="posizione"></a>
 ## Posizione dell'app (solo Mac)

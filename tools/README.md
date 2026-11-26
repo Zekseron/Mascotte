@@ -1,6 +1,6 @@
 # Eventi da Claude Code e Codex
 
-L'app riceve `POST /event` solo su `127.0.0.1:8766`. All'avvio scrive
+La vecchia app riceveva `POST /event` solo su `127.0.0.1:8766`; l'app attuale usa 8766 o, se è occupata, un'altra porta, sempre indicata in `events.json`. All'avvio scrive
 `~/Library/Application Support/Mascotte/events.json`, con porta e token casuale,
 permessi `0600`; alla chiusura rimuove il proprio file. Richiesta massima 4 KiB,
 corpo massimo 512 byte, una richiesta per connessione, timeout 1 s. Nessun CORS;

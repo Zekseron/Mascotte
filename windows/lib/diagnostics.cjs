@@ -57,9 +57,13 @@ const CHECKS = [
   { id: 'ia-locale', title: 'IA locale', help: 'ia-locale', settings: null, check: f => f.localAvailable
     ? { stato: 'ok', testo: 'Il motore locale risponde.' }
     : { stato: 'info', testo: 'Il motore locale non è pronto. È facoltativo: serve per la chat locale, i promemoria e i comandi come «apri».' } },
-  { id: 'eventi', title: 'Ricezione degli eventi', help: 'eventi', settings: null, check: f => f.eventServer
-    ? { stato: 'ok', testo: 'Mascotte è pronta a ricevere gli eventi degli hook.' }
-    : { stato: 'problema', testo: 'Mascotte non riesce a ricevere gli eventi degli hook (la porta 8766 è occupata da un altro programma?): la mascotte non reagirà alle sessioni. Chiudi le altre copie di Mascotte e riavviala.' } },
+  { id: 'eventi', title: 'Ricezione degli eventi', help: 'eventi', settings: null, check: f => {
+    if (!f.eventServer) return { stato: 'problema', testo: 'Mascotte non riesce a ricevere gli eventi degli hook: la mascotte non reagirà alle sessioni di Claude Code e Codex. Chiudi le altre copie di Mascotte e riaprila.' };
+    const port = Number.isInteger(f.eventPort) ? ` sulla porta ${f.eventPort}` : '';
+    if (!f.preferredBusy) return { stato: 'ok', testo: `Mascotte è pronta a ricevere gli eventi degli hook${port}.` };
+    const owner = f.preferredOwner ? `da «${f.preferredOwner}»` : 'da un altro programma';
+    return { stato: 'info', testo: `La porta abituale ${f.preferredPort || 8766} è già usata ${owner}, quindi Mascotte riceve gli eventi${port}. Gli hook la trovano da soli: non devi fare nulla.` };
+  } },
   { id: 'posizione', title: 'Posizione dell’app', help: 'posizione', settings: null, mac: true, check: f => {
     if (f.inApplications === null || f.inApplications === undefined) return null;
     return f.inApplications
@@ -91,4 +95,23 @@ const MAC_SETTINGS = {
   'registrazione-schermo': 'x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture',
 };
 
-module.exports = { evaluate, report, CHECKS, MAC_SETTINGS, GUIDE, ICON };
+// Nome del programma che tiene una porta in ascolto. Mac: `lsof -Fc` (righe «p<pid>», «c<nome>»). Windows: `netstat -ano`
+// (riga TCP in LISTENING sulla porta → PID) e `tasklist /FO CSV /NH` (primo campo = nome). Nomi lunghi o strani: scartati.
+const cleanName = name => typeof name === 'string' && /^[\w .()+-]{1,60}$/.test(name.trim()) ? name.trim() : null;
+function parseLsofCommand(stdout) {
+  const line = String(stdout || '').split(/\r?\n/).find(l => l.startsWith('c'));
+  return line ? cleanName(line.slice(1)) : null;
+}
+function parseNetstatPid(stdout, port) {
+  for (const line of String(stdout || '').split(/\r?\n/)) {
+    const cols = line.trim().split(/\s+/);
+    if (cols.length >= 5 && /^TCP$/i.test(cols[0]) && new RegExp(`[:.]${port}$`).test(cols[1]) && /^(LISTENING|IN ASCOLTO)$/i.test(cols[3]) && /^\d+$/.test(cols[4])) return Number(cols[4]);
+  }
+  return null;
+}
+function parseTasklistName(stdout) {
+  const match = String(stdout || '').match(/^"([^"]+)"/m);
+  return match ? cleanName(match[1]) : null;
+}
+
+module.exports = { evaluate, report, CHECKS, MAC_SETTINGS, GUIDE, ICON, parseLsofCommand, parseNetstatPid, parseTasklistName };
